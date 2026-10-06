@@ -1,0 +1,9 @@
+model Model
+
+ref table demo_sites
+ref table demo_assets
+
+ref entity Site
+ref entity Asset
+
+ref namespace default

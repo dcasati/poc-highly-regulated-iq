@@ -1,0 +1,26 @@
+/// An operating site that contains assets.
+entity Site
+	lineageTag: cc1d534a-14d2-4655-b511-4d756afa6867
+	backingTable: demo_sites
+	keyProperty: SiteId
+
+	/// Stable identifier of the site.
+	property SiteId
+		dataType: string
+		lineageTag: f18d1682-1bdc-4888-909a-d3bdde274748
+		backingConfiguration
+			valueColumn: demo_sites.site_id
+
+	property SiteName
+		dataType: string
+		lineageTag: 858529e8-4707-4f13-95ce-bcbdf9c4a6d1
+		backingConfiguration
+			valueColumn: demo_sites.site_name
+
+	property Region
+		dataType: string
+		lineageTag: ab94c032-64f8-4324-8a28-2eb9a7091706
+		backingConfiguration
+			valueColumn: demo_sites.region
+
+	annotation BootstrapBinding = site-asset-v1

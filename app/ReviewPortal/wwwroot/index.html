@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Private document review</title>
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/portal.js" defer></script>
+</head>
+<body>
+  <header><div><strong>Private document review</strong><p>Evidence assistance. Human judgment remains authoritative.</p></div><button id="signin">Sign in</button></header>
+  <p id="notice" role="status" aria-live="polite">Sign in with your organizational account to begin.</p>
+  <main>
+    <aside class="card"><h1>Applications</h1><p>Upload an exported PDF package. No connection to existing business systems is made.</p>
+      <form id="upload"><label for="pdf">Application and attachments (PDF)</label><input id="pdf" type="file" accept="application/pdf" required><button disabled>Upload securely</button></form>
+      <button id="refresh" disabled>Refresh cases</button><ul id="cases"></ul>
+    </aside>
+    <section class="card"><h2>Human validation</h2><p id="state">Select an application.</p>
+      <button id="original" disabled>Download original PDF</button><button id="retry" hidden>Retry failed processing</button>
+      <form id="review"><div class="table-scroll"><table><thead><tr><th>Field</th><th>Value to confirm</th><th>Confidence / evidence</th><th>Confirmed</th></tr></thead><tbody id="fields"></tbody></table></div>
+        <p>Blank values remain explicitly missing. A detected signature does not prove authority or validity.</p>
+        <button id="approve" disabled>Confirm fields and publish evidence</button>
+      </form>
+    </section>
+    <section class="card chat"><h2>Ask about this application</h2><p>Questions are limited to your selected, reviewed case. Answers cannot grant or deny an application.</p>
+      <form id="chat"><label for="question">Question</label><textarea id="question" maxlength="4000" required></textarea><button disabled>Ask review assistant</button></form>
+      <div id="answer" aria-live="polite"></div><div id="references"></div>
+    </section>
+  </main>
+</body>
+</html>

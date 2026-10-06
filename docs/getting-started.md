@@ -1,0 +1,29 @@
+# Getting started
+
+This derived repository deploys the **private document-review scenario**, not the upstream Fabric development baseline. The [scenario tutorial](highly-regulated-scenario.md) is the detailed deployment and acceptance guide.
+
+## Establish ownership before provisioning
+
+Use the published, reviewed repository commit on one approved execution host with private connectivity. Reuse any existing configuration/backend for this deployment; missing files in an App worktree are not permission to create a second state owner.
+
+Configure distinct secured remote backend keys for `infra/highly-regulated/` and, if required, `infra/acr-build/`. Keep credentials, real tfvars, backend configuration, saved plans and state out of Git. The subscription comes from the selected Azure CLI account or standard `ARM_*` variables, not committed configuration.
+
+## Confirm prerequisites
+
+Have the existing owners confirm private Foundry, Search S1 or higher, Blob Storage, networking/private DNS, a prompt agent, approved Content Understanding model defaults and the required service identities/shared links. Administrators own SPA/API registrations, consent, user roles, certificates and immutable retention. This project does not recreate the private AI foundation or grant tenant-wide permissions.
+
+Supply a generic project name and explicit region, verified existing-resource references and approved subnet choices. The application image, hosting platform and transport need organization-approved cryptographic evidence. Private connectivity or a FIPS node flag is not certification.
+
+## Follow the staged workflow
+
+1. Configure the ignored scenario tfvars on the chosen host and review/apply the saved **platform** plan.
+2. Approve the required processing/billing shared links through their owners; review/apply the saved **knowledge** plan.
+3. Use an approved private ACR build pool, or review/apply the separate **build-pool** plan. Build with `az acr build --agent-pool` and the approved runtime image digest.
+4. Verify the output image digest in the scenario's runtime registry, complete compliance approvals and review/apply the saved **runtime** plan.
+5. Run synthetic-only identity, network, extraction, human-review, indexing, case-isolation, recovery and cryptographic acceptance checks.
+
+In Copilot App or CLI, say **"Deploy the platform."** The [repository skill](../.github/skills/deploy-platform/SKILL.md) coordinates these stages without AZD hooks, custom deployment wrappers, automatic plan approval or a claim that an apply proves readiness.
+
+Do not run the inherited Fabric initializer, apply `infra/`, synchronize its workspace items or execute its notebooks for this scenario. Those files are upstream reference material only.
+
+See [developer setup](development.md) for execution-host routing and local synthetic checks.

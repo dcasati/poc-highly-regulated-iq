@@ -1,0 +1,15 @@
+project_name = "<generic-project-name>"
+location     = "<approved-registry-and-vnet-region>"
+registry = {
+  name                = "<existing-private-premium-registry>"
+  resource_group_name = "<existing-registry-resource-group>"
+}
+build_subnet = {
+  name                 = "<approved-dedicated-build-subnet>"
+  virtual_network_name = "<existing-build-vnet>"
+  resource_group_name  = "<existing-network-resource-group>"
+}
+tier                       = "S2"
+instance_count             = 1
+preview_approved           = false
+network_approval_reference = "<approved-nonsensitive-network-review-reference>"

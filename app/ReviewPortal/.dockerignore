@@ -1,0 +1,10 @@
+bin/
+obj/
+appsettings*.json
+.env*
+.git/
+*.key
+*.pem
+*.pfx
+*.p12
+*.log

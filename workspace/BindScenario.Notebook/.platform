@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "BindScenario",
+    "description": "Refresh the seeded tables' SQL metadata and bind ScenarioOntology to the current workspace's Scenario lakehouse."
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "52c47324-b4ec-4504-b6af-62fbf6ead50f"
+  }
+}

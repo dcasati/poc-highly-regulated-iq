@@ -1,0 +1,28 @@
+project_name           = "<project-name>"
+location               = "<azure-region>"
+fabric_capacity_admins = ["<your-user-principal-name>"]
+github_owner           = "<github-organization-or-user>"
+github_repository_name = "<new-repository-name>"
+github_branch_name     = "<published-bootstrap-branch>"
+
+knowledge_lakehouse_id = null
+knowledge_ontologies   = {}
+
+# Edit all six values for your derived repository, or use the initialize-project skill.
+# project_name: 3-16 lowercase letters/digits/single hyphens; start with a letter.
+# Capacity admins: user UPNs or service-principal object IDs.
+# Select the new repository's published default branch, not a local agent worktree branch.
+# Defaults: F2 capacity, Basic Search; Git bootstrap uses /workspace.
+# First apply creates the platform, not the Git connection or workspace items.
+# After Git sync with Bootstrap and successful seed/binding runs, replace null with the
+# DEV Scenario lakehouse's physical GUID (not its .platform logicalId) and apply again.
+# Register the bound ontology in that same knowledge apply:
+# knowledge_ontologies = {
+#   scenario = {
+#     ontology_id = "<dev-ScenarioOntology-physical-guid>"
+#     description = "Current sites, assets, their status, and which site each asset belongs to."
+#   }
+# }
+# Ontology queries require delegated user authentication at runtime, not a saved token.
+# Guided Codespaces deployment reads the FABRIC_GITHUB_TOKEN Codespaces secret.
+# Set TF_VAR_github_token in your shell; never add a PAT to this file.

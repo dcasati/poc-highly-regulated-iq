@@ -1,0 +1,31 @@
+/// A physical asset with an operating status, located at one site.
+entity Asset
+	lineageTag: 35f6f1de-1615-4980-9ca0-2d26173c2cd0
+	backingTable: demo_assets
+	keyProperty: AssetId
+
+	property AssetId
+		dataType: string
+		lineageTag: 511ed4ba-dc66-47a8-ab59-11380f6a6e4e
+		backingConfiguration
+			valueColumn: demo_assets.asset_id
+
+	property AssetSiteId
+		dataType: string
+		lineageTag: ea32f7c0-6141-4d37-a85c-2d22f519a8a1
+		backingConfiguration
+			valueColumn: demo_assets.site_id
+
+	property AssetName
+		dataType: string
+		lineageTag: 8e865702-0224-41d4-bf0c-0258cbd319ab
+		backingConfiguration
+			valueColumn: demo_assets.asset_name
+
+	property Status
+		dataType: string
+		lineageTag: c873d292-9840-4871-9738-0b87b0453c9b
+		backingConfiguration
+			valueColumn: demo_assets.status
+
+	annotation BootstrapBinding = site-asset-v1

@@ -1,0 +1,58 @@
+project_name = "<generic-project-name>"
+location     = "<approved-azure-region>"
+existing = {
+  foundry_name           = "<existing-private-foundry>"
+  foundry_resource_group = "<existing-foundry-resource-group>"
+  project_name           = "<existing-project>"
+  agent_name             = "<existing-prompt-agent>"
+  search_name            = "<existing-private-search>"
+  search_resource_group  = "<existing-search-resource-group>"
+  storage_name           = "<existing-private-storage>"
+  storage_resource_group = "<existing-storage-resource-group>"
+  vnet_name              = "<existing-vnet>"
+  network_resource_group = "<existing-network-resource-group>"
+  runtime_subnet_name    = "<dedicated-approved-runtime-subnet>"
+  endpoint_subnet_name   = "<existing-private-endpoint-subnet>"
+  registry_dns_group     = "<resource-group-containing-linked-registry-private-dns-zone>"
+  blob_shared_link_name  = "<existing-approved-Search-to-Blob-shared-link-name>"
+}
+# Supply existing Content Understanding links to avoid creating duplicates:
+# existing_content_links = {
+#   foundry_account           = "<existing-processing-link>"
+#   cognitiveservices_account = "<existing-billing-link>"
+# }
+content_endpoint = "https://<existing-foundry>.services.ai.azure.com"
+project_endpoint = "https://<existing-foundry>.services.ai.azure.com/api/projects/<existing-project>"
+identity = {
+  tenant_id     = "<approved-directory-guid>"
+  spa_client_id = "<approved-spa-client-guid>"
+  api_client_id = "<approved-api-client-guid>"
+  api_scope     = "api://<approved-api-client-guid>/access_as_user"
+}
+analyzer_models = {
+  completion = "<supported-approved-completion-model-name>"
+  embedding  = "<supported-approved-embedding-model-name>"
+}
+hosting          = "container_apps"
+deploy_knowledge = false
+deploy_runtime   = false
+image_digest     = null
+compliance = {
+  approved           = false
+  platform_evidence  = ""
+  image_evidence     = ""
+  transport_evidence = ""
+}
+# Evaluate Container Apps cryptographic evidence first. If it cannot meet the
+# approved boundary, use hosting = "aks" with supported, explicitly chosen values:
+# aks = {
+#   kubernetes_version = "<region-supported-version>"
+#   os_sku             = "<supported-FIPS-OS-SKU>"
+#   vm_size            = "<approved-VM-size>"
+#   mesh_revision      = "<supported-reviewed-Istio-revision>"
+#   private_ip         = "<reserved-private-ingress-IP>"
+#   hostname           = "<internal-DNS-hostname>"
+#   tls_secret_name    = "<approved-existing-TLS-secret>"
+#   ingress_namespace  = "aks-istio-ingress"
+# }
+# Search/Content tokens are ephemeral TF_VAR_* environment values, not tfvars.

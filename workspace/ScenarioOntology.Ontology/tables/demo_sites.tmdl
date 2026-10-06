@@ -1,0 +1,14 @@
+table demo_sites
+	lineageTag: be7ba316-9e5e-4acb-b3ac-46f1e8701796
+
+	column site_id
+		dataType: string
+		sourceColumn: site_id
+
+	column site_name
+		dataType: string
+		sourceColumn: site_name
+
+	column region
+		dataType: string
+		sourceColumn: region

@@ -1,0 +1,5 @@
+relationship AssetSite
+	fromCardinality: many
+	toCardinality: one
+	fromColumn: demo_assets.site_id
+	toColumn: demo_sites.site_id

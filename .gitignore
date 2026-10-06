@@ -1,0 +1,56 @@
+# Local values and credentials; sanitized examples stay in source control.
+*.tfvars
+*.tfvars.*
+!*.tfvars.example
+!*.tfvars.json.example
+*.tfbackend
+*.tfbackend.*
+!*.tfbackend.example
+.env
+.env.*
+!.env.example
+.azure/
+.secrets/
+*.key
+*.pem
+*.pfx
+*.p12
+
+# Terraform caches, local state, and saved plans can contain credentials.
+.terraform/
+.terraform.d/
+.terraformrc
+terraform.rc
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfplan.*
+tfplan
+tfplan.*
+*.plan
+*.plan.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Keep .terraform.lock.hcl and sanitized configuration examples tracked.
+
+# Local Python environments and notebook validation caches.
+.venv/
+__pycache__/
+*.py[cod]
+
+# Application build output.
+**/bin/
+**/obj/
+appsettings.Development.json
+
+# Local logs, notes, editor backups, and OS metadata.
+*.log
+scratch.md
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
