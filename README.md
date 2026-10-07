@@ -6,6 +6,7 @@ A private document-review application derived from [the upstream IQ template](ht
 | --- | --- |
 | Entra-authenticated review UI/API and extraction worker | `app/ReviewPortal/` |
 | Synthetic application tests | `app/ReviewPortal.Tests/` |
+| New US-only PoC network and private Tailscale administration VM | [`infra/connectivity/`](infra/connectivity/README.md) |
 | Scenario infrastructure and knowledge registration | `infra/highly-regulated/` |
 | Optional private ACR task agent pool | `infra/acr-build/` |
 | Staged deployment and acceptance checks | [Scenario tutorial](docs/highly-regulated-scenario.md) |
@@ -14,7 +15,9 @@ A private document-review application derived from [the upstream IQ template](ht
 
 Start with [getting started](docs/getting-started.md), choose one approved private-network-connected execution checkout and secured backend, and tell Copilot **"Deploy the platform."** The repository workflow targets the private review scenario, not the legacy Fabric baseline. Each Terraform plan needs approval before its saved apply.
 
-Existing private Foundry, Search, Storage, networking, model defaults and a prompt agent are prerequisites. Their state owners remain authoritative; this deployment reads them rather than importing or replacing them. The scenario creates its own application infrastructure and knowledge resources. Container Apps is evaluated first, with a private AKS/FIPS/Istio fallback when the approved constraints require it.
+This PoC requires a **new US-only foundation**, not resources belonging to another project. Do not reuse, import, modify or peer with unrelated infrastructure. The connectivity root creates only the new PoC network and administration VM; the US AI foundation still needs its own reviewed implementation and provisioning. Once created, private Foundry, Search S1 or higher, Storage, model defaults and a prompt agent are prerequisites read by the scenario root without adoption into its state. Container Apps is evaluated first, with a private AKS/FIPS/Istio fallback when the approved constraints require it.
+
+All regional resources and AI processing must remain in the United States; a US account location alone is insufficient. Use approved US regional/Data Zone models, not Global SKUs. Global Azure control-plane services, Entra ID and Private DNS are not region-pinned. Tailscale is limited to explicitly approved synthetic-only PoC administration and is not FIPS-validated. Only the connectivity root may use explicitly approved owner-only local bootstrap state; later roots require secured remote state.
 
 ACR Tasks builds the application without a local Docker daemon using an approved VNet-connected agent pool. A private registry with public access disabled cannot use ordinary public build workers. The optional build-pool root owns only the new pool and requires separate secured state.
 

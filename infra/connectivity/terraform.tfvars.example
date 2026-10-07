@@ -1,0 +1,11 @@
+project_name  = "iqpoc"
+location      = "westus3"
+vm_size       = "Standard_D2s_v4"
+image_version = "24.04.202609040"
+vnet_cidr     = "10.20.0.0/16"
+
+# Supply the existing public key through ephemeral TF_VAR_admin_public_key.
+# Never put a private key or Tailscale auth key in Terraform.
+
+# Set true only after explicit synthetic-only PoC connectivity approval.
+poc_connectivity_approved = false

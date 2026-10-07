@@ -2,6 +2,8 @@
 
 This scenario adds a containerized review application and a **separate Terraform root** to an existing private Microsoft Foundry deployment. It is not the Fabric bootstrap in the [upstream template's base guide](https://github.com/dcasati/private-iq-template/blob/main/docs/getting-started.md). Do not run the base initializer or apply `infra/` to complete this scenario.
 
+For this derived PoC, "existing" must mean a **new, separately provisioned US-only PoC foundation**, not another project's infrastructure. Do not reuse, import, modify or peer with unrelated resources. The [`connectivity root`](../infra/connectivity/README.md) provisions only a new US VNet and private synthetic-only administration VM; the US Foundry/Search/Storage foundation still needs its own reviewed implementation before scenario provisioning. Keep all regional resources and AI processing in the US, using approved US regional/Data Zone models rather than Global deployments. Global Azure control-plane services, Entra ID and Private DNS are not region-pinned.
+
 The application accepts a manually exported PDF package, retains the original, extracts structured fields and confidence with a custom Azure AI Content Understanding analyzer, requires human validation, and answers questions using case-scoped Foundry IQ evidence and an **existing prompt agent**. It does not connect to business systems or make eligibility decisions.
 
 **Status:** implementation and local checks are not a deployment, service-readiness demonstration or FIPS certification. Production use requires the approvals and live acceptance checks below. Foundry IQ and the project MCP connection use preview APIs; preview terms and service limitations must be accepted by the organization.
@@ -65,6 +67,8 @@ The AKS fallback uses a private control plane, Azure CNI Overlay, FIPS-enabled s
 ## 2. Establish the target, execution host and prerequisites
 
 Use a derived repository, one approved VNet-connected deployment/build host, one existing Azure identity and one secured remote state backend/key throughout. Never duplicate an existing backend in an App worktree. Do not copy existing tfvars/state into this template. No live deployment is authorized by reading this guide.
+
+Only the explicitly approved synthetic-only connectivity VM/network bootstrap may use owner-only local state on the encrypted authoritative host while the private backend is unavailable. Tailscale is not FIPS-validated; this exception does not approve regulated-data transport or bypass runtime compliance gates. VM apply, enrollment, route/ACL/split-DNS changes and subsequent backend creation/migration each require approval. Scenario and ACR build-pool roots still require secured remote state.
 
 The existing deployment must provide:
 

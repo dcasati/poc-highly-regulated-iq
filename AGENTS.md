@@ -1,6 +1,6 @@
 # Repository guidance
 
-This is a **derived private document-review proof-of-concept repository**, not the reusable upstream template. It owns its deployment configuration, scenario infrastructure and secured Terraform state. Existing private AI resources and networking retain their current owners. Deployment is not complete until the documented live readiness checks pass.
+This is a **derived private document-review proof-of-concept repository**, not the reusable upstream template. It owns its new US-only foundation, deployment configuration, scenario infrastructure and secured Terraform state. Unrelated projects' resources are out of scope: do not read, reuse, import, peer with or modify them. Deployment is not complete until the documented live readiness checks pass.
 
 ## Start here
 
@@ -19,6 +19,9 @@ Load the matching repository skill before its workflow:
 | Edit Fabric items, inspect bindings, bootstrap or promote | [fabric-workspace](.github/skills/fabric-workspace/SKILL.md) |
 
 ## Always-on guardrails
+
+- Provision a new US-only PoC foundation. Do not discover unrelated resources to use as prerequisites. All regional resources and AI processing must remain in the US; reject Global model deployment SKUs and validate custom Content Understanding and native-skill processing boundaries separately. Global Azure control-plane services, Entra ID and Private DNS are not region-pinned resources.
+- `infra/connectivity/` owns only the new US PoC network and private administration VM. Tailscale is explicitly limited to synthetic-only PoC administration, not FIPS-validated application transport. The user-approved exception permits owner-only local bootstrap state for this root only on the encrypted authoritative Mac; platform/build-pool roots still require secured remote state. Backend creation/migration, VM apply, enrollment, tailnet routes/ACLs and split DNS require their own approvals. Never put tailnet auth keys in Terraform or auto-enroll the VM.
 
 - Never run live `plan`, `apply`, `destroy`, notebook execution or deployment tests as a template-maintenance check. Live work requires a derived repository and an explicitly chosen target.
 - The private review scenario uses `app/` and the separate `infra/highly-regulated/` root, following `docs/highly-regulated-scenario.md`. Its optional `infra/acr-build/` root owns only a new private-registry build pool, with separate state; keep existing registry/network ownership and public-access settings unchanged. Do not run the Fabric initializer/bootstrap or apply the legacy `infra/` root for this deployment. Runtime deployment requires approved cryptographic evidence; FIPS nodes and private build pools do not validate container images.

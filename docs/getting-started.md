@@ -8,9 +8,13 @@ Use the published, reviewed repository commit on one approved execution host wit
 
 Configure distinct secured remote backend keys for `infra/highly-regulated/` and, if required, `infra/acr-build/`. Keep credentials, real tfvars, backend configuration, saved plans and state out of Git. The subscription comes from the selected Azure CLI account or standard `ARM_*` variables, not committed configuration.
 
+This deployment must use **new PoC-owned US resources**. Unrelated projects are excluded: do not reuse their registry, networking or AI services, import them or create peering. Start with the reviewed [`infra/connectivity/`](../infra/connectivity/README.md) root when private access is missing. It owns a new US VNet and private synthetic-only Tailscale administration VM, not the AI foundation. The narrowly approved local-state bootstrap exception applies only to that root on the encrypted authoritative host; backend creation/migration and later plans require separate approval.
+
 ## Confirm prerequisites
 
-Have the existing owners confirm private Foundry, Search S1 or higher, Blob Storage, networking/private DNS, a prompt agent, approved Content Understanding model defaults and the required service identities/shared links. Administrators own SPA/API registrations, consent, user roles, certificates and immutable retention. This project does not recreate the private AI foundation or grant tenant-wide permissions.
+Provision the new US AI foundation through its own reviewed Terraform implementation before using the scenario root: private Foundry/account/project/prompt agent, Search S1 or higher, Blob Storage, runtime/build/endpoint subnets, private DNS, approved model defaults and the required service identities/shared links. The connectivity root does not create these services. Scenario data sources must reference only that verified PoC-owned foundation. Administrators own SPA/API registrations, consent, user roles, certificates and immutable retention; no tenant-wide permissions are granted automatically.
+
+Use supported US regional or US Data Zone model deployments rather than Global SKUs. Validate Content Understanding resource-region support and both custom-analyzer and native-skill processing boundaries. Global control-plane services, Entra ID and Private DNS aren't region-pinned; resource placement alone does not establish US-only processing or FIPS compliance.
 
 Supply a generic project name and explicit region, verified existing-resource references and approved subnet choices. The application image, hosting platform and transport need organization-approved cryptographic evidence. Private connectivity or a FIPS node flag is not certification.
 

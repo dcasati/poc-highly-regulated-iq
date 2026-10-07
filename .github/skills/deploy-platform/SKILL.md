@@ -11,11 +11,17 @@ Read `AGENTS.md`, `docs/getting-started.md`, `docs/development.md` and `docs/hig
 
 Use this derived repository's published reviewed commit. Do not deploy unpushed changes, the upstream reusable template, or a new App worktree with missing ignored configuration. Select one approved private-network-connected execution checkout and retain it for all edits, authentication, plans, applies and checks.
 
+This PoC requires a new US-only foundation. Other projects' resources are excluded: do not read, reuse, import, peer with or modify them. Do not carry a previously selected unrelated registry/VNet into this deployment. Validate regional service support and approved US regional/Data Zone models; Global deployment SKUs are not acceptable.
+
 For App-driven Codespaces, list candidates with `gh codespace list --repo OWNER/REPO --json name,repository,state,gitStatus`, have the user choose the exact host, and route all work through authenticated `gh codespace ssh`. Verify the remote repository, commit and checkout path. A normal Codespace does not imply VNet connectivity. Never bypass SSH host verification or expose an SSH port.
 
 For an explicitly chosen local host, use its authoritative checkout/backend. If this is a genuinely new deployment, confirm that decision and establish secured remote state before provisioning. Give `infra/highly-regulated/` and optional `infra/acr-build/` distinct backend keys. Do not create a backend, migrate state, force-unlock or discard state automatically.
 
+The explicit connectivity-only bootstrap exception permits `infra/connectivity/` to use owner-only local state on the encrypted authoritative Mac. This root creates only the new US VNet/private synthetic-only administration VM and associated egress, not the AI foundation. Review/apply its exact saved plan only after approval; verify cloud-init before separately approved operator enrollment, tailnet route/ACL approval and split DNS. Tailscale is not FIPS-validated. Backend creation/migration requires separate approval; all later roots require secured remote state.
+
 ## 2. Inventory the existing private foundation
+
+Here "existing" means the new PoC's foundation after its own reviewed Terraform implementation and provisioning, not another project. If it is absent, prepare/review that US-only foundation first and stop scenario applies until its identities, DNS, model defaults and private links are verified. Do not treat the connectivity VM as an AI deployment.
 
 Use `initialize-project` for configuration only on the chosen host. Preserve existing ignored configuration and do not dump tfvars/state/environment values. Check the effective subscription/directory and provider overrides without printing credentials.
 
