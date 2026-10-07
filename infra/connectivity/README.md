@@ -27,6 +27,8 @@ Copy the sanitized example to an ignored owner-only `terraform.tfvars`, enter th
 
 Normally use secured remote state. A narrowly approved bootstrap exception allows **this connectivity root only** to use owner-only local state on the encrypted authoritative Mac while the private backend is unreachable. Platform and build-pool roots still require secured remote state. Keep local state/backups and saved plans on that host, out of Git, and obtain separate approval to create a backend and migrate with native `terraform init -migrate-state`. Do not create duplicate state or discard the local owner.
 
+Once `backend.azurerm.tf` is active, initialize only the confirmed existing remote account/container/key through the ignored backend configuration, rather than repeating a local bootstrap. Set the approved isolated `AZURE_CONFIG_DIR` in every deployment shell as described in [developer authentication guidance](../../docs/development.md#authenticate-separately).
+
 ```sh
 cd infra/connectivity
 umask 077
@@ -52,7 +54,7 @@ The operator runs the `tailscale_up_command` output through an explicitly approv
 
 The tailnet administrator separately approves this node, the advertised **PoC endpoint prefix only**, and least-privilege ACLs: authorized deployment/reviewer devices to required endpoint HTTPS, DNS TCP/UDP 53 to this node, and key-only SSH 22 for the operator. Do not advertise another project's prefixes or use an exit node. Route and DNS approval do not follow automatically from approving Terraform.
 
-After enrollment, obtain the node's Tailscale IPv4 address and configure split DNS for the `split_dns_domains` output to that address. Normal service domains matter because clients first query them before following private-link CNAMEs. Do not point the Mac at Azure's `168.63.129.16` directly. Keep DNS restricted to authorized tailnet clients, not the Azure NIC or Internet.
+After enrollment, obtain the node's Tailscale IPv4 address and separately approve split DNS for verified **exact PoC service hostnames and their exact private-link CNAMEs** through that address. The `split_dns_domains` output lists service suffixes for reference, not approved routes: do not configure those broad suffixes in a shared tailnet. A client may resolve the CNAME independently, so both exact names must reach the private resolver. Do not point the Mac at Azure's `168.63.129.16` directly. Keep DNS restricted to authorized tailnet clients, not the Azure NIC or Internet.
 
 After the separately deployed US foundation links its private zones and creates endpoints, verify normal service names resolve to the reserved private prefix, Mac route selection uses Tailscale, and HTTPS certificate/hostname validation succeeds without public-access exceptions. Container Apps internal hostnames and additional runtime prefixes may need a separately reviewed route/DNS change. Keep all checks synthetic.
 

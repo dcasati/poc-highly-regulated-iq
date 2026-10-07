@@ -50,7 +50,7 @@ output "tailscale_up_command" {
 }
 
 output "split_dns_domains" {
-  description = "Normal Azure service suffixes for tailnet-admin split DNS after enrollment and private-zone linking; do not set Azure DNS directly on the Mac."
+  description = "Azure service suffixes for reference only, not approved DNS routes. Configure verified exact PoC service names and their private-link aliases instead; never override these broad suffixes in a shared tailnet."
   value = [
     "azurecr.io",
     "blob.core.windows.net",
