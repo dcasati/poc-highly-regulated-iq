@@ -20,6 +20,8 @@ Use the organization's approved Azure user/service identity and selected subscri
 
 Search and Content Understanding data-plane provider tokens are ephemeral inputs acquired inside each plan/apply shell, as documented in the tutorial. Never persist them in tfvars, state, profiles or logs. The application runtime uses managed/workload identity, not the deployment user's credential.
 
+With multiple cached CLI identities, subscription-scoped CLI commands and the native Terraform backend can select different principals. Use the separately approved owner-only project CLI profile when needed, and set `AZURE_CONFIG_DIR` to its absolute path in **every deployment shell**, alongside the confirmed `ARM_SUBSCRIPTION_ID`. The ignored `.azure/poc-cli` profile selects only the approved subscription and references the existing protected sign-in cache without copying tokens. Do not change shared CLI defaults or grant a different identity state access to work around a mismatch. Verify the effective Storage-token principal against the container grant before migration.
+
 No Fabric PAT or Fabric capacity administrator is needed for this application workflow. Do not run the inherited Fabric configuration helpers to create scenario configuration.
 
 ## Configure and deploy

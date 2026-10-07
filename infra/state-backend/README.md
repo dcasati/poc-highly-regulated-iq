@@ -17,9 +17,13 @@ This isolated root bootstraps a **new PoC-owned US backend** against the already
 
 The pinned AzureRM 5.8 resources use ARM management APIs for account/blob-service/container provisioning. This avoids needing a temporary public-access exception or preexisting Blob DNS/RBAC during bootstrap. Providers do not automatically register namespaces. The caller needs the selected subscription's ARM creation and scoped role-assignment rights; future Blob access still requires working private DNS, routing and RBAC propagation.
 
+Follow [developer authentication guidance](../../docs/development.md#authenticate-separately) when multiple CLI identities are cached. Subscription-scoped CLI access alone does not prove the native backend selects the same principal. Reuse the approved isolated CLI profile in each shell; do not broaden state permissions.
+
 ## Bootstrap, review and apply
 
 The explicitly approved exception permits **this root only**, in addition to the existing connectivity bootstrap, to use owner-only local state temporarily on the encrypted authoritative Mac. It does not authorize local state for the AI foundation/scenario/build roots or automatically authorize migration.
+
+The bootstrap steps below apply before backend activation. Once `backend.azurerm.tf` is active, initialize only the confirmed existing remote account/container/key through the ignored backend configuration; do not repeat a fresh local bootstrap or create another state owner.
 
 Create one ignored owner-only `terraform.tfvars` from the sanitized example. Verify network names against the actual PoC outputs, region/tags and the current deployment identity type. Keep subscription selection in standard `ARM_SUBSCRIPTION_ID`/CLI conventions. Do not print state, tokens, returned keys, real tfvars or plan JSON; provider-returned secrets can exist in state even when Shared Key use is disabled.
 
