@@ -41,6 +41,11 @@ Prepare one ignored `terraform.tfvars` and `backend.tfbackend` from the sanitize
 examples, without overwriting existing files. Keep them owner-only. Backend
 credentials, tokens, state, saved plans and logs must never enter Git.
 
+Search uses Entra-only authentication with no network bypass. With the pinned
+AzureRM provider, omit `authentication_failure_mode` when
+`local_authentication_enabled = false`; the two settings are incompatible.
+Mocked tests do not replace the real-provider live plan that checks this contract.
+
 Use the existing private/keyless backend and distinct `foundation/terraform.tfstate`
 key. Verify it has no existing owner before initializing. A missing local file is
 not permission to migrate state or create a new state store.

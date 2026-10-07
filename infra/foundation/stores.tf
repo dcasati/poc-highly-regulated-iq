@@ -66,7 +66,6 @@ resource "azurerm_search_service" "foundation" {
   partition_count               = 1
   public_network_access_enabled = false
   local_authentication_enabled  = false
-  authentication_failure_mode   = "http403"
   network_rule_bypass_option    = "None"
   semantic_search_sku           = "standard"
   identity {

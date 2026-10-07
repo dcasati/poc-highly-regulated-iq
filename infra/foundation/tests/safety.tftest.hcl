@@ -83,6 +83,11 @@ run "private_platform_only" {
     error_message = "All stores must remain private and keyless."
   }
   assert {
+    condition = (azurerm_search_service.foundation.authentication_failure_mode == null &&
+    azurerm_search_service.foundation.network_rule_bypass_option == "None")
+    error_message = "Keyless Search must omit the incompatible authentication failure mode and retain no network bypass."
+  }
+  assert {
     condition = (azapi_resource.foundry.body.properties.publicNetworkAccess == "Disabled" &&
       azapi_resource.foundry.body.properties.disableLocalAuth &&
       azapi_resource.foundry.body.properties.networkInjections[0].scenario == "agent" &&
