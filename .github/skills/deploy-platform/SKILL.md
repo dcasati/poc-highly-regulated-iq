@@ -25,7 +25,7 @@ The separately approved `infra/state-backend/` bootstrap exception permits tempo
 
 ## 2. Inventory the existing private foundation
 
-Here "existing" means the new PoC's foundation after its own reviewed Terraform implementation and provisioning, not another project. If it is absent, prepare/review that US-only foundation first and stop scenario applies until its identities, DNS, model defaults and private links are verified. Do not treat the connectivity VM as an AI deployment.
+Here "existing" means the new PoC's foundation after its own reviewed Terraform implementation and provisioning, not another project. If it is absent, prepare/review `infra/foundation/` first and stop scenario applies until its identities, DNS, model defaults and private links are verified. Follow its staged account/dependencies/models, private connectivity, native project and discovered runtime-bindings plans. Capability settings and account network injection use the explicitly approved current preview at account creation; service-owned connections/data are not Terraform-created duplicates. Bootstrap Content Understanding defaults and the prompt agent over verified private endpoints without provisioners. Review runtime/build dependency egress before scenario environment or pool provisioning. Do not treat the connectivity VM as an AI deployment.
 
 Use `initialize-project` for configuration only on the chosen host. Preserve existing ignored configuration and do not dump tfvars/state/environment values. Check the effective subscription/directory and provider overrides without printing credentials.
 

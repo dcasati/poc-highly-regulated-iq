@@ -2,7 +2,7 @@
 
 This scenario adds a containerized review application and a **separate Terraform root** to an existing private Microsoft Foundry deployment. It is not the Fabric bootstrap in the [upstream template's base guide](https://github.com/dcasati/private-iq-template/blob/main/docs/getting-started.md). Do not run the base initializer or apply `infra/` to complete this scenario.
 
-For this derived PoC, "existing" must mean a **new, separately provisioned US-only PoC foundation**, not another project's infrastructure. Do not reuse, import, modify or peer with unrelated resources. The [`connectivity root`](../infra/connectivity/README.md) provisions only a new US VNet and private synthetic-only administration VM; the US Foundry/Search/Storage foundation still needs its own reviewed implementation before scenario provisioning. Keep all regional resources and AI processing in the US, using approved US regional/Data Zone models rather than Global deployments. Global Azure control-plane services, Entra ID and Private DNS are not region-pinned.
+For this derived PoC, "existing" must mean a **new, separately provisioned US-only PoC foundation**, not another project's infrastructure. Do not reuse, import, modify or peer with unrelated resources. The [`connectivity root`](../infra/connectivity/README.md) provisions only a new US VNet and private synthetic-only administration VM; the [`foundation root`](../infra/foundation/README.md) separately provisions private Foundry/Search/Storage, tenant-owned agent stores and dedicated subnets. Its staged private verification, native project/runtime bindings, supported Content Understanding defaults and prompt-agent bootstrap must finish before scenario provisioning. Keep all regional resources and AI processing in the US, using approved US regional/Data Zone models rather than Global deployments. Global Azure control-plane services, Entra ID and Private DNS are not region-pinned.
 
 The application accepts a manually exported PDF package, retains the original, extracts structured fields and confidence with a custom Azure AI Content Understanding analyzer, requires human validation, and answers questions using case-scoped Foundry IQ evidence and an **existing prompt agent**. It does not connect to business systems or make eligibility decisions.
 
@@ -30,6 +30,7 @@ Organizational browser on approved private network
 
 | Component | Ownership |
 | --- | --- |
+| New private account/models, Search S1, application Storage, separate agent Blob/Cosmos and dedicated subnets/DNS | `infra/foundation/`; separate secured backend. Generated agent-store connections/data remain native service-owned. |
 | Existing Foundry account/project, prompt agent, model deployments, Search, Storage, VNet/subnets and baseline private connectivity | Existing deployment remains authoritative. This root reads resources, not imports or replacements. |
 | New ACR and its private endpoint, application identity/RBAC, runtime, dedicated containers | `infra/highly-regulated/`; use its own secured backend key. |
 | Optional dedicated ACR build pool on an existing private Premium registry | `infra/acr-build/`; use a separate secured backend key. Registry, subnet, DNS and firewall ownership remain unchanged. |
@@ -65,6 +66,16 @@ Budget for Premium ACR, private endpoints, the runtime environment and retained 
 The AKS fallback uses a private control plane, Azure CNI Overlay, FIPS-enabled system/application pools, workload identity, internal Istio ingress and STRICT mesh mTLS. It does not copy the reference repository's region or version pins. Choose versions available together in your region. Do not automatically enable preview Istio CNI or assume its compatibility/cryptography has been approved. Changing from Container Apps to AKS after an apply is a migration requiring a separately reviewed plan, not a toggle to try casually.
 
 ## 2. Establish the target, execution host and prerequisites
+
+Follow the [foundation stages](../infra/foundation/README.md) first. The initial
+account plan creates no project or application. The later project inherits
+creation-time native capability settings; discover real service-owned runtime
+identities and data scopes before reviewing runtime role grants. Never change
+store settings by deleting/recreating a project automatically. Its outputs are
+handoff references, not proof of Content Understanding, indexing or FIPS readiness.
+Review runtime/build dependency egress before creating the scenario environment
+or ACR pool; the foundation's restrictive subnet reservations are not operational
+runtime/build networks by themselves.
 
 Use a derived repository, one approved VNet-connected deployment/build host, one existing Azure identity and one secured remote state backend/key throughout. Never duplicate an existing backend in an App worktree. Do not copy existing tfvars/state into this template. No live deployment is authorized by reading this guide.
 

@@ -8,6 +8,7 @@ A private document-review application derived from [the upstream IQ template](ht
 | Synthetic application tests | `app/ReviewPortal.Tests/` |
 | New US-only PoC network and private Tailscale administration VM | [`infra/connectivity/`](infra/connectivity/README.md) |
 | Private keyless US Terraform backend bootstrap | [`infra/state-backend/`](infra/state-backend/README.md) |
+| Staged private US Foundry/Search/agent-data foundation | [`infra/foundation/`](infra/foundation/README.md) |
 | Scenario infrastructure and knowledge registration | `infra/highly-regulated/` |
 | Optional private ACR task agent pool | `infra/acr-build/` |
 | Staged deployment and acceptance checks | [Scenario tutorial](docs/highly-regulated-scenario.md) |
@@ -16,7 +17,7 @@ A private document-review application derived from [the upstream IQ template](ht
 
 Start with [getting started](docs/getting-started.md), choose one approved private-network-connected execution checkout and secured backend, and tell Copilot **"Deploy the platform."** The repository workflow targets the private review scenario, not the legacy Fabric baseline. Each Terraform plan needs approval before its saved apply.
 
-This PoC requires a **new US-only foundation**, not resources belonging to another project. Do not reuse, import, modify or peer with unrelated infrastructure. The connectivity root creates only the new PoC network and administration VM; the US AI foundation still needs its own reviewed implementation and provisioning. Once created, private Foundry, Search S1 or higher, Storage, model defaults and a prompt agent are prerequisites read by the scenario root without adoption into its state. Container Apps is evaluated first, with a private AKS/FIPS/Istio fallback when the approved constraints require it.
+This PoC requires a **new US-only foundation**, not resources belonging to another project. Do not reuse, import, modify or peer with unrelated infrastructure. The connectivity root creates only the new PoC network and administration VM; [`infra/foundation/`](infra/foundation/README.md) separately owns the private AI services, agent stores and dedicated subnets. Its account/dependency stage precedes private verification, native project provisioning and discovered runtime bindings. Content Understanding defaults and prompt-agent bootstrap remain separate private data-plane steps. Once verified, these are prerequisites read by the scenario root without adoption into its state. Container Apps is evaluated first, with a private AKS/FIPS/Istio fallback when the approved constraints require it.
 
 All regional resources and AI processing must remain in the United States; a US account location alone is insufficient. Use approved US regional/Data Zone models, not Global SKUs. Global Azure control-plane services, Entra ID and Private DNS are not region-pinned. Tailscale is limited to explicitly approved synthetic-only PoC administration and is not FIPS-validated. Only the connectivity and state-backend roots may use their separately approved owner-only local bootstrap state; foundation/scenario/build roots require secured remote state. Backend creation, scoped access grants, exact-hostname split DNS and existing-state migrations require explicit approvals.
 

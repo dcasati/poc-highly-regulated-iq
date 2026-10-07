@@ -1,6 +1,6 @@
 # Developer setup and Copilot
 
-The [scenario tutorial](highly-regulated-scenario.md) is the canonical private deployment guide. This derived project's **"Deploy the platform"** workflow targets `infra/highly-regulated/` and optional `infra/acr-build/`, not the inherited Fabric baseline.
+The [scenario tutorial](highly-regulated-scenario.md) is the canonical private deployment guide. This derived project's **"Deploy the platform"** workflow targets the staged `infra/foundation/`, `infra/highly-regulated/` and optional `infra/acr-build/` roots, not the inherited Fabric baseline.
 
 ## Select one execution host
 
@@ -27,6 +27,11 @@ No Fabric PAT or Fabric capacity administrator is needed for this application wo
 ## Configure and deploy
 
 Tell Copilot **"Deploy the platform."** It loads the project-specific [deployment skill](../.github/skills/deploy-platform/SKILL.md), confirms the source/host/backend, inventories the existing private foundation and coordinates approved platform, knowledge, optional build-pool and runtime stages. Missing prerequisites are blockers, not permission to replace existing infrastructure.
+
+Follow the [foundation README](../infra/foundation/README.md) for its private
+account, project and discovered runtime-binding stages. Its source-only mock tests
+do not use Azure credentials or prove private connectivity. Runtime/build subnet
+reservations need separate reviewed platform/dependency egress before use.
 
 The configuration-only [initialization skill](../.github/skills/initialize-project/SKILL.md) prepares local scenario inputs without cloud mutations. Use [template maintenance](../.github/skills/template-maintenance/SKILL.md) for static checks only.
 
