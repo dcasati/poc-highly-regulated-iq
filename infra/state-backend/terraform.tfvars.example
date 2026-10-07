@@ -1,0 +1,12 @@
+project_name = "iqpoc"
+location     = "westus3"
+connectivity_network = {
+  name                = "vnet-iqpoc"
+  resource_group_name = "rg-iqpoc-connectivity"
+}
+container_name            = "tfstate"
+retention_days            = 30
+deployment_principal_type = "User"
+
+# Explicit local bootstrap acceptance only; apply and migration need approval.
+backend_bootstrap_approved = false

@@ -1,0 +1,6 @@
+resource_group_name  = "<new-poc-state-resource-group>"
+storage_account_name = "<verified-new-state-account>"
+container_name       = "tfstate"
+key                  = "<root-specific-key>/terraform.tfstate"
+use_azuread_auth     = true
+use_cli              = true

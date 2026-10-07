@@ -68,7 +68,7 @@ The AKS fallback uses a private control plane, Azure CNI Overlay, FIPS-enabled s
 
 Use a derived repository, one approved VNet-connected deployment/build host, one existing Azure identity and one secured remote state backend/key throughout. Never duplicate an existing backend in an App worktree. Do not copy existing tfvars/state into this template. No live deployment is authorized by reading this guide.
 
-Only the explicitly approved synthetic-only connectivity VM/network bootstrap may use owner-only local state on the encrypted authoritative host while the private backend is unavailable. Tailscale is not FIPS-validated; this exception does not approve regulated-data transport or bypass runtime compliance gates. VM apply, enrollment, route/ACL/split-DNS changes and subsequent backend creation/migration each require approval. Scenario and ACR build-pool roots still require secured remote state.
+Only the separately approved synthetic-only connectivity VM/network and [`private state-backend`](../infra/state-backend/README.md) bootstraps may use owner-only local state on the encrypted authoritative host while the private backend is unavailable. Tailscale is not FIPS-validated; these exceptions do not approve regulated-data transport or bypass runtime compliance gates. VM apply/enrollment, route/ACL/exact-hostname split-DNS changes, backend apply/scoped access grant and each existing-state migration require approval. Foundation, scenario and ACR build-pool roots require secured remote state.
 
 The existing deployment must provide:
 

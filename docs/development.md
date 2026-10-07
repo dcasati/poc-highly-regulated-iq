@@ -12,6 +12,8 @@ For App-driven Codespaces work, select the exact Codespace using `gh codespace l
 
 For local deployment, explicitly select the authoritative existing checkout and secured backend. Establish a new state owner only when the user intentionally starts a new deployment. Do not infer this from absent ignored files.
 
+The PoC connectivity and private state-backend roots have separately approved owner-only local bootstrap exceptions on the encrypted authoritative Mac. Preserve their current state owners and follow [`infra/state-backend/`](../infra/state-backend/README.md) for private/keyless backend readiness and separately approved migrations. Foundation/scenario/build roots need distinct secured remote keys. Use exact PoC hostnames for shared-tailnet split DNS; do not change unrelated projects' networking or DNS.
+
 ## Authenticate separately
 
 Use the organization's approved Azure user/service identity and selected subscription through standard CLI/provider conventions. Resolve any `ARM_*` overrides before provisioning without printing secrets. Do not sign in, grant consent, create app registrations or assign access automatically.
