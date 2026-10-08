@@ -183,8 +183,8 @@ run "reviewed_knowledge_without_runtime" {
     deploy_knowledge = true
   }
   assert {
-    condition     = length(restful_resource.data_source) == 2 && alltrue([for source in restful_resource.data_source : length(source.write_only_attrs) == 1 && contains(source.write_only_attrs, "credentials.connectionString")]) && length(azurerm_container_app.app) == 0
-    error_message = "Only Search-redacted connection strings are write-only; reviewed knowledge must not create runtime containers."
+    condition     = length(restful_resource.data_source) == 2 && alltrue([for source in restful_resource.data_source : !contains(keys(source.body), "credentials") && source.body.type == "azureblob"]) && length(azurerm_container_app.app) == 0
+    error_message = "Search-redacted credentials must be sent through native ephemeral_body, not persistent body; reviewed knowledge must not create runtime containers."
   }
 }
 

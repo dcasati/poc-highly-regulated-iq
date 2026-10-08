@@ -178,10 +178,12 @@ configuration aligned. Native prebuilt analyzer names are service-owned and
 are not renamed.
 
 Search redacts data-source connection strings on reads, including keyless
-`ResourceId` values. Terraform marks only `credentials.connectionString`
-write-only using the provider's native attribute. All other data-source fields
-retain drift detection; authentication target changes still require a reviewed
-configuration update rather than a blanket body exclusion.
+`ResourceId` values. Terraform sends only the `credentials` object through the
+provider's native write-only `ephemeral_body`, whose changes are hash-tracked.
+The older `write_only_attrs` option handles omitted fields, not returned
+redaction placeholders. All other data-source fields retain drift detection;
+authentication target changes still require a reviewed configuration update
+rather than a blanket body exclusion.
 
 Approve pending private-link requests on the target Foundry resource through the authorized owner process. Both Content Understanding links and the existing Blob shared link must report `Approved`; Terraform checks group IDs and target resource identity, not merely names.
 

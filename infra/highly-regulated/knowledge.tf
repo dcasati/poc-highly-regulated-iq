@@ -54,15 +54,16 @@ resource "restful_resource" "index" {
   depends_on = [terraform_data.gates, terraform_data.private_dependencies]
 }
 resource "restful_resource" "data_source" {
-  for_each         = var.deploy_knowledge ? { pdf = local.containers.approved, fields = local.containers["reviewed-evidence"] } : {}
-  path             = "/datasources/${local.index_name}-${each.key}"
-  check_existance  = true
-  write_only_attrs = ["credentials.connectionString"]
-  body = {
-    name        = "${local.index_name}-${each.key}"
-    type        = "azureblob"
+  for_each        = var.deploy_knowledge ? { pdf = local.containers.approved, fields = local.containers["reviewed-evidence"] } : {}
+  path            = "/datasources/${local.index_name}-${each.key}"
+  check_existance = true
+  ephemeral_body = {
     credentials = { connectionString = "ResourceId=${data.azurerm_storage_account.existing.id};" }
-    container   = { name = each.value }
+  }
+  body = {
+    name      = "${local.index_name}-${each.key}"
+    type      = "azureblob"
+    container = { name = each.value }
   }
   depends_on = [azurerm_role_assignment.search_storage]
 }
