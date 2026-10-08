@@ -13,10 +13,12 @@ project's infrastructure.
 
 ## Ownership and boundaries
 
-- Foundation creates account capability settings with creation-time agent network
-  injection; API `2026-07-15-preview` requires explicit synthetic-PoC acceptance.
-- Native Foundry owns generated connections, Blob containers and Cosmos databases.
-  Do not create duplicate capability hosts/connections or import those data resources.
+- Foundation uses account/project API `2025-06-01` with creation-time agent network
+  injection, explicit nonshared AAD project connections and a native Agents
+  capability host at `2025-04-01-preview`. Preview acceptance is synthetic-only.
+- Terraform owns the three project connections and single capability host in this
+  flow. Native Foundry owns the generated Blob containers and Cosmos database.
+  Do not duplicate connections/hosts or create/import the service-generated data.
 - Scenario owns application containers, app identity/RBAC, Premium ACR, registry PE,
   runtime, analyzer/index/indexers/knowledge and its operator project connection.
 - Build root owns only the optional ACR agent pool. Foundation reserves its subnet
@@ -29,8 +31,8 @@ processing boundaries separately. Serverless is supported by the documented
 standard setup; confirm native provisioning accepts its required throughput
 capacity rather than setting a provisioned RU/s budget.
 
-The current keyless capability-settings contract references three stores, not a
-Key Vault. Generic standard-setup guidance still lists Key Vault. No unused vault,
+The documented Terraform capability-host sample references three keyless stores,
+not a Key Vault. Generic standard-setup guidance still lists Key Vault. No unused vault,
 secret connection or customer-managed key is provisioned here. If the native
 flow requires one, stop for a reviewed private configuration. Register documented
 prerequisite providers only with administrator approval.
@@ -67,19 +69,35 @@ resources, not secrets from appearing in secured provider state.
 
 ## Native stages
 
-1. **Dependencies/account/models:** leave all stage flags false. Caller Blob Data
-   Contributor on agent Storage and Cosmos DB Operator precede account creation.
-   Search operator and Content Understanding roles are scoped to new services.
+1. **Dependencies/account/models:** leave all stage flags false. Account creation
+   includes private networking but no `capabilitySettings`. Existing scoped caller
+   Blob/Cosmos grants are retained for operator access, not mistaken for the
+   project's provisioning identity. Search operator and Content Understanding roles
+   are scoped to new services.
    The requested Search-to-application-Blob link is not automatically approved.
 2. **Private verification:** inspect ordinary PE states and returned IPs; separately
    approve exact normal service hostnames and private-link CNAME split DNS. Verify
    normal OS DNS, private TLS and keyless access from the approved host. Wait for
    caller-role propagation. Private IPs or a successful apply alone are insufficient.
 3. **Project:** set `private_connectivity_verified` and `provision_project` only
-   after those checks, then review a new saved plan. The project inherits account
-   capability settings; generated store connections are immutable. Changing stores
-   requires destructive project recreation and is not automated.
-4. **Runtime bindings:** discover the actual project's system/user-assigned runtime
+   after those checks, then review a new saved plan. This creates the project and
+   caller project role, not connections, a capability host or runtime permissions.
+   Do not create an agent before its BYO store configuration is complete.
+4. **Provisioning identity/connections:** discover the actual project system
+   identity and record its association in `agent_provisioning`. Set
+   `configure_agent_provisioning` in a separate plan. Its identity precondition
+   rejects a different principal. Three nonshared AAD connections reference the
+   actual agent Blob, Cosmos and Search IDs; no credentials are included. Grant
+   project Storage Blob Data Contributor on agent Storage, Cosmos DB Operator on
+   agent Cosmos, and both Search contributor roles on the selected Search service.
+   These are project provisioning grants, not caller grants.
+5. **Capability host:** verify those live grants, propagation, connection targets
+   and private connectivity; update the evidence reference and set
+   `capability_provisioning_verified`. Enable `provision_agent_capability` in a
+   separate saved plan. The native host references connection **names**, not
+   `capabilitySettings` ARM IDs, and must finish its bounded 30-minute creation.
+   Do not claim a successful plan/host proves a working managed agent.
+6. **Runtime bindings:** discover the actual project's system/user-assigned runtime
    principal IDs, service-created file/intermediate containers and Cosmos database.
    Verify their association with this project, record a nonsensitive evidence
    reference, and fill `agent_runtime`. Enable `configure_agent_runtime` in a
@@ -87,7 +105,13 @@ resources, not secrets from appearing in secured provider state.
    agent accounts; identity association is an operator verification, not inferred
    from a GUID. The actual project system identity must be included. Roles target
    those containers/database, never application or Terraform state containers.
-5. **Private data-plane bootstrap:** use ephemeral Entra authentication to configure
+   This plan deliberately removes the temporary project account-wide Blob Data
+   Contributor grant while adding the discovered container roles; explicitly review
+   that access revocation. The project Cosmos operator and Search grants remain,
+   without duplicate role assignments; separately verified extra runtime identities
+   receive their own scoped grants. Storage Account Contributor is scoped only to
+   the agent account. A non-Succeeded capability host blocks runtime configuration.
+7. **Private data-plane bootstrap:** use ephemeral Entra authentication to configure
    Content Understanding defaults with the returned `chat`/`embedding` deployment
    names. Check analyzer supported models and US processing behavior. Bootstrap a
    prompt agent without unrestricted retrieval tools and verify a synthetic request.
@@ -113,10 +137,14 @@ combination. Platform DNS normally bypasses NSGs unless explicitly denied with
 that special tag, so the catch-all egress denial is not a DNS filtering control.
 See [Azure platform IP behavior](https://learn.microsoft.com/azure/virtual-network/what-is-ip-address-168-63-129-16).
 
-The new preview account/project API is advertised by the registered provider.
-Local AzAPI schema validation is disabled only on those two current-contract
-resources; static tests do not establish service-side preview compatibility.
-ARM rejects unsupported properties during a separately approved live stage.
+The account/project/connection APIs and capability-host preview follow the
+[official BYO-VNet Terraform sample](https://github.com/microsoft-foundry/foundry-samples/tree/main/infrastructure/infrastructure-setup-terraform/15b-private-network-standard-agent-setup-byovnet).
+Unlike that sample's defaults, this root disables local authentication, uses Deny
+ACLs with no bypass and preserves restrictive egress. Local AzAPI schema validation
+is disabled only for the documented Foundry resources; pinned static tests do not
+establish live compatibility. Do not replace the locked providers, enable keys or
+trusted-service bypass, or substitute the new capability-settings preview to make
+an apply succeed.
 
 This is a minimum dependency baseline, not proof of platform connectivity or a
 complete firewall/FQDN policy. If a required dependency is blocked, stop and review
@@ -148,6 +176,6 @@ terraform test
 Tests use mocked providers and synthetic IDs. Live plans/applies are separate
 approved deployment operations, not template-maintenance checks.
 
-References: [capability settings](https://learn.microsoft.com/azure/foundry/how-to/configure-capability-settings),
+References: [official Terraform sample](https://github.com/microsoft-foundry/foundry-samples/tree/main/infrastructure/infrastructure-setup-terraform/15b-private-network-standard-agent-setup-byovnet),
 [private networking](https://learn.microsoft.com/azure/foundry/agents/how-to/virtual-networks),
 [standard agent setup](https://learn.microsoft.com/azure/foundry/agents/concepts/standard-agent-setup).

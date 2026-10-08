@@ -29,7 +29,7 @@ No Fabric PAT or Fabric capacity administrator is needed for this application wo
 Tell Copilot **"Deploy the platform."** It loads the project-specific [deployment skill](../.github/skills/deploy-platform/SKILL.md), confirms the source/host/backend, inventories the existing private foundation and coordinates approved platform, knowledge, optional build-pool and runtime stages. Missing prerequisites are blockers, not permission to replace existing infrastructure.
 
 Follow the [foundation README](../infra/foundation/README.md) for its private
-account, project and discovered runtime-binding stages. Its source-only mock tests
+account, project, provisioning-role/connection, capability-host and discovered runtime-binding stages. Its source-only mock tests
 do not use Azure credentials or prove private connectivity. Runtime/build subnet
 reservations need separate reviewed platform/dependency egress before use.
 

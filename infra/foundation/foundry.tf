@@ -13,7 +13,7 @@ resource "azurerm_role_assignment" "caller_cosmos" {
 }
 
 resource "azapi_resource" "foundry" {
-  type                      = "Microsoft.CognitiveServices/accounts@2026-07-15-preview"
+  type                      = "Microsoft.CognitiveServices/accounts@2025-06-01"
   name                      = "ai-${local.prefix}"
   parent_id                 = azurerm_resource_group.foundation.id
   location                  = var.location
@@ -37,11 +37,6 @@ resource "azapi_resource" "foundry" {
         subnetArmId                = azurerm_subnet.foundation["agent"].id
         useMicrosoftManagedNetwork = false
       }]
-      capabilitySettings = {
-        documentStore = azurerm_cosmosdb_account.agent.id
-        vectorStore   = azurerm_search_service.foundation.id
-        blobStore     = azurerm_storage_account.foundation["agent"].id
-      }
     }
   }
   response_export_values = ["identity.principalId", "properties.endpoints"]

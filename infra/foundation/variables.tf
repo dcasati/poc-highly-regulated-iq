@@ -59,7 +59,7 @@ variable "network" {
 }
 
 variable "capability_preview_approved" {
-  description = "Explicit acceptance of capability-settings API 2026-07-15-preview, not apply or production approval."
+  description = "Explicit acceptance of capability-host API 2025-04-01-preview, not apply or production approval."
   type        = bool
   default     = false
   nullable    = false
@@ -121,9 +121,55 @@ variable "configure_agent_runtime" {
   default     = false
   nullable    = false
   validation {
-    condition     = !var.configure_agent_runtime || var.provision_project
-    error_message = "Runtime role configuration requires the provisioned project."
+    condition     = !var.configure_agent_runtime || var.provision_agent_capability
+    error_message = "Runtime role configuration requires the retained provisioned capability host."
   }
+}
+
+variable "configure_agent_provisioning" {
+  description = "Separately reviewed project AAD connections and provisioning grants after discovering the actual project identity."
+  type        = bool
+  default     = false
+  nullable    = false
+  validation {
+    condition     = !var.configure_agent_provisioning || var.provision_project
+    error_message = "Agent provisioning configuration requires the retained provisioned project."
+  }
+}
+
+variable "agent_provisioning" {
+  description = "Verified actual project system identity and nonsensitive association/role-verification evidence, never a guessed principal."
+  type = object({
+    principal_id           = string
+    verification_reference = string
+  })
+  default  = { principal_id = "", verification_reference = "" }
+  nullable = false
+  validation {
+    condition = !var.configure_agent_provisioning || (
+      can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.agent_provisioning.principal_id)) &&
+      length(trimspace(var.agent_provisioning.verification_reference)) > 0
+    )
+    error_message = "Record the actual project identity GUID and verification evidence before granting provisioning access."
+  }
+}
+
+variable "provision_agent_capability" {
+  description = "Create the native Agents capability host only after a separate provisioning-role/connection verification and saved-plan review."
+  type        = bool
+  default     = false
+  nullable    = false
+  validation {
+    condition     = !var.provision_agent_capability || var.configure_agent_provisioning
+    error_message = "Capability-host provisioning requires the retained project connections and provisioning grants."
+  }
+}
+
+variable "capability_provisioning_verified" {
+  description = "Operator verification of actual project identity, AAD connection targets and propagated provisioning grants; not agent readiness."
+  type        = bool
+  default     = false
+  nullable    = false
 }
 
 variable "agent_runtime" {

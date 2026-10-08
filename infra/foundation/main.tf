@@ -41,7 +41,7 @@ resource "terraform_data" "gates" {
     }
     precondition {
       condition     = var.capability_preview_approved
-      error_message = "Explicit capability-settings preview acceptance is required; it does not approve an apply or production use."
+      error_message = "Explicit capability-host preview acceptance is required; it does not approve an apply or production use."
     }
     precondition {
       condition = (
@@ -63,6 +63,10 @@ resource "terraform_data" "gates" {
     precondition {
       condition     = !var.provision_project || var.private_connectivity_verified
       error_message = "Verify private DNS, HTTPS, keyless stores and caller-role propagation before provisioning the project."
+    }
+    precondition {
+      condition     = !var.provision_agent_capability || var.capability_provisioning_verified
+      error_message = "Verify the project provisioning identity, connection targets and propagated scoped grants before creating the capability host."
     }
   }
 }

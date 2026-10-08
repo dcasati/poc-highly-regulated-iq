@@ -15,10 +15,19 @@ network = {
   blob_dns_resource_group = "rg-reviewpoc-state"
 }
 
-capability_preview_approved    = false
-provision_project             = false
-private_connectivity_verified = false
-configure_agent_runtime       = false
+capability_preview_approved      = false
+provision_project                = false
+private_connectivity_verified    = false
+configure_agent_runtime          = false
+configure_agent_provisioning     = false
+provision_agent_capability       = false
+capability_provisioning_verified = false
+
+# Fill only after actual project identity discovery and separate role-plan review.
+agent_provisioning = {
+  principal_id           = ""
+  verification_reference = ""
+}
 
 models = {
   chat      = { name = "gpt-5.2", version = "2025-12-11", capacity = 10, sku = "DataZoneStandard" }

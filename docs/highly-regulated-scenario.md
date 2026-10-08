@@ -30,7 +30,7 @@ Organizational browser on approved private network
 
 | Component | Ownership |
 | --- | --- |
-| New private account/models, Search S1, application Storage, separate agent Blob/Cosmos and dedicated subnets/DNS | `infra/foundation/`; separate secured backend. Generated agent-store connections/data remain native service-owned. |
+| New private account/models, Search S1, application Storage, separate agent Blob/Cosmos and dedicated subnets/DNS | `infra/foundation/`; separate secured backend. Terraform owns explicit AAD project connections/capability host; generated agent data remains native service-owned. |
 | Existing Foundry account/project, prompt agent, model deployments, Search, Storage, VNet/subnets and baseline private connectivity | Existing deployment remains authoritative. This root reads resources, not imports or replacements. |
 | New ACR and its private endpoint, application identity/RBAC, runtime, dedicated containers | `infra/highly-regulated/`; use its own secured backend key. |
 | Optional dedicated ACR build pool on an existing private Premium registry | `infra/acr-build/`; use a separate secured backend key. Registry, subnet, DNS and firewall ownership remain unchanged. |
@@ -68,9 +68,11 @@ The AKS fallback uses a private control plane, Azure CNI Overlay, FIPS-enabled s
 ## 2. Establish the target, execution host and prerequisites
 
 Follow the [foundation stages](../infra/foundation/README.md) first. The initial
-account plan creates no project or application. The later project inherits
-creation-time native capability settings; discover real service-owned runtime
-identities and data scopes before reviewing runtime role grants. Never change
+account plan creates no project or application. After private verification, create
+the project, discover its provisioning identity, review AAD connections/scoped
+bootstrap grants, then separately provision its native capability host. Discover
+real service-owned runtime identities and data scopes before reviewing runtime
+role grants, including removal of the temporary account-wide Blob data grant. Never change
 store settings by deleting/recreating a project automatically. Its outputs are
 handoff references, not proof of Content Understanding, indexing or FIPS readiness.
 Review runtime/build dependency egress before creating the scenario environment

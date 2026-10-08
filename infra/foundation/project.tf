@@ -1,6 +1,6 @@
 resource "azapi_resource" "project" {
   count                     = var.provision_project ? 1 : 0
-  type                      = "Microsoft.CognitiveServices/accounts/projects@2026-07-15-preview"
+  type                      = "Microsoft.CognitiveServices/accounts/projects@2025-06-01"
   name                      = "${var.project_name}-review"
   parent_id                 = azapi_resource.foundry.id
   location                  = var.location
@@ -10,6 +10,7 @@ resource "azapi_resource" "project" {
     type = "SystemAssigned"
   }
   body = {
+    sku = { name = "S0" }
     properties = {
       displayName = "${var.project_name} document review"
       description = "Synthetic-only private document review; no production or FIPS readiness claim."
@@ -35,6 +36,10 @@ resource "terraform_data" "runtime_bindings" {
       condition     = contains(local.runtime_principals, lower(azapi_resource.project[0].output.identity.principalId))
       error_message = "Verified runtime identities must include the actual project system-assigned identity."
     }
+    precondition {
+      condition     = lower(try(azapi_resource.agent_capability[0].output.properties.provisioningState, "")) == "succeeded"
+      error_message = "The actual capability host must have completed provisioning before configuring runtime bindings."
+    }
   }
 }
 
@@ -46,6 +51,7 @@ data "azapi_resource" "agent_container" {
   name                   = each.value
   parent_id              = "${azurerm_storage_account.foundation["agent"].id}/blobServices/default"
   response_export_values = ["name"]
+  depends_on             = [azapi_resource.agent_capability]
 }
 
 data "azapi_resource" "agent_database" {
@@ -54,12 +60,14 @@ data "azapi_resource" "agent_database" {
   name                   = var.agent_runtime.database_name
   parent_id              = azurerm_cosmosdb_account.agent.id
   response_export_values = ["name"]
+  depends_on             = [azapi_resource.agent_capability]
 }
 
 locals {
-  runtime_principals = var.configure_agent_runtime ? toset([for id in var.agent_runtime.principal_ids : lower(id)]) : toset([])
+  runtime_principals        = var.configure_agent_runtime ? toset([for id in var.agent_runtime.principal_ids : lower(id)]) : toset([])
+  runtime_search_principals = setsubtract(local.runtime_principals, toset([lower(var.agent_provisioning.principal_id)]))
   runtime_roles = {
-    for binding in setproduct(local.runtime_principals, [
+    for binding in setproduct(local.runtime_search_principals, [
       "Search Index Data Contributor", "Search Service Contributor"
     ]) : "${binding[0]}/${binding[1]}" => { principal = binding[0], role = binding[1] }
   }
@@ -67,8 +75,7 @@ locals {
 
 resource "azurerm_role_assignment" "project_store_control" {
   for_each = var.configure_agent_runtime ? {
-    blob   = { scope = azurerm_storage_account.foundation["agent"].id, role = "Storage Account Contributor" }
-    cosmos = { scope = azurerm_cosmosdb_account.agent.id, role = "Cosmos DB Operator" }
+    blob = { scope = azurerm_storage_account.foundation["agent"].id, role = "Storage Account Contributor" }
   } : {}
   scope                = each.value.scope
   role_definition_name = each.value.role

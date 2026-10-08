@@ -11,7 +11,16 @@ output "project" {
   value = var.provision_project ? {
     name         = azapi_resource.project[0].name, id = azapi_resource.project[0].id,
     principal_id = azapi_resource.project[0].output.identity.principalId,
+    internal_id  = try(azapi_resource.project[0].output.properties.internalId, null),
     endpoints    = azapi_resource.project[0].output.properties.endpoints
+  } : null
+}
+
+output "agent_capability" {
+  description = "Native managed-agent host and provisioning state, not proof of a successful agent invocation."
+  value = var.provision_agent_capability ? {
+    id    = azapi_resource.agent_capability[0].id
+    state = azapi_resource.agent_capability[0].output.properties.provisioningState
   } : null
 }
 
@@ -73,6 +82,8 @@ output "readiness_gates" {
   description = "Configured stage gates only; no indexing, agent, application or FIPS readiness claim."
   value = {
     project_stage_enabled       = var.provision_project
+    provisioning_roles_enabled  = var.configure_agent_provisioning
+    capability_stage_enabled    = var.provision_agent_capability
     runtime_roles_enabled       = var.configure_agent_runtime
     operator_private_verified   = var.private_connectivity_verified
     application_deployed        = false
