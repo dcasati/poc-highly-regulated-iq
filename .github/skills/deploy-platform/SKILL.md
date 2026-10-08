@@ -43,6 +43,11 @@ Acquire short-lived Search and Content Understanding tokens in each plan/apply s
 
 Summarize costs, preview/network exposure, permissions and replacements/deletions. Obtain approval for the exact saved plan before applying it. If source, inputs, state or target changes, create a new plan and obtain new approval. Do not use `-auto-approve`, targeted apply or broad replacement.
 
+A direct user chat reply approving the disclosed artifact is valid approval.
+If an interactive prompt cannot collect an answer, an unavailable-user or autonomy
+fallback is not approval. Keep preparation and read-only verification automatic;
+do not treat blanket consent as approval of undisclosed future access/cost changes.
+
 Verify platform provisioning and preserve state on partial failure. Do not delete successful resources to recover.
 
 ## 4. Complete knowledge registration

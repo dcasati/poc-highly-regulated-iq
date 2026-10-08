@@ -81,7 +81,10 @@ resources, not secrets from appearing in secured provider state.
    caller-role propagation. Private IPs or a successful apply alone are insufficient.
 3. **Project:** set `private_connectivity_verified` and `provision_project` only
    after those checks, then review a new saved plan. This creates the project and
-   caller project role, not connections, a capability host or runtime permissions.
+   caller project-scoped **Foundry User** role (formerly Azure AI User), not
+   connections, a capability host or runtime permissions. Match the management
+   response's exact project ARM ID and system identity; its `name` can be the
+   hierarchical `account/project` rather than the bare child name.
    Do not create an agent before its BYO store configuration is complete.
 4. **Provisioning identity/connections:** discover the actual project system
    identity and record its association in `agent_provisioning`. Set
@@ -113,7 +116,11 @@ resources, not secrets from appearing in secured provider state.
    the agent account. A non-Succeeded capability host blocks runtime configuration.
 7. **Private data-plane bootstrap:** use ephemeral Entra authentication to configure
    Content Understanding defaults with the returned `chat`/`embedding` deployment
-   names. Check analyzer supported models and US processing behavior. Bootstrap a
+   names. Before configuration, a defaults GET can return HTTP 400 with inner
+   error `DefaultsNotSet`; this is not proof of a private-network failure or of
+   configured models. Verify DNS/TLS/authentication separately, then configure
+   and read back the supported defaults under the bootstrap approval.
+   Check analyzer supported models and US processing behavior. Bootstrap a
    prompt agent without unrestricted retrieval tools and verify a synthetic request.
    These actions are not run by Terraform provisioners or this root.
 

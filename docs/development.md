@@ -14,6 +14,24 @@ For local deployment, explicitly select the authoritative existing checkout and 
 
 The PoC connectivity and private state-backend roots have separately approved owner-only local bootstrap exceptions on the encrypted authoritative Mac. Preserve their current state owners and follow [`infra/state-backend/`](../infra/state-backend/README.md) for private/keyless backend readiness and separately approved migrations. Foundation/scenario/build roots need distinct secured remote keys. Use exact PoC hostnames for shared-tailnet split DNS; do not change unrelated projects' networking or DNS.
 
+### Exact-hostname DNS on macOS
+
+Discover the current private endpoint NIC addresses, service FQDNs and private-link
+CNAME aliases from Azure before preparing resolver configuration. Scope approval
+to those exact names and the existing approved DNS relay; do not add Azure-wide
+suffix overrides or replace backend/unrelated resolvers.
+
+Files under `/etc/resolver/<exact-fqdn>` require administrator access. A prepared
+helper must refuse symlinks or different existing content and preserve unrelated
+files. If noninteractive elevation is unavailable, the operator runs the reviewed
+helper and authenticates in their own terminal; never request a password in chat.
+
+Verify normal OS resolution for every service name and alias, then private
+trusted-certificate HTTPS and the appropriate keyless reads without `--resolve`
+or other request-specific overrides. A direct query to the relay or a diagnostic
+IP override is useful evidence but does not prove normal client DNS works.
+Recheck the existing state-backend hostnames before proceeding.
+
 ## Authenticate separately
 
 Use the organization's approved Azure user/service identity and selected subscription through standard CLI/provider conventions. Resolve any `ARM_*` overrides before provisioning without printing secrets. Do not sign in, grant consent, create app registrations or assign access automatically.
