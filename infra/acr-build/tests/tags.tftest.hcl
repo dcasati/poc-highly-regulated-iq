@@ -62,12 +62,16 @@ run "idle_tags_remain_managed" {
     error_message = "Idle tag ownership must not allocate a build instance."
   }
   assert {
-    condition     = azapi_resource.pool_tags.parent_id == azurerm_container_registry_agent_pool.build.id
+    condition     = azapi_update_resource.pool_tags.parent_id == azurerm_container_registry_agent_pool.build.id
     error_message = "The tags child must be scoped only to the owned pool."
   }
   assert {
-    condition     = azapi_resource.pool_tags.body.properties.tags == local.pool_tags && local.pool_tags.purpose == "synthetic-test"
+    condition     = azapi_update_resource.pool_tags.body.properties.tags == local.pool_tags && local.pool_tags.purpose == "synthetic-test"
     error_message = "The tags child must retain declared ownership and operator tags."
+  }
+  assert {
+    condition     = !azapi_update_resource.pool_tags.ignore_missing_property
+    error_message = "Missing tags must remain observable drift rather than be ignored."
   }
 }
 
@@ -77,7 +81,7 @@ run "allocated_tags_remain_managed" {
     instance_count = 1
   }
   assert {
-    condition     = azurerm_container_registry_agent_pool.build.instance_count == 1 && azapi_resource.pool_tags.body.properties.tags == local.pool_tags
+    condition     = azurerm_container_registry_agent_pool.build.instance_count == 1 && azapi_update_resource.pool_tags.body.properties.tags == local.pool_tags
     error_message = "Allocated and idle pools must use the same declarative tag owner."
   }
 }

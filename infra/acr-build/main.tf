@@ -74,10 +74,11 @@ resource "azurerm_container_registry_agent_pool" "build" {
 
 }
 
-resource "azapi_resource" "pool_tags" {
-  type      = "Microsoft.Resources/tags@2021-04-01"
-  name      = "default"
-  parent_id = azurerm_container_registry_agent_pool.build.id
+resource "azapi_update_resource" "pool_tags" {
+  type                    = "Microsoft.Resources/tags@2021-04-01"
+  name                    = "default"
+  parent_id               = azurerm_container_registry_agent_pool.build.id
+  ignore_missing_property = false
   body = {
     properties = {
       tags = local.pool_tags
