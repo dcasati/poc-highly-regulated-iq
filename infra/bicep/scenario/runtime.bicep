@@ -6,7 +6,7 @@ param project_name string
 param location us_region
 @description('Actual previously provisioned private Container Apps environment, registry and application identity.')
 param platform { environment_name: string, registry_name: string, identity_name: string }
-@description('Mandatory FIPS140-3 encryption-at-rest/in-transit image/platform/transport acceptance, knowledge readiness and approved browser registrations. Not whole-app/hash/JWT certification.')
+@description('Accepted FIPS140-3 encryption evidence or explicitly user-authorized synthetic-only attestation deferral, with mandatory knowledge readiness and approved browser registrations. Deferral is not certification or production readiness.')
 param runtime runtime_approval
 @description('Verified private endpoints and existing tools-disabled prompt agent. Fields match the separately reviewed custom analyzer.')
 param application application_config
@@ -42,3 +42,9 @@ resource app 'Microsoft.App/containerApps@2025-01-01' = {
   }
 }
 output portal_url string = 'https://${app.properties.configuration.ingress.fqdn}/'
+output runtime_attestation_status object = {
+  mode: runtime.attestation_mode
+  encryption_evidence_status: runtime.attestation_mode == 'synthetic_poc_attestation_deferred' ? 'deferred_not_certified' : 'evidence_accepted_not_certification'
+  synthetic_only: runtime.attestation_mode == 'synthetic_poc_attestation_deferred'
+  production_readiness: 'not_established'
+}

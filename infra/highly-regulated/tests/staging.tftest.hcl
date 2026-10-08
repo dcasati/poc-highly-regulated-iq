@@ -338,3 +338,123 @@ run "reject_fips1402_encryption_evidence" {
   }
   expect_failures = [var.compliance]
 }
+
+run "synthetic_runtime_with_deferred_attestations" {
+  command = plan
+  variables {
+    runtime_attestation_mode = "synthetic_poc_attestation_deferred"
+    identity = {
+      tenant_id     = "00000000-0000-0000-0000-000000000002"
+      spa_client_id = "00000000-0000-0000-0000-000000000006"
+      api_client_id = "00000000-0000-0000-0000-000000000007"
+      api_scope     = "api://00000000-0000-0000-0000-000000000007/access_as_user"
+    }
+    deploy_runtime    = true
+    provision_hosting = true
+    deploy_knowledge  = true
+    image_digest      = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+  assert {
+    condition     = !var.compliance.approved && alltrue([for evidence in [var.compliance.platform_evidence, var.compliance.image_evidence, var.compliance.transport_evidence] : evidence == ""]) && output.runtime_attestation_status.encryption_evidence_status == "deferred_not_certified" && output.runtime_attestation_status.synthetic_only && output.runtime_attestation_status.production_readiness == "not_established"
+    error_message = "Deferral must remain honestly unapproved, synthetic-only and not certified or production ready."
+  }
+  assert {
+    condition     = length(azurerm_container_app.app) == 1 && length(restful_resource.analyzer) == 1 && local.portal_env.Portal__ApiScope == var.identity.api_scope && !azurerm_container_registry.app.public_network_access_enabled && azurerm_container_app_environment.app[0].internal_load_balancer_enabled
+    error_message = "Deferral must preserve knowledge, authenticated runtime and private hosting/registry requirements."
+  }
+}
+
+run "accepted_evidence_runtime" {
+  command = plan
+  variables {
+    identity = {
+      tenant_id     = "00000000-0000-0000-0000-000000000002"
+      spa_client_id = "00000000-0000-0000-0000-000000000006"
+      api_client_id = "00000000-0000-0000-0000-000000000007"
+      api_scope     = "api://00000000-0000-0000-0000-000000000007/access_as_user"
+    }
+    deploy_runtime    = true
+    provision_hosting = true
+    deploy_knowledge  = true
+    image_digest      = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    compliance = {
+      approved           = true
+      platform_evidence  = "synthetic-test-platform-reference"
+      image_evidence     = "synthetic-test-image-reference"
+      transport_evidence = "synthetic-test-transport-reference"
+    }
+  }
+  assert {
+    condition     = var.runtime_attestation_mode == "evidence_gated" && !output.runtime_attestation_status.synthetic_only && output.runtime_attestation_status.encryption_evidence_status == "evidence_accepted_not_certification" && length(azurerm_container_app.app) == 1
+    error_message = "The default evidence-gated runtime path must remain intact without claiming certification."
+  }
+}
+
+run "reject_approved_deferral" {
+  command = plan
+  variables {
+    runtime_attestation_mode = "synthetic_poc_attestation_deferred"
+    compliance = {
+      approved = true, platform_evidence = "", image_evidence = "", transport_evidence = ""
+    }
+  }
+  expect_failures = [var.runtime_attestation_mode]
+}
+
+run "reject_evidence_in_deferred_mode" {
+  command = plan
+  variables {
+    runtime_attestation_mode = "synthetic_poc_attestation_deferred"
+    compliance = {
+      approved = false, platform_evidence = " ", image_evidence = "", transport_evidence = ""
+    }
+  }
+  expect_failures = [var.runtime_attestation_mode]
+}
+
+run "reject_unknown_attestation_mode" {
+  command = plan
+  variables { runtime_attestation_mode = "production_ready" }
+  expect_failures = [var.runtime_attestation_mode]
+}
+
+run "deferred_runtime_still_requires_identity_and_digest" {
+  command = plan
+  variables {
+    runtime_attestation_mode = "synthetic_poc_attestation_deferred"
+    deploy_runtime           = true
+    provision_hosting        = true
+    deploy_knowledge         = true
+  }
+  expect_failures = [var.identity, var.image_digest]
+}
+
+run "deferred_runtime_still_requires_hosting_and_knowledge" {
+  command = plan
+  variables {
+    runtime_attestation_mode = "synthetic_poc_attestation_deferred"
+    deploy_runtime           = true
+    image_digest             = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    identity = {
+      tenant_id     = "00000000-0000-0000-0000-000000000002"
+      spa_client_id = "00000000-0000-0000-0000-000000000006"
+      api_client_id = "00000000-0000-0000-0000-000000000007"
+      api_scope     = "api://00000000-0000-0000-0000-000000000007/access_as_user"
+    }
+  }
+  expect_failures = [terraform_data.gates]
+}
+
+run "deferred_runtime_still_rejects_public_dependencies" {
+  command = plan
+  variables { runtime_attestation_mode = "synthetic_poc_attestation_deferred" }
+  override_data {
+    target = data.azurerm_storage_account.existing
+    values = {
+      id                    = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-unitpoc/providers/Microsoft.Storage/storageAccounts/stunitpoc"
+      public_network_access = "Enabled"
+      primary_blob_endpoint = "https://stunitpoc.blob.core.windows.net/"
+    }
+  }
+  expect_failures = [terraform_data.gates]
+}

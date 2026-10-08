@@ -20,6 +20,15 @@ Supply a generic project name and explicit region, verified existing-resource re
 
 ## Follow the staged workflow
 
+Attestations default to fail-closed `runtime_attestation_mode = "evidence_gated"`.
+Only explicit user authorization permits `"synthetic_poc_attestation_deferred"`
+for a synthetic-only PoC: retain `compliance.approved = false` and exactly empty
+platform/image/transport evidence. Bicep's equivalent is
+`runtime.attestation_mode`. See [the canonical exception](highly-regulated-scenario.md#explicit-synthetic-poc-attestation-deferral):
+private endpoints/no public IP, encryption controls, US processing, identity,
+knowledge, image digest and human review are not waived. Report deferred/not
+certified, never production ready; each exact runtime plan still needs approval.
+
 Choose one infrastructure owner per resource boundary:
 
 | Path | Use |
@@ -30,7 +39,8 @@ Choose one infrastructure owner per resource boundary:
 Bicep lives alongside Terraform, not over it. Its source availability does not
 authorize deployment over today's live assets; ownership migration requires
 separate review. Private networking, state safeguards, identity, immutable image
-and exact image/platform/transport evidence and synthetic acceptance still apply.
+and exact image/platform/transport evidence (or the explicit synthetic-only
+deferral above) and synthetic acceptance still apply.
 The existing **"Deploy the platform"** workflow remains Terraform-based.
 
 1. Configure the ignored scenario tfvars on the chosen host and review/apply the saved **platform** plan with `provision_hosting`, `deploy_knowledge` and `deploy_runtime` false. Browser identity can remain null for this registry/data/managed-identity stage.

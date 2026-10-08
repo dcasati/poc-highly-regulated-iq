@@ -96,8 +96,8 @@ resource "terraform_data" "gates" {
       error_message = "Runtime requires the separately reviewed hosting stage and its approved dependency egress."
     }
     precondition {
-      condition     = !var.deploy_runtime || (var.deploy_knowledge && var.compliance.approved && alltrue([for evidence in [var.compliance.platform_evidence, var.compliance.image_evidence, var.compliance.transport_evidence] : length(trimspace(evidence)) > 0]))
-      error_message = "Runtime requires knowledge setup and approved FIPS140-3 encryption-at-rest/in-transit evidence for platform services, image TLS and transport; whole-app/hash/JWT certification is not required."
+      condition     = !var.deploy_runtime || (var.deploy_knowledge && (var.runtime_attestation_mode == "synthetic_poc_attestation_deferred" || (var.compliance.approved && alltrue([for evidence in [var.compliance.platform_evidence, var.compliance.image_evidence, var.compliance.transport_evidence] : length(trimspace(evidence)) > 0]))))
+      error_message = "Runtime requires knowledge setup and approved FIPS140-3 platform/image TLS/transport encryption evidence, or explicit user-authorized synthetic-only attestation deferral; deferral is not certification or production readiness."
     }
   }
 }

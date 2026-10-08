@@ -3,6 +3,7 @@ param project_name = 'review-demo'
 param location = 'eastus2'
 param platform = { environment_name: 'cae-review-demo-example', registry_name: 'acrexamplereview', identity_name: 'id-review-demo-example' }
 param runtime = {
+  attestation_mode: 'evidence_gated'
   encryption_standard: 'FIPS140-3'
   approved: true
   platform_evidence: 'EXAMPLE-NOT-PLATFORM-ACCEPTANCE'

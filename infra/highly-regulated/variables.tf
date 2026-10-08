@@ -102,8 +102,21 @@ variable "compliance" {
     error_message = "The encryption requirement is FIPS140-3; FIPS140-2 or approved algorithms alone are not equivalent evidence."
   }
 }
+variable "runtime_attestation_mode" {
+  description = "Default evidence_gated requires accepted FIPS140-3 encryption evidence. synthetic_poc_attestation_deferred is an explicit user-authorized synthetic-only PoC exception, not certification or production readiness; compliance must remain unapproved with empty evidence."
+  type        = string
+  default     = "evidence_gated"
+  validation {
+    condition     = contains(["evidence_gated", "synthetic_poc_attestation_deferred"], var.runtime_attestation_mode)
+    error_message = "Choose evidence_gated or the explicitly authorized synthetic_poc_attestation_deferred mode."
+  }
+  validation {
+    condition     = var.runtime_attestation_mode != "synthetic_poc_attestation_deferred" || (!var.compliance.approved && alltrue([for evidence in [var.compliance.platform_evidence, var.compliance.image_evidence, var.compliance.transport_evidence] : evidence == ""]))
+    error_message = "Deferred synthetic PoC mode requires compliance.approved = false and all three evidence references exactly empty; it cannot claim accepted encryption evidence."
+  }
+}
 variable "deploy_runtime" {
-  description = "Enable only after ACR contains the reviewed image digest and compliance/network/identity gates are approved."
+  description = "Enable only after ACR contains the reviewed image digest and network/identity/knowledge gates pass, with accepted encryption evidence or explicit synthetic-only attestation deferral."
   type        = bool
   default     = false
 }

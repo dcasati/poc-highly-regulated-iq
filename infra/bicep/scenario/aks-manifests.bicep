@@ -2,7 +2,7 @@ import { runtime_approval } from '../types.bicep'
 import { application_config, portal_environment } from './application.bicep'
 @description('Generic PoC branding.')
 param project_name string
-@description('Mandatory accepted FIPS140-3 encryption evidence, real browser identity and verified private knowledge. Not whole-app/hash/JWT certification. This emits manifests, not Kubernetes resources.')
+@description('Accepted FIPS140-3 encryption evidence or explicitly user-authorized synthetic-only attestation deferral, with mandatory real browser identity and verified private knowledge. Deferral is not certification or production readiness. This emits manifests, not Kubernetes resources.')
 param runtime runtime_approval
 @description('Verified private endpoints, analyzer schema and existing tools-disabled agent.')
 param application application_config
@@ -100,3 +100,9 @@ var policy = {
 }
 output manifests array = [namespace, service_account, deployment, service, peer, gateway, route, policy]
 output ingress_service_annotation object = { 'service.beta.kubernetes.io/azure-load-balancer-ipv4': ingress.private_ip }
+output runtime_attestation_status object = {
+  mode: runtime.attestation_mode
+  encryption_evidence_status: runtime.attestation_mode == 'synthetic_poc_attestation_deferred' ? 'deferred_not_certified' : 'evidence_accepted_not_certification'
+  synthetic_only: runtime.attestation_mode == 'synthetic_poc_attestation_deferred'
+  production_readiness: 'not_established'
+}

@@ -34,3 +34,12 @@ output "content_private_link_status" {
   description = "Pending is not ready. Target owners must approve processing and billing links before the knowledge stage."
   value       = { for group, properties in local.content_link_properties : group => properties.status }
 }
+output "runtime_attestation_status" {
+  description = "Configuration status only, not certification or production readiness. Deferred runtime is restricted to explicitly authorized synthetic PoC use."
+  value = {
+    mode                       = var.runtime_attestation_mode
+    encryption_evidence_status = var.runtime_attestation_mode == "synthetic_poc_attestation_deferred" ? "deferred_not_certified" : (var.compliance.approved && alltrue([for evidence in [var.compliance.platform_evidence, var.compliance.image_evidence, var.compliance.transport_evidence] : length(trimspace(evidence)) > 0]) ? "evidence_accepted_not_certification" : "evidence_required")
+    synthetic_only             = var.runtime_attestation_mode == "synthetic_poc_attestation_deferred"
+    production_readiness       = "not_established"
+  }
+}

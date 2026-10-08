@@ -37,10 +37,17 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
     def walk(value, path=""):
         if isinstance(value, dict):
             if "approved" in value:
-                if value["approved"] is not True:
+                deferred = path == "runtime" and value.get("attestation_mode") == "synthetic_poc_attestation_deferred"
+                if deferred:
+                    if value["approved"] is not False:
+                        reject(path, "synthetic PoC deferral must remain unapproved, not certified")
+                    for key in ("platform_evidence", "image_evidence", "transport_evidence"):
+                        if value.get(key) != "":
+                            reject(f"{path}.{key}", "deferred evidence must be exactly empty")
+                elif value["approved"] is not True:
                     reject(path, "a gated stage needs explicit approval; omit that entry point to defer it")
                 for key, evidence in value.items():
-                    if key.endswith("_evidence") or key == "evidence_reference":
+                    if not deferred and (key.endswith("_evidence") or key == "evidence_reference"):
                         if not isinstance(evidence, str) or not evidence.strip():
                             reject(f"{path}.{key}", "evidence reference must be nonempty")
             for key, item in value.items():
@@ -73,6 +80,10 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
     if "runtime" in values and not isinstance(runtime, dict):
         reject("runtime", "runtime cannot be null or omit the typed acceptance record")
     elif runtime is not None:
+        if runtime.get("attestation_mode") not in ("evidence_gated", "synthetic_poc_attestation_deferred"):
+            reject("runtime.attestation_mode", "require evidence_gated or explicit synthetic_poc_attestation_deferred")
+        if "approved" not in runtime:
+            reject("runtime.approved", "explicit approval state is required even in deferred mode")
         if runtime.get("encryption_standard") != "FIPS140-3":
             reject("runtime.encryption_standard", "require FIPS140-3 encryption evidence, not FIPS140-2 or algorithms alone")
         identity = runtime.get("identity")

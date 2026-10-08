@@ -191,8 +191,17 @@ Compilation is not FIPS certification. Neither a FIPS node flag, private network
 ordinary image tag, installed module version nor absence of a `fips` tag proves
 acceptance or incompatibility. The hard requirement is FIPS 140-3 encryption at
 rest/in transit, not independent whole-app/hash/JWT certification. The typed
-runtime approval requires `encryption_standard: 'FIPS140-3'` and accepted image
-TLS, platform/service and transport encryption evidence.
+runtime approval defaults in the examples to `attestation_mode: 'evidence_gated'`,
+requiring `encryption_standard: 'FIPS140-3'` and accepted image TLS,
+platform/service and transport encryption evidence. The explicit
+`attestation_mode: 'synthetic_poc_attestation_deferred'` typed branch is only for
+user-authorized synthetic PoC use: `approved: false` and all three encryption
+evidence fields exactly `''` are mandatory. Knowledge approval, real identity,
+immutable digest and private/US/human-review controls remain required. Both
+runtime entry points output `runtime_attestation_status` as deferred/not certified
+and not production ready. See [the canonical exception](../../docs/highly-regulated-scenario.md#explicit-synthetic-poc-attestation-deferral);
+separate native-plan approval remains mandatory. The compiler and offline tests
+reject contradictory approval/evidence/deferral, not merely document the choice.
 
 ## ARM schema references and preview limitation
 

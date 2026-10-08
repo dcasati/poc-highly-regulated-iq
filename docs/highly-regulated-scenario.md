@@ -50,6 +50,37 @@ The shared index contains two evidence types: original page-aware chunks and hum
 
 ## 1. Resolve hosting and FIPS requirements first
 
+### Explicit synthetic PoC attestation deferral
+
+The default `runtime_attestation_mode = "evidence_gated"` remains fail-closed:
+runtime requires accepted platform/service, exact-image TLS and transport
+FIPS 140-3 evidence. An explicit user-authorized synthetic PoC may instead set
+`runtime_attestation_mode = "synthetic_poc_attestation_deferred"`, while keeping
+`compliance.approved = false`, `compliance.encryption_standard = "FIPS140-3"`
+and `platform_evidence`, `image_evidence`, `transport_evidence` exactly `""`.
+Approval plus deferral, or any evidence reference in deferred mode, is rejected.
+This is an evidence deferral, not satisfaction or removal of the encryption
+requirement. Never fabricate references or use real/regulated documents.
+
+Bicep's equivalent typed `runtime.attestation_mode` selects `evidence_gated`
+or `synthetic_poc_attestation_deferred`; the latter requires `approved: false`
+and the same empty encryption evidence. Independently verified
+`runtime.knowledge` approval is still required. The sanitized runtime and AKS
+examples demonstrate the normal evidence-gated branch; to defer, change only
+the mode, encryption approval and three encryption evidence fields.
+
+Both implementations emit `runtime_attestation_status` with
+`deferred_not_certified`, `synthetic_only = true` and
+`production_readiness = "not_established"` in deferred mode. This does not
+disable encryption controls, private endpoints/no public IP, dependency
+authorization, US processing/residency, hosting/knowledge setup, immutable image
+digest, real SPA/API identities/roles/consent, retention or explicit human review.
+It does not authorize builds or native deployments: review and explicitly approve
+each exact saved deployment plan separately. Synthetic functional checks may
+proceed, but mark encryption attestations deferred, not passed; do not claim
+regulated/production readiness or certification. Return to `evidence_gated`
+only after genuine evidence is accepted, with a new reviewed runtime plan.
+
 Start with `hosting = "container_apps"`. Private VNet connectivity, internal ingress, managed identity, ACR pulls and a continuously running worker are supported by this deployment. `min_replicas = 1` prevents the durable processing worker from being scaled to zero.
 
 The hard FIPS requirement is **FIPS 140-3 encryption at rest and in transit**, not certification of the entire application, operating system, hashing or JWT-validation code. Before selecting hosting, obtain accepted evidence for the actual service-encryption and TLS paths, including managed ingress and the workload's outbound TLS. An external HTTPS endpoint alone does not establish protection of an internal ingress-to-workload HTTP hop. Select AKS only if Container Apps cannot meet this encryption requirement or another actual runtime constraint; a missing node-level FIPS switch alone does not rule it out.
@@ -206,7 +237,8 @@ plan after the selected runtime's dependency egress is ready. This lets private
 knowledge and build prerequisites progress without choosing an unverified
 cryptographic hosting boundary or prematurely provisioning billable nodes.
 Container Apps remains the first choice. Runtime additionally requires the real
-browser registrations, knowledge, reviewed image digest and compliance evidence.
+browser registrations, knowledge, reviewed image digest and compliance evidence
+or the explicitly authorized synthetic-only attestation deferral above.
 Do not reset any applied stage flags on resume.
 
 Search serializes shared-private-link updates at the service level. The native
@@ -328,7 +360,7 @@ Private connectivity does **not** make an ACR agent pool FIPS validated. If the 
 
 ## 6. Deploy the runtime
 
-Set `image_digest`, complete the three approval references and real browser identity, and set `deploy_runtime = true` after the reviewed `provision_hosting = true` stage. Review/apply a new saved runtime plan with fresh tokens. For Container Apps, the application is reachable only through the internal environment; `external_enabled = true` on the app means reachable from its VNet, **not** a public environment endpoint. Terraform creates its private environment DNS zone and VNet link.
+Set `image_digest`, complete the three approval references (or the explicit synthetic-only attestation deferral above) and real browser identity, and set `deploy_runtime = true` after the reviewed `provision_hosting = true` stage. Review/apply a new saved runtime plan with fresh tokens. For Container Apps, the application is reachable only through the internal environment; `external_enabled = true` on the app means reachable from its VNet, **not** a public environment endpoint. Terraform creates its private environment DNS zone and VNet link.
 
 For AKS, the hosting stage must already exist before the Kubernetes provider can discover Istio CRDs. From the private runner, verify the actual ingress namespace/selector. Provision the approved certificate as a Kubernetes TLS Secret in the **ingress gateway workload namespace**, using the organization's external secret/certificate procedure; never commit a key or place it in tfvars. Supply the existing secret name. Terraform configures HTTPS Gateway/VirtualService, static internal ingress IP annotation, sidecar injection, strict mTLS, application FIPS-pool scheduling, resource limits, nonroot/read-only containers and network policy.
 

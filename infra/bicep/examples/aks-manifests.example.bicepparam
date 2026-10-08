@@ -1,6 +1,7 @@
 using '../scenario/aks-manifests.bicep'
 param project_name = 'review-demo'
 param runtime = {
+  attestation_mode: 'evidence_gated'
   encryption_standard: 'FIPS140-3'
   approved: true
   platform_evidence: 'EXAMPLE-NOT-PLATFORM-ACCEPTANCE'

@@ -40,7 +40,7 @@ class StaticContracts(unittest.TestCase):
         if not compiler:
             raise RuntimeError("Bicep CLI missing. Run the documented local compiler check; do not deploy.")
         cls.compiler = compiler
-        cls.temp = tempfile.TemporaryDirectory(prefix="private-review-bicep-")
+        cls.temp = tempfile.TemporaryDirectory(prefix=".private-review-bicep-", dir=Path.cwd())
         cls.addClassCleanup(cls.temp.cleanup)
         cls.templates = {}
         cls.examples = {}
@@ -128,15 +128,23 @@ class StaticContracts(unittest.TestCase):
             template = self.templates[path]
             self.assertNotIn("defaultValue", template["parameters"]["runtime"])
             runtime = definition(template, template["parameters"]["runtime"])
-            self.assertEqual(runtime["properties"]["encryption_standard"]["allowedValues"], ["FIPS140-3"])
-            self.assertEqual(runtime["properties"]["approved"]["allowedValues"], [True])
-            self.assertEqual(runtime["properties"]["image_algorithm"]["allowedValues"], ["sha256"])
-            self.assertEqual(runtime["properties"]["image_hash"]["minLength"], 64)
+            members = runtime["discriminator"]["mapping"]
+            self.assertEqual(set(members), {"evidence_gated", "synthetic_poc_attestation_deferred"})
+            accepted = definition(template, members["evidence_gated"])
+            deferred = definition(template, members["synthetic_poc_attestation_deferred"])
+            self.assertEqual(accepted["properties"]["approved"]["allowedValues"], [True])
+            self.assertEqual(deferred["properties"]["approved"]["allowedValues"], [False])
             for evidence in ("platform_evidence", "image_evidence", "transport_evidence"):
-                self.assertEqual(runtime["properties"][evidence]["minLength"], 1)
-            self.assertNotIn("nullable", runtime["properties"]["identity"])
-            knowledge = definition(template, runtime["properties"]["knowledge"])
-            self.assertEqual(knowledge["properties"]["approved"]["allowedValues"], [True])
+                self.assertEqual(accepted["properties"][evidence]["minLength"], 1)
+                self.assertEqual(deferred["properties"][evidence]["allowedValues"], [""])
+            for branch in (accepted, deferred):
+                self.assertEqual(branch["properties"]["encryption_standard"]["allowedValues"], ["FIPS140-3"])
+                self.assertEqual(branch["properties"]["image_algorithm"]["allowedValues"], ["sha256"])
+                self.assertEqual(branch["properties"]["image_hash"]["minLength"], 64)
+                self.assertNotIn("nullable", branch["properties"]["identity"])
+                knowledge = definition(template, branch["properties"]["knowledge"])
+                self.assertEqual(knowledge["properties"]["approved"]["allowedValues"], [True])
+            self.assertEqual(template["outputs"]["runtime_attestation_status"]["value"]["production_readiness"], "not_established")
         app = self.templates["scenario/runtime.bicep"]["resources"]["app"]
         image = app["properties"]["template"]["containers"][0]["image"]
         self.assertIn("/review-portal@", image)
@@ -260,8 +268,11 @@ class StaticContracts(unittest.TestCase):
 
     def test_compiler_rejects_unsafe_stage_parameter_shapes(self):
         source = (ROOT / "examples/runtime.example.bicepparam").read_text()
-        source = source.replace("using '../scenario/runtime.bicep'", f"using '{ROOT / 'scenario/runtime.bicep'}'")
+        source = source.replace("using '../scenario/runtime.bicep'", f"using '{os.path.relpath(ROOT / 'scenario/runtime.bicep', self.temp.name)}'")
         cases = {
+            "unknown-mode": source.replace("attestation_mode: 'evidence_gated'", "attestation_mode: 'production_ready'"),
+            "missing-mode": source.replace("  attestation_mode: 'evidence_gated'\n", ""),
+            "contradictory-deferral": source.replace("attestation_mode: 'evidence_gated'", "attestation_mode: 'synthetic_poc_attestation_deferred'"),
             "wrong-encryption-standard": source.replace("encryption_standard: 'FIPS140-3'", "encryption_standard: 'FIPS140-2'"),
             "unapproved": source.replace("approved: true", "approved: false", 1),
             "missing-evidence": source.replace("  transport_evidence: 'EXAMPLE-NOT-TRANSPORT-ACCEPTANCE'\n", ""),
@@ -274,6 +285,39 @@ class StaticContracts(unittest.TestCase):
             path.write_text(text)
             result = subprocess.run([self.compiler, "build-params", str(path), "--outfile", str(path.with_suffix(".json"))], capture_output=True, text=True, check=False)
             self.assertNotEqual(result.returncode, 0, f"{name} unexpectedly compiled")
+
+    def test_deferred_attestations_preserve_all_other_runtime_gates(self):
+        for example in ("runtime.example.bicepparam", "aks-manifests.example.bicepparam"):
+            candidate = copy.deepcopy(self.examples[example])
+            runtime = candidate["runtime"]
+            runtime.update(attestation_mode="synthetic_poc_attestation_deferred", approved=False,
+                           platform_evidence="", image_evidence="", transport_evidence="")
+            self.assertEqual(validate(candidate, allow_examples=True), [])
+            for field, value in (("approved", True), ("platform_evidence", "claimed-evidence"), ("image_evidence", " "),
+                                 ("transport_evidence", None), ("identity", None), ("image_hash", "g" * 64),
+                                 ("knowledge", {"approved": False}), ("encryption_standard", "FIPS140-2")):
+                invalid = copy.deepcopy(candidate)
+                invalid["runtime"][field] = value
+                self.assertTrue(validate(invalid, allow_examples=True), field)
+            source = (ROOT / "examples" / example).read_text()
+            entry = "aks-manifests.bicep" if example.startswith("aks") else "runtime.bicep"
+            source = source.replace(f"using '../scenario/{entry}'", f"using '{os.path.relpath(ROOT / 'scenario' / entry, self.temp.name)}'")
+            source = source.replace("attestation_mode: 'evidence_gated'", "attestation_mode: 'synthetic_poc_attestation_deferred'")
+            source = source.replace("  approved: true", "  approved: false", 1)
+            source = re.sub(r"(  (?:platform|image|transport)_evidence:) '[^']*'", r"\1 ''", source)
+            path = Path(self.temp.name) / example
+            path.write_text(source)
+            self.compile("build-params", path, path.with_suffix(".json"))
+            for name, text in {
+                "approved": source.replace("  approved: false", "  approved: true", 1),
+                "evidence": source.replace("  image_evidence: ''", "  image_evidence: 'claimed'"),
+                "knowledge": source.replace("knowledge: { approved: true", "knowledge: { approved: false"),
+                "identity": re.sub(r"  identity: \{.*?\n  \}", "  identity: null", source, flags=re.S),
+                "digest": source.replace("image_algorithm: 'sha256'", "image_algorithm: 'tag'"),
+            }.items():
+                path.write_text(text)
+                result = subprocess.run([self.compiler, "build-params", str(path), "--outfile", str(path.with_suffix(".json"))], capture_output=True, text=True, check=False)
+                self.assertNotEqual(result.returncode, 0, f"deferred {entry} {name} unexpectedly compiled")
 
     def test_extra_runtime_principals_are_verified_guid_shapes(self):
         for principal in ("-" * 36, "not-a-guid", "00000000-0000-0000-0000-000000000000"):

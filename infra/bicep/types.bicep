@@ -46,7 +46,9 @@ type browser_identity = {
 
 @export()
 @sealed()
+@discriminator('attestation_mode')
 type runtime_approval = {
+  attestation_mode: 'evidence_gated'
   encryption_standard: 'FIPS140-3'
   approved: true
   @minLength(1)
@@ -55,6 +57,19 @@ type runtime_approval = {
   image_evidence: string
   @minLength(1)
   transport_evidence: string
+  knowledge: approval
+  identity: browser_identity
+  image_algorithm: 'sha256'
+  @minLength(64)
+  @maxLength(64)
+  image_hash: string
+} | {
+  attestation_mode: 'synthetic_poc_attestation_deferred'
+  encryption_standard: 'FIPS140-3'
+  approved: false
+  platform_evidence: ''
+  image_evidence: ''
+  transport_evidence: ''
   knowledge: approval
   identity: browser_identity
   image_algorithm: 'sha256'

@@ -50,12 +50,22 @@ All regional resources and AI processing must remain in the United States; a US 
 
 ## Deploy the solution
 
+Encryption attestations default to fail-closed `runtime_attestation_mode = "evidence_gated"`.
+Only explicit user authorization for a **synthetic-only PoC** permits
+`"synthetic_poc_attestation_deferred"`, with `compliance.approved = false` and
+all three encryption evidence references exactly empty. Bicep uses equivalent
+`runtime.attestation_mode`. Outputs label this **deferred/not certified**, never
+production-ready. [The canonical exception](docs/highly-regulated-scenario.md#explicit-synthetic-poc-attestation-deferral)
+preserves private endpoints/no public IP, encryption controls, US processing,
+real SPA/API authorization, knowledge, immutable images and human review.
+Each exact deployment plan still needs separate approval.
+
 Start with [getting started](docs/getting-started.md) and follow the [scenario tutorial](docs/highly-regulated-scenario.md) for prerequisites, approved plans and acceptance checks. In Copilot App or CLI, tell Copilot **"Deploy the platform."** The workflow targets this private review scenario, not the legacy Fabric baseline.
 
 1. Configure the chosen execution host and distinct secured backend keys without duplicating existing deployment state.
 2. Review and approve the Terraform platform plan with hosting/runtime deferred and browser identity null if registrations are pending, then the knowledge plan after required private-link approvals.
 3. Build through private ACR Tasks using an approved VNet-connected agent pool and base-image digest. The optional build-pool root owns only a new pool; ordinary public workers cannot build against the private registry.
-4. Review hosting dependency egress and approve its separate provisioning plan, then accept the exact browser identity/cryptographic evidence and approve the immutable-digest runtime plan.
+4. Review hosting dependency egress and approve its separate provisioning plan, then accept the exact browser identity/cryptographic evidence (or explicitly authorize synthetic-only attestation deferral) and approve the immutable-digest runtime plan.
 5. Complete synthetic identity, network, extraction, human-review, indexing, case-isolation, recovery and cryptographic acceptance checks.
 
 Each saved Terraform plan requires approval before apply. A successful apply does not establish service readiness.
