@@ -23,6 +23,14 @@ data "azurerm_subnet" "build" {
   resource_group_name  = data.azurerm_virtual_network.build.resource_group_name
 }
 
+locals {
+  pool_tags = merge(var.tags, {
+    project    = var.project_name
+    managed_by = "Terraform"
+    component  = "container-build"
+  })
+}
+
 resource "azurerm_container_registry_agent_pool" "build" {
   name                      = "${replace(var.project_name, "-", "")}pool"
   location                  = var.location
@@ -31,13 +39,11 @@ resource "azurerm_container_registry_agent_pool" "build" {
   virtual_network_subnet_id = data.azurerm_subnet.build.id
   tier                      = var.tier
   instance_count            = var.instance_count
-  tags = merge(var.tags, {
-    project    = var.project_name
-    managed_by = "Terraform"
-    component  = "container-build"
-  })
+  tags                      = local.pool_tags
 
   lifecycle {
+    # AzureRM 5.8.0 omits tags on pool updates; the ARM tags child owns them.
+    ignore_changes = [tags]
     precondition {
       condition     = var.preview_approved
       error_message = "ACR agent pools are a preview. Obtain organization approval before provisioning."
@@ -63,6 +69,18 @@ resource "azurerm_container_registry_agent_pool" "build" {
         data.azurerm_virtual_network.build.location == var.location
       )
       error_message = "Choose the approved registry/VNet region for the new build pool."
+    }
+  }
+
+}
+
+resource "azapi_resource" "pool_tags" {
+  type      = "Microsoft.Resources/tags@2021-04-01"
+  name      = "default"
+  parent_id = azurerm_container_registry_agent_pool.build.id
+  body = {
+    properties = {
+      tags = local.pool_tags
     }
   }
 }

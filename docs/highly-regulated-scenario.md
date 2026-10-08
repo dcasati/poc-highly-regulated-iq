@@ -251,6 +251,8 @@ terraform output agent_pool_name
 
 Use no `-auto-approve`, targeted apply, AZD hook or deployment wrapper. An S2 pool allocates four vCPUs per instance; the example keeps **one billable instance** allocated, even while idle. Check quota across all pools in the registry. A separately approved plan may set `instance_count = 0` after all builds finish; zero-capacity pools cannot run builds. Do not automatically delete or scale someone else's pool.
 
+The pinned [AzureRM 5.8.0 pool update implementation](https://github.com/hashicorp/terraform-provider-azurerm/blob/v5.8.0/internal/services/containers/container_registry_agent_pool_resource.go) sends only instance count, omitting tags even on tag-only updates. This root therefore delegates only pool tags to the native `Microsoft.Resources/tags@2021-04-01` extension resource. AzureRM ignores only that child-owned field; the ARM tags resource retains drift detection and correction. After scaling, refresh and review a full plan to restore any service-cleared tags; never hide all pool drift or repeat ineffective AzureRM tag updates.
+
 After pool provisioning and live network checks, verify the approved runtime image/module evidence and submit only the application build context:
 
 ```sh

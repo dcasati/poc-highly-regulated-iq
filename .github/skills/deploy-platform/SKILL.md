@@ -79,6 +79,9 @@ verification with raw signed-archive hashes or bypass rejected signature chains.
 Candidate builds may gather evidence, but must not set runtime compliance approval.
 After work completes, check the queue before any separately reviewed scale-to-zero
 plan for this owned pool; preserve its image/state and never stop another build.
+Verify a fresh full plan after scaling. The native ARM tags child owns pool tags
+because pinned AzureRM omits tags on updates; review any tag-only repair rather
+than ignore all drift or repeat ineffective AzureRM tag updates.
 
 The runtime root deploys from its own registry. If a different build registry was selected, request approval for the transfer and verify the destination digest before setting `image_digest`. Never assume an image is present in both registries.
 
