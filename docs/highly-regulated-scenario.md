@@ -67,6 +67,8 @@ For either hosting option, review the cryptographic boundary with your complianc
 
 The Dockerfile intentionally has **no default runtime image**. Supply an approved .NET 10 runtime image by immutable digest. Changing its crypto packages, configuration, base image or operating environment can invalidate evidence. The build SDK is not claimed to be a validated runtime. Maintain approved OS/.NET versions and evaluate library updates before rebuilding.
 
+Azure Linux 3 [includes the SymCrypt OpenSSL provider](https://github.com/microsoft/SymCrypt-OpenSSL/tree/main/SymCryptProvider), but package presence or default enablement is not approved-mode evidence. In an OpenSSL property query, `?provider=symcryptprovider` is an [optional preference](https://docs.openssl.org/3.3/man7/property/#queries), not an exclusive requirement: another loaded provider can satisfy a fetch. Inspect the exact image's effective configuration, verify the provider and approved parameters actually used by .NET TLS/JWT operations, and execute the applicable module/self-test checks in its real operating environment. Do not infer compliance from a package version, certificate number or `fips=yes` property alone.
+
 For a private build without arbitrary package-CDN egress, stage only the locked
 NuGet packages in an ignored `nuget-offline/` folder inside the inspected ACR
 build context and pass `--build-arg NUGET_SOURCE=/src/nuget-offline`. Verify the
