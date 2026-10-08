@@ -16,6 +16,7 @@ resource "azapi_resource" "content_link" {
   type      = "Microsoft.Search/searchServices/sharedPrivateLinkResources@2025-05-01"
   name      = "${var.project_name}-${replace(each.key, "_", "-")}"
   parent_id = data.azurerm_search_service.existing.id
+  locks     = [data.azurerm_search_service.existing.id]
   body = {
     properties = {
       groupId               = each.key

@@ -143,6 +143,12 @@ Container Apps remains the first choice. Runtime additionally requires the real
 browser registrations, knowledge, reviewed image digest and compliance evidence.
 Do not reset any applied stage flags on resume.
 
+Search serializes shared-private-link updates at the service level. The native
+AzAPI lock uses the selected Search service ID so processing and billing requests
+are not written concurrently. If an apply partially succeeds, preserve its state
+and inspect a fresh recovery plan; never reuse the consumed original plan or
+delete successful resources to retry.
+
 ```sh
 cd infra/highly-regulated
 # Authentication/subscription follows standard ARM_* or Azure CLI conventions.

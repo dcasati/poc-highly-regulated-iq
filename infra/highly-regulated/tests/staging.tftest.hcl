@@ -136,6 +136,7 @@ run "platform_without_browser_registrations" {
     condition     = var.identity == null && length(local.portal_env) == 0 && length(azurerm_container_app.app) == 0 && length(azurerm_container_app_environment.app) == 0 && output.portal_url == null
     error_message = "Platform preparation must not require browser registrations or create an unauthenticated app."
   }
+
   assert {
     condition     = length(restful_resource.analyzer) == 0 && !azurerm_container_registry.app.admin_enabled && !azurerm_container_registry.app.public_network_access_enabled && azurerm_container_registry.app.network_rule_bypass_option == "None"
     error_message = "The initial platform must retain private/keyless ACR and defer analyzer deployment."
@@ -145,6 +146,17 @@ run "platform_without_browser_registrations" {
       link.status == "Approved" && link.groupId == group &&
     link.privateLinkResourceId == data.azurerm_cognitive_account.foundry.id])
     error_message = "Synthetic approved private-link fixtures must match their declared groups and targets."
+  }
+}
+
+run "serialize_new_content_links" {
+  command = plan
+  variables {
+    existing_content_links = {}
+  }
+  assert {
+    condition     = length(azapi_resource.content_link) == 2 && alltrue([for link in azapi_resource.content_link : length(link.locks) == 1 && contains(link.locks, data.azurerm_search_service.existing.id)])
+    error_message = "Processing and billing shared-link writes must lock the same Search service to prevent conflicting updates."
   }
 }
 
