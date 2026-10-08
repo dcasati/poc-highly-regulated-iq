@@ -27,6 +27,7 @@ Reviewers can then ask questions about their selected case. The API enforces bot
 | [Microsoft Foundry Agent Service](https://learn.microsoft.com/azure/ai-foundry/agents/overview) | Existing managed prompt agent and approved model deployments; dedicated native Blob/Cosmos stores remain separate from application storage. |
 | [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/) | Private ACR Tasks builds on a VNet-connected agent pool and immutable-digest runtime images; no local Docker daemon. |
 | [Terraform](https://developer.hashicorp.com/terraform/docs) | Approved platform, knowledge, hosting and runtime stages with distinct secured private/keyless backend keys. |
+| [Bicep](infra/bicep/README.md) | Parallel staged ARM alternative, with explicit operator boundaries for Search/CU and Kubernetes. Not a second owner of today's Terraform-managed assets. |
 
 **Target architecture, not a readiness or certification claim.** Private synthetic agent invocation, extraction, indexing, retrieval and portal access require live acceptance checks. Private networking and FIPS node flags alone do not prove cryptographic compliance.
 
@@ -54,6 +55,8 @@ Start with [getting started](docs/getting-started.md) and follow the [scenario t
 
 Each saved Terraform plan requires approval before apply. A successful apply does not establish service readiness.
 
+[Parallel Bicep source](infra/bicep/README.md) is available for separately reviewed resource boundaries. Terraform remains the current live deployment path; switching ownership requires migration review, not deployment over existing assets.
+
 ## Repository layout
 
 | Component | Location |
@@ -66,6 +69,7 @@ Each saved Terraform plan requires approval before apply. A successful apply doe
 | Reviewed tools-disabled prompt-agent definition | [`agents/exempt-agent/definition.json`](agents/exempt-agent/definition.json) |
 | Scenario infrastructure and knowledge registration | `infra/highly-regulated/` |
 | Optional private ACR task agent pool | `infra/acr-build/` |
+| Parallel Bicep infrastructure, examples and offline checks | [`infra/bicep/`](infra/bicep/README.md) |
 | Staged deployment and acceptance checks | [Scenario tutorial](docs/highly-regulated-scenario.md) |
 | Local development and execution-host guidance | [Developer setup](docs/development.md) |
 

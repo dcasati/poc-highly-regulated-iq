@@ -20,6 +20,19 @@ Supply a generic project name and explicit region, verified existing-resource re
 
 ## Follow the staged workflow
 
+Choose one infrastructure owner per resource boundary:
+
+| Path | Use |
+| --- | --- |
+| Terraform (current live owner) | Follow the approved saved-plan procedure below without changing state ownership. |
+| [Parallel Bicep](../infra/bicep/README.md) | Separate staged ARM sources for newly authorized boundaries; Search/CU CRUD and Kubernetes remain explicit operator steps. Initial platform preparation creates no hosting/runtime/knowledge or portal URL. |
+
+Bicep lives alongside Terraform, not over it. Its source availability does not
+authorize deployment over today's live assets; ownership migration requires
+separate review. Private networking, state safeguards, identity, immutable image
+and exact image/platform/transport evidence and synthetic acceptance still apply.
+The existing **"Deploy the platform"** workflow remains Terraform-based.
+
 1. Configure the ignored scenario tfvars on the chosen host and review/apply the saved **platform** plan with `provision_hosting`, `deploy_knowledge` and `deploy_runtime` false. Browser identity can remain null for this registry/data/managed-identity stage.
 2. Approve the required processing/billing shared links through their owners; review/apply the saved **knowledge** plan.
 3. Use an approved private ACR build pool, or review/apply the separate **build-pool** plan. Build with `az acr build --agent-pool` and the approved runtime image digest.

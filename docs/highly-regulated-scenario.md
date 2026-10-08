@@ -8,6 +8,19 @@ The application accepts a manually exported PDF package, retains the original, e
 
 **Status:** implementation and local checks are not a deployment, service-readiness demonstration or FIPS certification. Production use requires the approvals and live acceptance checks below. Foundry IQ and the project MCP connection use preview APIs; preview terms and service limitations must be accepted by the organization.
 
+| Infrastructure choice | Ownership and staging |
+| --- | --- |
+| Terraform (current live owner) | The saved-plan procedure and secured backend safeguards in this tutorial remain authoritative for the live PoC. |
+| [Parallel Bicep](../infra/bicep/README.md) | Parallel ARM boundaries under `infra/bicep/`, separate platform/hosting/runtime entry points, sanitized examples and offline checks. Declarative Search/CU payloads and AKS manifests require explicit native operator CRUD/readiness; bootstrap-grant revocation needs a separately approved deletion/readback. |
+
+These are alternatives for a resource boundary, not co-owners. Bicep source does
+not authorize deploying over Terraform-owned assets or migrating state. Initial
+Bicep platform preparation defers hosting, knowledge and runtime, permits absent
+browser identity only before runtime, and emits no phantom portal URL.
+The same private-link target-owner approvals, keyless/scoped identities, human
+review and case/owner filters, tools-disabled existing agent, immutable image,
+retention and image/platform/transport evidence gates apply to either choice.
+
 ## Architecture and ownership
 
 ![Target Azure architecture for private document review: retain original PDFs, explicitly validate custom Content Understanding extraction, privately index approved evidence, and retrieve case-and-owner-scoped citations for a tools-disabled prompt agent.](diagrams/private-document-review.svg)
