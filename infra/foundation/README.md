@@ -131,7 +131,43 @@ resources, not secrets from appearing in secured provider state.
    and read back the supported defaults under the bootstrap approval.
    Check analyzer supported models and US processing behavior. Bootstrap a
    prompt agent without unrestricted retrieval tools and verify a synthetic request.
+   Content Understanding defaults and prompt-agent inference are independent
+   readiness checks; a working agent does not establish extraction readiness.
    These actions are not run by Terraform provisioners or this root.
+
+### Prompt-agent bootstrap and private smoke test
+
+The reviewed [Exempt Agent definition](../../agents/exempt-agent/definition.json)
+uses the foundation's `chat` deployment and no tools. Read back
+`model_deployments.chat` and verify that deployment before using the definition;
+if another foundation supplies a different name, substitute its actual output.
+Use the selected project's normal private endpoint with trusted TLS and an
+ephemeral `https://ai.azure.com/` audience token. Never save or print the token.
+
+For the New Agent Service `2025-11-15-preview` contract, inspect
+`GET <project-endpoint>/agents?api-version=2025-11-15-preview` first. Preserve an
+existing agent; review its versions/definition rather than silently replacing it.
+Create a missing agent with `POST` to the same path, using
+`{"name":"exempt-agent","definition":<reviewed definition>}`. Read back the version
+from `/agents/exempt-agent/versions?api-version=2025-11-15-preview` and confirm the
+model, instructions and empty tool list. This is a separate approved data-plane
+action, not part of a Terraform apply.
+
+Invoke `POST <project-endpoint>/openai/v1/responses` with the verified name/version
+in `agent_reference`, `tool_choice = "none"`, `store = false` and a synthetic
+input requesting the exact marker `SYNTHETIC_OK_REVIEW_REQUIRED`. Do not supply a
+shared conversation. Verify HTTP success **and** status `completed`, the exact
+output text and absence of tool activity. The response can omit the `store` echo
+field; preserve evidence that the request disabled storage without treating an
+omitted echo as failure or claiming independently verified service retention.
+
+A generic downstream-dependency error does not identify a failed Key Vault.
+Verify actual native store associations and scoped grants, allow bounded
+authorization propagation and retest without changing keys or public networking.
+A successful host or agent-list request alone is not inference readiness.
+Use the actual verified agent name in the scenario handoff. This smoke test
+does not establish retrieval quality, Content Understanding, application access
+or cryptographic compliance.
 
 Do not reset flags after a stage has been applied; that would request protected
 resource deletion. Preserve successful state/resources on partial provisioning
