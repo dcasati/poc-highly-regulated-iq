@@ -39,6 +39,7 @@ Dedicated native agent Blob/Cosmos stores are separate from application document
 | Existing Foundry account/project, prompt agent, model deployments, Search, Storage, VNet/subnets and baseline private connectivity | Existing deployment remains authoritative. This root reads resources, not imports or replacements. |
 | New ACR and its private endpoint, application identity/RBAC, runtime, dedicated containers | `infra/highly-regulated/`; use its own secured backend key. |
 | Optional dedicated ACR build pool on an existing private Premium registry | `infra/acr-build/`; use a separate secured backend key. Registry, subnet, DNS and firewall ownership remain unchanged. |
+| Optional new single-tenant browser registrations | `infra/browser-identity/`; use a separate secured backend key. No existing applications, directory roles, credentials or Graph permissions are adopted/granted. |
 | Custom analyzer, Search index/data sources/skillset/indexers/source/base, project connection | Scenario Terraform data-plane CRUD with drift detection and dependency-ordered deletion. Never edit generated service-owned ingestion objects. |
 | Application code, browser UI and tests | `app/ReviewPortal/` and `app/ReviewPortal.Tests/`. |
 | Identity app registration, user role assignments, private-link approvals, approved certificates, immutable retention and cryptographic approval | Organization administrators. No automatic tenant consent, certificate material in state, or compliance self-certification. |
@@ -93,6 +94,18 @@ handoff references, not proof of Content Understanding, indexing or FIPS readine
 Review runtime/build dependency egress before creating the scenario environment
 or ACR pool; the foundation's restrictive subnet reservations are not operational
 runtime/build networks by themselves.
+
+The optional `infra/browser-identity/` root creates new single-tenant SPA/API
+registrations, service principals, API v2 tokens, the `access_as_user` delegated
+scope and user-only Caseworker/Reviewer roles. It preauthorizes only that SPA for
+that custom scope, not Microsoft Graph. `assign_operator_roles` is false by
+default; explicit approval grants these two application roles to the current
+deployment user only, never a directory/admin role. Use a distinct secured
+backend and verify the selected CLI directory/authority first. API Identifier URI
+ownership is narrowly delegated to its native child resource; no blanket drift
+exclusion is used. Add exact HTTPS SPA redirect URLs only after discovering the
+actual private host. An empty redirect set permits registration, not working
+browser authentication; no secret, implicit-flow or authorization bypass is used.
 
 Use a derived repository, one approved VNet-connected deployment/build host, one existing Azure identity and one secured remote state backend/key throughout. Never duplicate an existing backend in an App worktree. Do not copy existing tfvars/state into this template. No live deployment is authorized by reading this guide.
 
