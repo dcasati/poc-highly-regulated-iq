@@ -268,6 +268,14 @@ run "reject_mismatched_api_scope" {
   expect_failures = [var.identity]
 }
 
+run "reject_hyphenated_analyzer_id" {
+  command = plan
+  variables {
+    analyzer_id = "application-review"
+  }
+  expect_failures = [var.analyzer_id]
+}
+
 run "reject_malformed_application_guid" {
   command = plan
   variables {

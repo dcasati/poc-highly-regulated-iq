@@ -172,6 +172,11 @@ All four containers have `prevent_destroy`. Originals are uploaded with `If-None
 
 ## 4. Complete analyzer and knowledge registration
 
+Custom Content Understanding analyzer IDs must not contain hyphens. The shared
+default is `application_review`; keep Terraform, Bicep payloads and portal
+configuration aligned. Native prebuilt analyzer names are service-owned and
+are not renamed.
+
 Approve pending private-link requests on the target Foundry resource through the authorized owner process. Both Content Understanding links and the existing Blob shared link must report `Approved`; Terraform checks group IDs and target resource identity, not merely names.
 
 Set `deploy_knowledge = true`, leave `deploy_runtime = false`, acquire fresh tokens, and create/review/apply a separate saved `knowledge.tfplan`. This registers:

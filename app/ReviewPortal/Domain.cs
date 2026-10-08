@@ -42,6 +42,8 @@ public sealed record PortalOptions
         foreach (var name in new[] { AgentName, AnalyzerId, KnowledgeBase, KnowledgeSource })
             if (string.IsNullOrWhiteSpace(name) || name.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not '-' and not '_' and not '.'))
                 throw new InvalidOperationException("Invalid service object name.");
+        if (AnalyzerId.Length > 64 || AnalyzerId.Contains('-'))
+            throw new InvalidOperationException("Custom Content Understanding analyzer IDs must be at most 64 characters without hyphens.");
     }
 }
 

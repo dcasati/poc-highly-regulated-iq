@@ -136,10 +136,10 @@ variable "content_access_token" {
 variable "analyzer_id" {
   description = "New, scenario-owned Content Understanding custom analyzer ID. Do not reuse a preexisting analyzer."
   type        = string
-  default     = "application-review"
+  default     = "application_review"
   validation {
-    condition     = can(regex("^[a-zA-Z0-9._-]{1,64}$", var.analyzer_id))
-    error_message = "Use a valid Content Understanding analyzer ID."
+    condition     = can(regex("^[a-zA-Z0-9._]{1,64}$", var.analyzer_id))
+    error_message = "Use 1-64 letters, digits, underscores or dots; custom Content Understanding analyzer IDs cannot contain hyphens."
   }
 }
 variable "analyzer_fields" {

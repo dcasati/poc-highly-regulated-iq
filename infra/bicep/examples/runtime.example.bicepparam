@@ -22,7 +22,7 @@ param application = {
   search_endpoint: 'https://srch-review-demo-example.search.windows.net'
   project_endpoint: 'https://ai-review-demo-example.services.ai.azure.com/api/projects/review-demo-review'
   agent_name: 'exempt-agent'
-  analyzer_id: 'application-review'
+  analyzer_id: 'application_review'
   field_names: ['ApplicantName', 'Description', 'ReferenceNumber', 'RequestedCategory', 'SignaturePresent', 'SupportingDocuments']
   processing_location: 'geography'
   confidence_threshold: '0.9'

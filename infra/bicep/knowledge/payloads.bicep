@@ -10,8 +10,10 @@ param analyzer_models { completion: string, embedding: string }
 @description('Approved US CU boundary; independent native layout residency review is still required.')
 @allowed(['geography', 'dataZone'])
 param processing_location string = 'geography'
-@description('Scenario-owned custom analyzer ID.')
-param analyzer_id string = 'application-review'
+@description('Scenario-owned custom analyzer ID; use underscores, not hyphens.')
+@minLength(1)
+@maxLength(64)
+param analyzer_id string = 'application_review'
 @description('Every field requires explicit human confirmation before publication. Extend this scalar schema under domain review.')
 param analyzer_fields {
   *: {

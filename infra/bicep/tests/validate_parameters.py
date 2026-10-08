@@ -45,6 +45,8 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
                             reject(f"{path}.{key}", "evidence reference must be nonempty")
             for key, item in value.items():
                 child = f"{path}.{key}" if path else key
+                if key == "analyzer_id" and (not isinstance(item, str) or not re.fullmatch(r"[a-zA-Z0-9._]{1,64}", item)):
+                    reject(child, "use 1-64 letters/digits/underscores/dots; custom analyzer IDs cannot contain hyphens")
                 if key in {
                     "principal_id", "caller_principal_id", "deployment_principal_id",
                     "deployer_principal_id", "tenant_id", "spa_client_id", "api_client_id",

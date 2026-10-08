@@ -279,6 +279,12 @@ class StaticContracts(unittest.TestCase):
         self.assertEqual(validate({"extra_principal_ids": [valid]}, allow_examples=True), [])
         self.assertTrue(validate({"extra_principal_ids": [valid, valid.upper()]}, allow_examples=True))
 
+    def test_custom_analyzer_ids_reject_hyphens(self):
+        for analyzer in ("application-review", "", "a" * 65):
+            self.assertTrue(validate({"analyzer_id": analyzer}, allow_examples=True))
+        self.assertEqual(validate({"analyzer_id": "application_review"}, allow_examples=True), [])
+        self.assertTrue(validate({"application": {"analyzer_id": "application-review", "confidence_threshold": 0.9, "processing_location": "geography", "field_names": ["ApplicantName"]}}, allow_examples=True))
+
     def test_egress_cannot_split_all_internet_across_cidrs(self):
         split = ["0.0.0.0/1", "128.0.0.0/1"]
         self.assertTrue(validate({"approved_https_cidrs": split}, allow_examples=True))

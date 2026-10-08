@@ -23,6 +23,14 @@ public class ReviewTests
             Fields: [new("ApplicantName", "Example", "Example", 0.5, "D(1,0,0,1,1)")]);
 
     [Fact]
+    public void CustomAnalyzerConfigurationRejectsHyphens()
+    {
+        Assert.Throws<InvalidOperationException>(() => (Options with { AnalyzerId = "application-review" }).Validate());
+        Assert.Throws<InvalidOperationException>(() => (Options with { AnalyzerId = new string('a', 65) }).Validate());
+        (Options with { AnalyzerId = "application_review" }).Validate();
+    }
+
+    [Fact]
     public void MissingAndUnscoredFieldsRequireAttention()
     {
         using var input = JsonDocument.Parse("""{"result":{"contents":[{"fields":{"ApplicantName":{"type":"string","valueString":"Example"}}}]}}""");
