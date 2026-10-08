@@ -72,7 +72,7 @@ resource "azurerm_network_security_group" "foundation" {
     source_port_range          = "*"
     destination_port_range     = "53"
     source_address_prefix      = "*"
-    destination_address_prefix = "AzurePlatformDNS"
+    destination_address_prefix = "168.63.129.16/32"
   }
   security_rule {
     name                       = "entra-https"

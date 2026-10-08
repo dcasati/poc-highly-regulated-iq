@@ -107,6 +107,12 @@ endpoint HTTPS, Azure DNS and Entra HTTPS, followed by deny-other-egress.
 Default platform inbound rules are retained. No general Internet/AzureCloud
 allow rule, trusted-service bypass or NAT association is added.
 
+The DNS rule targets only Azure's fixed platform address `168.63.129.16/32` on
+port 53. Do not use `AzurePlatformDNS` in an Allow rule: Azure rejects that
+combination. Platform DNS normally bypasses NSGs unless explicitly denied with
+that special tag, so the catch-all egress denial is not a DNS filtering control.
+See [Azure platform IP behavior](https://learn.microsoft.com/azure/virtual-network/what-is-ip-address-168-63-129-16).
+
 The new preview account/project API is advertised by the registered provider.
 Local AzAPI schema validation is disabled only on those two current-contract
 resources; static tests do not establish service-side preview compatibility.

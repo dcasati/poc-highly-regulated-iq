@@ -208,7 +208,18 @@ run "deny_arbitrary_outbound" {
     ])
     error_message = "Every reserved subnet must deny arbitrary egress without a broad public-cloud/internet exception."
   }
-
+  assert {
+    condition = alltrue([for group in azurerm_network_security_group.foundation :
+      anytrue([for rule in group.security_rule :
+        rule.name == "azure-dns" && rule.direction == "Outbound" &&
+        rule.access == "Allow" && rule.destination_address_prefix == "168.63.129.16/32" &&
+        rule.destination_port_range == "53"
+        ]) && alltrue([for rule in group.security_rule :
+        rule.destination_address_prefix != "AzurePlatformDNS" || rule.access == "Deny"
+      ])
+    ])
+    error_message = "Azure DNS must use its fixed platform address; AzurePlatformDNS cannot be used in an Allow rule."
+  }
 }
 
 run "runtime_role_shape_after_discovery" {
