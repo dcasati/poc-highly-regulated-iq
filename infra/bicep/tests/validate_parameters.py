@@ -73,6 +73,8 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
     if "runtime" in values and not isinstance(runtime, dict):
         reject("runtime", "runtime cannot be null or omit the typed acceptance record")
     elif runtime is not None:
+        if runtime.get("encryption_standard") != "FIPS140-3":
+            reject("runtime.encryption_standard", "require FIPS140-3 encryption evidence, not FIPS140-2 or algorithms alone")
         identity = runtime.get("identity")
         if not identity:
             reject("runtime.identity", "runtime cannot use a null browser identity")

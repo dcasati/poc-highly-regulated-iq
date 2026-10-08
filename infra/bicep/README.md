@@ -189,7 +189,10 @@ against running Kubernetes/preview services or establish service readiness.
 Operators must perform the canonical private preflight and approvals separately.
 Compilation is not FIPS certification. Neither a FIPS node flag, private network,
 ordinary image tag, installed module version nor absence of a `fips` tag proves
-acceptance or incompatibility; exact image/platform/transport evidence is mandatory.
+acceptance or incompatibility. The hard requirement is FIPS 140-3 encryption at
+rest/in transit, not independent whole-app/hash/JWT certification. The typed
+runtime approval requires `encryption_standard: 'FIPS140-3'` and accepted image
+TLS, platform/service and transport encryption evidence.
 
 ## ARM schema references and preview limitation
 

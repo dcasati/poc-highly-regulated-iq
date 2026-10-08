@@ -265,6 +265,14 @@ run "reviewed_hosting_without_runtime" {
     condition     = length(azurerm_container_app_environment.app) == 1 && length(azurerm_container_app.app) == 0 && output.portal_url == null
     error_message = "The reviewed hosting stage must not deploy an application or advertise an uncreated portal."
   }
+  assert {
+    condition = (
+      length(azapi_update_resource.peer_encryption) == 1 &&
+      azapi_update_resource.peer_encryption[0].body.properties.peerTrafficConfiguration.encryption.enabled &&
+      !azapi_update_resource.peer_encryption[0].ignore_missing_property
+    )
+    error_message = "Private hosting must request native ingress-to-workload encryption with drift detection; external TLS alone is insufficient."
+  }
 }
 
 run "reject_mismatched_api_scope" {
@@ -299,4 +307,34 @@ run "reject_malformed_application_guid" {
     }
   }
   expect_failures = [var.identity]
+}
+
+run "encryption_only_approval_scope" {
+  command = plan
+  variables {
+    compliance = {
+      approved           = true
+      platform_evidence  = "synthetic-test-at-rest-and-platform-encryption-reference"
+      image_evidence     = "synthetic-test-image-tls-encryption-reference"
+      transport_evidence = "synthetic-test-transport-encryption-reference"
+    }
+  }
+  assert {
+    condition     = var.compliance.encryption_standard == "FIPS140-3" && length(keys(var.compliance)) == 5
+    error_message = "Approval must cover FIPS140-3 encryption without independent whole-app, hashing or JWT certification inputs."
+  }
+}
+
+run "reject_fips1402_encryption_evidence" {
+  command = plan
+  variables {
+    compliance = {
+      encryption_standard = "FIPS140-2"
+      approved            = false
+      platform_evidence   = ""
+      image_evidence      = ""
+      transport_evidence  = ""
+    }
+  }
+  expect_failures = [var.compliance]
 }

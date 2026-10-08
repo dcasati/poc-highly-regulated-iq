@@ -2,7 +2,7 @@ import { runtime_approval } from '../types.bicep'
 import { application_config, portal_environment } from './application.bicep'
 @description('Generic PoC branding.')
 param project_name string
-@description('Mandatory accepted cryptographic evidence, real browser identity and verified private knowledge. This emits manifests, not Kubernetes resources.')
+@description('Mandatory accepted FIPS140-3 encryption evidence, real browser identity and verified private knowledge. Not whole-app/hash/JWT certification. This emits manifests, not Kubernetes resources.')
 param runtime runtime_approval
 @description('Verified private endpoints, analyzer schema and existing tools-disabled agent.')
 param application application_config

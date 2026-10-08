@@ -52,22 +52,63 @@ The shared index contains two evidence types: original page-aware chunks and hum
 
 Start with `hosting = "container_apps"`. Private VNet connectivity, internal ingress, managed identity, ACR pulls and a continuously running worker are supported by this deployment. `min_replicas = 1` prevents the durable processing worker from being scaled to zero.
 
-Before selecting it, obtain organization-approved evidence for the **specific Container Apps platform and TLS termination boundary**, not merely Azure's general compliance portfolio. If the requirement includes an explicitly configurable/auditable FIPS node operating environment and acceptable Container Apps evidence cannot be obtained, select `hosting = "aks"` **before provisioning the runtime**. The absence of a documented FIPS switch is not a claim that Container Apps is universally noncompliant.
+The hard FIPS requirement is **FIPS 140-3 encryption at rest and in transit**, not certification of the entire application, operating system, hashing or JWT-validation code. Before selecting hosting, obtain accepted evidence for the actual service-encryption and TLS paths, including managed ingress and the workload's outbound TLS. An external HTTPS endpoint alone does not establish protection of an internal ingress-to-workload HTTP hop. Select AKS only if Container Apps cannot meet this encryption requirement or another actual runtime constraint; a missing node-level FIPS switch alone does not rule it out.
+
+Container Apps hosting declares
+[`peerTrafficConfiguration.encryption.enabled = true`](https://learn.microsoft.com/en-us/azure/container-apps/ingress-environment-configuration)
+to encrypt ingress-proxy and app-to-app traffic within the environment. Pinned
+AzureRM does not expose this setting, so Terraform owns only this property through
+a native `azapi_update_resource` on its existing environment, with drift detection;
+the application depends on that update. Bicep declares the same property directly.
+This setting is separate from client-certificate authentication and is not, by
+itself, FIPS 140-3 module attestation. Review/apply this change explicitly on an
+existing environment and verify the live setting before claiming encrypted hops.
 
 For either hosting option, review the cryptographic boundary with your compliance team:
 
 | Boundary | Required evidence |
 | --- | --- |
-| Application image | Exact base image digest, .NET/OpenSSL or other cryptographic module versions, CMVP certificate and Security Policy, operating environment, approved-mode configuration/self-tests, TLS and JWT paths. |
-| Runtime | Platform evidence for Container Apps; for AKS, supported FIPS images on **both** system and application node pools, node image versions and upgrade policy. |
-| Transport | Browser/client cryptography, platform ingress or Istio/Envoy TLS modules and configurations, mesh mTLS, workload-to-Azure TLS, approved algorithms and certificate lifecycle. |
-| Managed services and data | Applicable Azure service/module attestations, encryption/key-management requirements, processing/data residency and retention policy. |
+| Application image (`image_evidence`) | Exact image digest and TLS-encryption module/version, FIPS 140-3 CMVP certificate/Security Policy, applicable operating environment and approved-mode evidence. Native probe results alone do not trace the actual managed TLS path. |
+| Managed services/platform (`platform_evidence`) | Applicable attestations for encryption at rest and hosting-managed encryption. A whole-app or whole-node certification is not independently required. |
+| Transport (`transport_evidence`) | Client, managed ingress or proxy, ingress-to-workload, mesh and workload-to-Azure encryption paths; applicable FIPS 140-3 modules, approved TLS/key-establishment configuration and certificate lifecycle. |
+| Data controls | US processing/residency, authorized access, retention and key-management requirements remain separate readiness controls, not broader application FIPS-certification gates. |
 
-**FIPS is a validation of cryptographic modules, not a boolean certification of this application.** AKS explicitly states that container images on FIPS nodes are not assessed for FIPS compliance. Istio, TLS 1.2, a standard Linux/.NET image or a node flag alone is not proof. Do not set `compliance.approved = true` until the approving authority accepts the exact deployment boundary and records the three evidence references. The runtime plan is blocked without them.
+**FIPS validates modules, not this application as a whole.** AES-256, TLS 1.2, a FIPS 140-2 certificate or a node flag alone does not establish the required FIPS 140-3 encryption. AKS explicitly excludes container-image assessment from its FIPS-node guarantee. Set `compliance.encryption_standard = "FIPS140-3"` and keep `compliance.approved = false` until the approving authority accepts the encryption boundaries and records the three evidence references. JWT/signature and hashing correctness still require normal security tests, but not independent application FIPS certification. Key establishment and other operations supporting encryption must still meet the accepted module's Security Policy.
 
 The Dockerfile intentionally has **no default runtime image**. Supply an approved .NET 10 runtime image by immutable digest. Changing its crypto packages, configuration, base image or operating environment can invalidate evidence. The build SDK is not claimed to be a validated runtime. Maintain approved OS/.NET versions and evaluate library updates before rebuilding.
 
-Azure Linux 3 [includes the SymCrypt OpenSSL provider](https://github.com/microsoft/SymCrypt-OpenSSL/tree/main/SymCryptProvider), but package presence or default enablement is not approved-mode evidence. In an OpenSSL property query, `?provider=symcryptprovider` is an [optional preference](https://docs.openssl.org/3.3/man7/property/#queries), not an exclusive requirement: another loaded provider can satisfy a fetch. Inspect the exact image's effective configuration, verify the provider and approved parameters actually used by .NET TLS/JWT operations, and execute the applicable module/self-test checks in its real operating environment. Do not infer compliance from a package version, certificate number or `fips=yes` property alone.
+Azure Linux 3 [includes the SymCrypt OpenSSL provider](https://github.com/microsoft/SymCrypt-OpenSSL/tree/main/SymCryptProvider), but package presence or default enablement is not approved-mode evidence. In an OpenSSL property query, `?provider=symcryptprovider` is an [optional preference](https://docs.openssl.org/3.3/man7/property/#queries), not an exclusive requirement: another loaded provider can satisfy a fetch. Inspect the exact image's effective configuration and the encryption provider/parameters actually used by workload TLS against the applicable FIPS 140-3 certificate and Security Policy. This does not impose a separate JWT/hashing certification requirement. Do not infer compliance from a package version, certificate number or `fips=yes` property alone.
+
+[CMVP certificate 5313](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5313)
+validates SymCrypt 103.8.0 for specified operating environments, including Azure
+Linux 3. Its [Security Policy](https://csrc.nist.gov/CSRC/media/projects/cryptographic-module-validation-program/documents/security-policies/140sp5313.pdf)
+places HKDF outside approved mode and lists P-256/P-384/P-521 for approved ECDH.
+For this selected module, outbound clients restrict TLS to 1.2 and ECDHE AES-GCM.
+The runtime image's `openssl-tls.cnf` includes the vendor configuration unchanged
+and restricts ECDHE groups to P-256/P-384; the Docker build rejects incompatible
+vendor configuration instead of silently omitting the profile. Azure SDK and
+JWT-metadata HTTPS transports use the shared client policy. These controls do not
+prove native provider selection or certify the managed ingress/service boundary;
+they require a new ACR image and actual runtime checks. This is certificate-specific,
+not a claim that every TLS 1.3 implementation is noncompliant.
+
+The separate [.NET/Linux diagnostic harness](../app/ReviewPortal.CryptoChecks/README.md)
+collects provider observations, managed cryptographic test results and optional
+certificate-validated TLS evidence without changing the image's OpenSSL defaults.
+Native provider observations do not establish which provider every managed .NET
+operation uses. Completed diagnostics remain explicitly unqualified; a successful
+build or test run cannot authorize the runtime.
+
+Container Apps is listed in [Azure Commercial FedRAMP High audit scope](https://learn.microsoft.com/en-us/azure/azure-government/compliance/azure-services-in-fedramp-auditscope),
+but that listing does not identify the managed-ingress cryptographic module.
+If public documentation does not resolve this boundary, have an authorized
+administrator obtain the applicable SSP/customer-responsibility evidence through
+the [Microsoft Service Trust Portal](https://servicetrust.microsoft.com/) and
+request Microsoft Support attestation. Request the encryption module/version, current
+FIPS 140-3 CMVP certificate/status, operating environment, approved-mode configuration and
+applicable region/workload profile. Keep the runtime gate closed until the
+approving authority accepts that evidence; FIPS AKS nodes do not automatically
+validate a replacement ingress proxy or application image.
 
 For a private build without arbitrary package-CDN egress, stage only the locked
 NuGet packages in an ignored `nuget-offline/` folder inside the inspected ACR
@@ -307,7 +348,7 @@ Run these acceptance checks only in the explicitly chosen derived deployment. A 
 | Publication/indexing | Both indexer status URLs report successful executions with zero failed items. Verify actual original chunks/page ranges and reviewed JSON records, including correct case/owner metadata. Test documents over the native skill's five-minute processing limit fail visibly. |
 | Isolation and agent | Another uploader cannot list/read/download/review/chat with the case. Retrieval references all match the authenticated owner and selected case. Test hostile question/document instructions; no agent tools or unrelated cases are accessible. Answer contains evidence citations and exposes missing/conflicting facts. |
 | Recovery | Restart replicas during analysis and publication; blob leases prevent concurrent processing. An ambiguous submission becomes `SubmissionOutcomeUnknown` rather than being silently repeated. Explicit retry warns about possible duplicate costs. |
-| Cryptographic evidence | Verify the actual image/node/proxy module versions, approved-mode/self-test behavior, TLS/JWT algorithms and service/client boundaries against the accepted certificates/security policies. |
+| Encryption evidence | Verify actual at-rest/service, workload TLS and ingress/proxy encryption modules, relevant approved-mode behavior and key-establishment parameters against the accepted FIPS 140-3 certificates/Security Policies. Do not substitute independent whole-app/hash/JWT certification. |
 | Retention/audit | Verify immutable retention, approved access, case/reviewer timestamps, preserved original values/corrections, backup and no document/token content in telemetry. |
 
 Use `terraform output indexer_status_urls` for status locations. `Pending -> Submitting -> Analyzing -> NeedsReview -> Publishing -> Approved` is application workflow, **not indexing readiness**. The worker persists operation URLs, polls with bounded steps and a 30-minute analysis deadline, and resumes publication after a restart. Cloud errors are surfaced with sanitized failure codes/request IDs; original documents are not automatically deleted on failure.

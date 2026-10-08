@@ -86,15 +86,20 @@ variable "hosting" {
   }
 }
 variable "compliance" {
-  description = "Approval record references, not certificates or secrets. FIPS validation belongs to cryptographic modules and their exact operating environments."
+  description = "Approval references for FIPS140-3 encryption at rest and in transit: platform/service encryption, exact image TLS encryption and transport. Not whole-application, hashing or JWT certification; never include secrets."
   type = object({
-    approved           = bool
-    platform_evidence  = string
-    image_evidence     = string
-    transport_evidence = string
+    encryption_standard = optional(string, "FIPS140-3")
+    approved            = bool
+    platform_evidence   = string
+    image_evidence      = string
+    transport_evidence  = string
   })
   default = {
     approved = false, platform_evidence = "", image_evidence = "", transport_evidence = ""
+  }
+  validation {
+    condition     = var.compliance.encryption_standard == "FIPS140-3"
+    error_message = "The encryption requirement is FIPS140-3; FIPS140-2 or approved algorithms alone are not equivalent evidence."
   }
 }
 variable "deploy_runtime" {

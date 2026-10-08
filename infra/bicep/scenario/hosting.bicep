@@ -19,6 +19,7 @@ resource environment 'Microsoft.App/managedEnvironments@2025-07-01' = if (hostin
   tags: { project: project_name, verification: hosting_dependencies.evidence_reference }
   properties: {
     publicNetworkAccess: 'Disabled'
+    peerTrafficConfiguration: { encryption: { enabled: true } }
     vnetConfiguration: { internal: true, infrastructureSubnetId: network.runtime_subnet_id }
     workloadProfiles: [{ name: 'Consumption', workloadProfileType: 'Consumption' }]
   }

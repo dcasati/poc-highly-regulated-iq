@@ -12,6 +12,19 @@ resource "azurerm_container_app_environment" "app" {
   }
   tags = local.tags
 }
+resource "azapi_update_resource" "peer_encryption" {
+  count                   = var.hosting == "container_apps" && var.provision_hosting ? 1 : 0
+  type                    = "Microsoft.App/managedEnvironments@2025-07-01"
+  resource_id             = azurerm_container_app_environment.app[0].id
+  ignore_missing_property = false
+  body = {
+    properties = {
+      peerTrafficConfiguration = {
+        encryption = { enabled = true }
+      }
+    }
+  }
+}
 resource "azurerm_private_dns_zone" "app" {
   count               = var.hosting == "container_apps" && var.provision_hosting ? 1 : 0
   name                = azurerm_container_app_environment.app[0].default_domain
@@ -84,7 +97,7 @@ resource "azurerm_container_app" "app" {
   }
   tags = local.tags
   depends_on = [
-    terraform_data.gates, azurerm_private_endpoint.registry, azurerm_role_assignment.app_pull,
+    terraform_data.gates, azapi_update_resource.peer_encryption, azurerm_private_endpoint.registry, azurerm_role_assignment.app_pull,
     azurerm_role_assignment.app_storage, azurerm_role_assignment.app_content,
     azurerm_role_assignment.app_project, azurerm_role_assignment.app_search
   ]

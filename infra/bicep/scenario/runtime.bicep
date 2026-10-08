@@ -6,7 +6,7 @@ param project_name string
 param location us_region
 @description('Actual previously provisioned private Container Apps environment, registry and application identity.')
 param platform { environment_name: string, registry_name: string, identity_name: string }
-@description('Mandatory exact image/platform/transport acceptance, knowledge readiness and real approved browser registrations. No false/default approval is offered here.')
+@description('Mandatory FIPS140-3 encryption-at-rest/in-transit image/platform/transport acceptance, knowledge readiness and approved browser registrations. Not whole-app/hash/JWT certification.')
 param runtime runtime_approval
 @description('Verified private endpoints and existing tools-disabled prompt agent. Fields match the separately reviewed custom analyzer.')
 param application application_config

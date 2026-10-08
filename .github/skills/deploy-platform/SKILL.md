@@ -31,7 +31,7 @@ Use `initialize-project` for configuration only on the chosen host. Preserve exi
 
 Verify the existing private Foundry account/project/prompt agent, Search S1 or higher and system identity, Blob Storage, VNet/subnets, private DNS, model defaults and service-role prerequisites documented in the tutorial. Verify physical resource identities rather than names alone. Do not recreate or import the existing foundation into this project's state.
 
-Administrators own consent, SPA/API registrations and user roles, certificates, locked retention, provider registration and target-owner private-link approvals. Stop for missing access, quota, networking or approval. Container Apps is the first hosting choice; use AKS only after its requirement is established. Confirm the exact runtime image and platform/transport cryptographic evidence before deploying containers; neither private connectivity nor FIPS nodes prove certification.
+Administrators own consent, SPA/API registrations and user roles, certificates, locked retention, provider registration and target-owner private-link approvals. Stop for missing access, quota, networking or approval. Container Apps is the first hosting choice; use AKS only after its requirement is established. The hard FIPS requirement is FIPS 140-3 encryption at rest/in transit, not whole-app/hash/JWT certification. Confirm the exact image TLS and platform/service/transport encryption evidence; neither algorithms, private connectivity nor FIPS nodes alone establish module validation.
 
 An authorized administrator may separately review `infra/browser-identity/` for
 new single-tenant registrations and explicitly approved current-user API roles.
@@ -87,7 +87,7 @@ The runtime root deploys from its own registry. If a different build registry wa
 
 ## 6. Deploy and verify the runtime
 
-Complete the exact platform/image/transport approval references and real SPA/API identity, set `image_digest` and enable `deploy_runtime` only after `provision_hosting` is enabled. Review/apply a separately saved runtime plan. Preserve the current hosting choice; changing Container Apps to AKS is a migration needing separate review.
+Complete `compliance.encryption_standard = "FIPS140-3"` and the exact platform/service, image TLS and transport encryption approval references plus real SPA/API identity. Do not gate on independent whole-app/hash/JWT certification or waive actual encryption evidence. Set `image_digest` and enable `deploy_runtime` only after `provision_hosting` is enabled. Review/apply a separately saved runtime plan. Preserve the current hosting choice; changing Container Apps to AKS is a migration needing separate review.
 
 Verify runtime provisioning, private DNS/access, Entra redirect/roles, service identities and any AKS certificate/mesh prerequisites. A successful apply or health endpoint is not readiness.
 

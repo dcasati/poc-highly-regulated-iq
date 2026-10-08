@@ -16,7 +16,7 @@ Provision the new US AI foundation through [`infra/foundation/`](../infra/founda
 
 Use supported US regional or US Data Zone model deployments rather than Global SKUs. Validate Content Understanding resource-region support and both custom-analyzer and native-skill processing boundaries. Global control-plane services, Entra ID and Private DNS aren't region-pinned; resource placement alone does not establish US-only processing or FIPS compliance.
 
-Supply a generic project name and explicit region, verified existing-resource references and approved subnet choices. The application image, hosting platform and transport need organization-approved cryptographic evidence. Private connectivity or a FIPS node flag is not certification.
+Supply a generic project name and explicit region, verified existing-resource references and approved subnet choices. The hard FIPS requirement is encryption at rest and in transit using FIPS 140-3 validated modules, not independent whole-app/hash/JWT certification. Supply accepted image TLS, platform/service and transport encryption evidence. AES-256, TLS or private connectivity alone does not prove module validation.
 
 ## Follow the staged workflow
 

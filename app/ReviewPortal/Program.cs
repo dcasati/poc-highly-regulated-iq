@@ -16,13 +16,16 @@ var options = builder.Configuration.GetSection("Portal").Get<PortalOptions>() ??
 options.Validate();
 builder.Services.AddSingleton(options);
 builder.WebHost.ConfigureKestrel(k => k.Limits.MaxRequestBodySize = options.MaxUploadBytes);
-builder.Services.AddSingleton<TokenCredential>(_ => builder.Environment.IsDevelopment()
+builder.Services.AddOutboundTlsPolicy(builder.Environment.IsDevelopment());
+builder.Services.AddSingleton<TokenCredential>(sp => builder.Environment.IsDevelopment()
     ? new AzureCliCredential()
     : !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AZURE_FEDERATED_TOKEN_FILE"))
-        ? new WorkloadIdentityCredential()
-        : new ManagedIdentityCredential(ManagedIdentityId.FromUserAssignedClientId(options.ManagedIdentityClientId ??
-            throw new InvalidOperationException("An assigned runtime identity is required."))));
-builder.Services.AddSingleton(sp => new BlobServiceClient(new Uri(options.BlobEndpoint), sp.GetRequiredService<TokenCredential>()));
+        ? new WorkloadIdentityCredential(sp.GetRequiredService<WorkloadIdentityCredentialOptions>())
+        : new ManagedIdentityCredential(options.ManagedIdentityClientId ??
+            throw new InvalidOperationException("An assigned runtime identity is required."),
+            sp.GetRequiredService<ManagedIdentityCredentialOptions>()));
+builder.Services.AddSingleton(sp => new BlobServiceClient(new Uri(options.BlobEndpoint),
+    sp.GetRequiredService<TokenCredential>(), sp.GetRequiredService<BlobClientOptions>()));
 builder.Services.AddSingleton<CaseStore>();
 builder.Services.AddHttpClient<CloudServices>(c => c.Timeout = TimeSpan.FromSeconds(120));
 builder.Services.AddHostedService<ExtractionWorker>();

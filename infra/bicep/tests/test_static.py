@@ -110,6 +110,7 @@ class StaticContracts(unittest.TestCase):
         self.assertEqual(template["parameters"]["hosting"]["defaultValue"], {"kind": "container_apps"})
         emitted = template["resources"]
         self.assertEqual(emitted["environment"]["condition"], "[equals(parameters('hosting').kind, 'container_apps')]")
+        self.assertTrue(emitted["environment"]["properties"]["peerTrafficConfiguration"]["encryption"]["enabled"])
         self.assertEqual(emitted["aks"]["condition"], "[equals(parameters('hosting').kind, 'aks')]")
         for kind in ("container_apps", "aks"):
             self.assertEqual(sum(kind == selected for selected in ("container_apps", "aks")), 1)
@@ -127,6 +128,7 @@ class StaticContracts(unittest.TestCase):
             template = self.templates[path]
             self.assertNotIn("defaultValue", template["parameters"]["runtime"])
             runtime = definition(template, template["parameters"]["runtime"])
+            self.assertEqual(runtime["properties"]["encryption_standard"]["allowedValues"], ["FIPS140-3"])
             self.assertEqual(runtime["properties"]["approved"]["allowedValues"], [True])
             self.assertEqual(runtime["properties"]["image_algorithm"]["allowedValues"], ["sha256"])
             self.assertEqual(runtime["properties"]["image_hash"]["minLength"], 64)
@@ -244,7 +246,7 @@ class StaticContracts(unittest.TestCase):
 
     def test_semantic_rejections(self):
         base = self.examples["runtime.example.bicepparam"]
-        for field, value in (("image_hash", "g" * 64), ("identity", None), ("knowledge", {"approved": False}), ("image_evidence", "")):
+        for field, value in (("encryption_standard", "FIPS140-2"), ("encryption_standard", None), ("image_hash", "g" * 64), ("identity", None), ("knowledge", {"approved": False}), ("image_evidence", "")):
             candidate = copy.deepcopy(base)
             candidate["runtime"][field] = value
             self.assertTrue(validate(candidate, allow_examples=True), field)
@@ -260,6 +262,7 @@ class StaticContracts(unittest.TestCase):
         source = (ROOT / "examples/runtime.example.bicepparam").read_text()
         source = source.replace("using '../scenario/runtime.bicep'", f"using '{ROOT / 'scenario/runtime.bicep'}'")
         cases = {
+            "wrong-encryption-standard": source.replace("encryption_standard: 'FIPS140-3'", "encryption_standard: 'FIPS140-2'"),
             "unapproved": source.replace("approved: true", "approved: false", 1),
             "missing-evidence": source.replace("  transport_evidence: 'EXAMPLE-NOT-TRANSPORT-ACCEPTANCE'\n", ""),
             "null-browser": re.sub(r"  identity: \{.*?\n  \}", "  identity: null", source, flags=re.S),

@@ -47,6 +47,7 @@ type browser_identity = {
 @export()
 @sealed()
 type runtime_approval = {
+  encryption_standard: 'FIPS140-3'
   approved: true
   @minLength(1)
   platform_evidence: string

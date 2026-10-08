@@ -97,7 +97,7 @@ resource "terraform_data" "gates" {
     }
     precondition {
       condition     = !var.deploy_runtime || (var.deploy_knowledge && var.compliance.approved && alltrue([for evidence in [var.compliance.platform_evidence, var.compliance.image_evidence, var.compliance.transport_evidence] : length(trimspace(evidence)) > 0]))
-      error_message = "Do not deploy application containers before knowledge setup and reviewed platform, image and transport cryptographic evidence."
+      error_message = "Runtime requires knowledge setup and approved FIPS140-3 encryption-at-rest/in-transit evidence for platform services, image TLS and transport; whole-app/hash/JWT certification is not required."
     }
   }
 }

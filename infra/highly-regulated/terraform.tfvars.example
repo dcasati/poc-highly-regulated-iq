@@ -43,12 +43,14 @@ deploy_knowledge  = false
 deploy_runtime    = false
 image_digest      = null
 compliance = {
-  approved           = false
-  platform_evidence  = ""
-  image_evidence     = ""
-  transport_evidence = ""
+  encryption_standard = "FIPS140-3"
+  approved            = false
+  platform_evidence   = ""
+  image_evidence      = ""
+  transport_evidence  = ""
 }
-# Evaluate Container Apps cryptographic evidence first. If it cannot meet the
+# Evidence covers encryption at rest/in transit, not whole-app/hash/JWT certification.
+# Evaluate Container Apps encryption evidence first. If it cannot meet the
 # approved boundary, use hosting = "aks" with supported, explicitly chosen values:
 # aks = {
 #   kubernetes_version = "<region-supported-version>"

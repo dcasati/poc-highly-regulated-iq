@@ -46,7 +46,7 @@ it grants no directory role, Graph permission, client secret or tenant-wide cons
 
 All regional resources and AI processing must remain in the United States; a US account location alone is insufficient. Use approved US regional/Data Zone models, not Global SKUs. Global Azure control-plane services, Entra ID and Private DNS are not region-pinned. Tailscale is limited to explicitly approved synthetic-only PoC administration and is not FIPS-validated. Only the connectivity and state-backend roots may use their separately approved owner-only local bootstrap state; foundation/scenario/build roots require secured remote state. Backend creation, scoped access grants, exact-hostname split DNS and existing-state migrations require explicit approvals.
 
-**No live deployment or FIPS certification is bundled.** The Dockerfile requires an organization-approved .NET 10 runtime image by immutable digest. Exact platform, image and transport evidence, private connectivity, retention, identity and synthetic acceptance checks must be approved and demonstrated before real documents are processed.
+**No live deployment or FIPS certification is bundled.** The hard FIPS requirement covers **FIPS 140-3 encryption at rest and in transit**, not certification of the whole application, hashing or JWT validation. The Dockerfile requires an approved .NET 10 image by immutable digest; evidence must cover its TLS encryption and actual platform/service/transport encryption paths. Private connectivity, retention, identity and synthetic acceptance remain separate requirements before real documents are processed.
 
 ## Deploy the solution
 
