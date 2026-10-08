@@ -107,6 +107,10 @@ resources, not secrets from appearing in secured provider state.
    Do not claim a successful plan/host proves a working managed agent.
 6. **Runtime bindings:** discover the actual project's system/user-assigned runtime
    principal IDs, service-created file/intermediate containers and Cosmos database.
+   A returned project `internalId` can be a compact 32-character UUID; normalize
+   its UUID representation when checking the observed container association.
+   Do not construct container names from it: discover the actual names, including
+   service-generated suffixes, and verify their documented runtime roles.
    Verify their association with this project, record a nonsensitive evidence
    reference, and fill `agent_runtime`. Enable `configure_agent_runtime` in a
    separately reviewed plan. ARM data reads verify stores exist under the selected
