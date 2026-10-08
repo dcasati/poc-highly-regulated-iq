@@ -177,6 +177,12 @@ default is `application_review`; keep Terraform, Bicep payloads and portal
 configuration aligned. Native prebuilt analyzer names are service-owned and
 are not renamed.
 
+Search redacts data-source connection strings on reads, including keyless
+`ResourceId` values. Terraform marks only `credentials.connectionString`
+write-only using the provider's native attribute. All other data-source fields
+retain drift detection; authentication target changes still require a reviewed
+configuration update rather than a blanket body exclusion.
+
 Approve pending private-link requests on the target Foundry resource through the authorized owner process. Both Content Understanding links and the existing Blob shared link must report `Approved`; Terraform checks group IDs and target resource identity, not merely names.
 
 Set `deploy_knowledge = true`, leave `deploy_runtime = false`, acquire fresh tokens, and create/review/apply a separate saved `knowledge.tfplan`. This registers:

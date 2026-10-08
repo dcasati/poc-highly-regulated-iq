@@ -169,10 +169,22 @@ run "preserve_configured_browser_identity" {
       api_client_id = "00000000-0000-0000-0000-000000000007"
       api_scope     = "api://00000000-0000-0000-0000-000000000007/access_as_user"
     }
+
   }
   assert {
     condition     = local.portal_env.Portal__TenantId == var.identity.tenant_id && local.portal_env.Portal__ApiScope == var.identity.api_scope
     error_message = "Configured runtime authentication values must remain unchanged."
+  }
+}
+
+run "reviewed_knowledge_without_runtime" {
+  command = plan
+  variables {
+    deploy_knowledge = true
+  }
+  assert {
+    condition     = length(restful_resource.data_source) == 2 && alltrue([for source in restful_resource.data_source : length(source.write_only_attrs) == 1 && contains(source.write_only_attrs, "credentials.connectionString")]) && length(azurerm_container_app.app) == 0
+    error_message = "Only Search-redacted connection strings are write-only; reviewed knowledge must not create runtime containers."
   }
 }
 

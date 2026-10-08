@@ -54,9 +54,10 @@ resource "restful_resource" "index" {
   depends_on = [terraform_data.gates, terraform_data.private_dependencies]
 }
 resource "restful_resource" "data_source" {
-  for_each        = var.deploy_knowledge ? { pdf = local.containers.approved, fields = local.containers["reviewed-evidence"] } : {}
-  path            = "/datasources/${local.index_name}-${each.key}"
-  check_existance = true
+  for_each         = var.deploy_knowledge ? { pdf = local.containers.approved, fields = local.containers["reviewed-evidence"] } : {}
+  path             = "/datasources/${local.index_name}-${each.key}"
+  check_existance  = true
+  write_only_attrs = ["credentials.connectionString"]
   body = {
     name        = "${local.index_name}-${each.key}"
     type        = "azureblob"
