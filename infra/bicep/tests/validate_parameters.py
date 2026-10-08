@@ -136,6 +136,18 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
         except (ValueError, TypeError, AttributeError):
             reject(f"extra_principal_ids[{i}]", "supply a verified nonzero runtime principal GUID")
     hosting = values.get("hosting", {})
+    if "hosting_dependencies" in values:
+        network = values.get("network", {})
+        runtime_subnet = network.get("runtime_subnet_id", "")
+        endpoint_subnet = network.get("endpoint_subnet_id", "")
+        subnet_pattern = r"/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\.Network/virtualNetworks/[^/]+/subnets/[^/]+"
+        if not isinstance(endpoint_subnet, str) or not re.fullmatch(subnet_pattern, endpoint_subnet, re.IGNORECASE):
+            reject("network.endpoint_subnet_id", "require the verified existing endpoint subnet ARM ID")
+        elif isinstance(runtime_subnet, str) and (
+            endpoint_subnet.lower().rsplit("/subnets/", 1)[0] != runtime_subnet.lower().rsplit("/subnets/", 1)[0]
+            or endpoint_subnet.lower() == runtime_subnet.lower()
+        ):
+            reject("network.endpoint_subnet_id", "use a separate endpoint subnet in the selected runtime VNet")
     if hosting.get("kind") == "aks":
         try:
             pod = ipaddress.ip_network(hosting["pod_cidr"], strict=True)

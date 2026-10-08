@@ -39,3 +39,4 @@ resource zones 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-
   }
 }
 output id string = endpoint.id
+output network_interface_id string = endpoint.properties.networkInterfaces[0].id

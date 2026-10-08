@@ -30,6 +30,34 @@ resource "azurerm_private_dns_zone" "app" {
   name                = azurerm_container_app_environment.app[0].default_domain
   resource_group_name = azurerm_resource_group.scenario.name
 }
+resource "azurerm_private_dns_zone" "container_apps" {
+  count               = var.hosting == "container_apps" && var.provision_hosting ? 1 : 0
+  name                = "privatelink.${var.location}.azurecontainerapps.io"
+  resource_group_name = azurerm_resource_group.scenario.name
+}
+resource "azurerm_private_dns_zone_virtual_network_link" "container_apps" {
+  count               = var.hosting == "container_apps" && var.provision_hosting ? 1 : 0
+  name                = "runtime"
+  private_dns_zone_id = azurerm_private_dns_zone.container_apps[0].id
+  virtual_network_id  = data.azurerm_virtual_network.existing.id
+}
+resource "azurerm_private_endpoint" "container_apps" {
+  count               = var.hosting == "container_apps" && var.provision_hosting ? 1 : 0
+  name                = "pe-${local.prefix}-container-apps"
+  resource_group_name = azurerm_resource_group.scenario.name
+  location            = var.location
+  subnet_id           = data.azurerm_subnet.endpoints.id
+  private_service_connection {
+    name                           = "managed-environment"
+    private_connection_resource_id = azurerm_container_app_environment.app[0].id
+    subresource_names              = ["managedEnvironments"]
+    is_manual_connection           = false
+  }
+  private_dns_zone_group {
+    name                 = "container-apps"
+    private_dns_zone_ids = [azurerm_private_dns_zone.container_apps[0].id]
+  }
+}
 resource "azurerm_private_dns_zone_virtual_network_link" "app" {
   count               = var.hosting == "container_apps" && var.provision_hosting ? 1 : 0
   name                = "runtime"
@@ -41,7 +69,7 @@ resource "azurerm_private_dns_a_record" "app" {
   name                = "*"
   private_dns_zone_id = azurerm_private_dns_zone.app[0].id
   ttl                 = 300
-  records             = [azurerm_container_app_environment.app[0].static_ip_address]
+  records             = [azurerm_private_endpoint.container_apps[0].private_service_connection[0].private_ip_address]
 }
 resource "azurerm_container_app" "app" {
   count                        = var.hosting == "container_apps" && var.provision_hosting && var.deploy_runtime ? 1 : 0
@@ -97,7 +125,10 @@ resource "azurerm_container_app" "app" {
   }
   tags = local.tags
   depends_on = [
-    terraform_data.gates, azapi_update_resource.peer_encryption, azurerm_private_endpoint.registry, azurerm_role_assignment.app_pull,
+    terraform_data.gates, azapi_update_resource.peer_encryption, azurerm_private_endpoint.container_apps,
+    azurerm_private_dns_a_record.app, azurerm_private_dns_zone_virtual_network_link.app,
+    azurerm_private_dns_zone_virtual_network_link.container_apps,
+    azurerm_private_endpoint.registry, azurerm_role_assignment.app_pull,
     azurerm_role_assignment.app_storage, azurerm_role_assignment.app_content,
     azurerm_role_assignment.app_project, azurerm_role_assignment.app_search
   ]

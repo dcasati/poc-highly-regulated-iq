@@ -83,6 +83,49 @@ only after genuine evidence is accepted, with a new reviewed runtime plan.
 
 Start with `hosting = "container_apps"`. Private VNet connectivity, internal ingress, managed identity, ACR pulls and a continuously running worker are supported by this deployment. `min_replicas = 1` prevents the durable processing worker from being scaled to zero.
 
+### Literal Container Apps Private Endpoint ingress
+
+The hosting stage creates an environment Private Endpoint in the existing approved
+endpoint subnet, targeting the owned workload-profile environment's
+`managedEnvironments` group with an automatic connection and DNS zone group.
+It retains the internal environment, Consumption profile and
+`publicNetworkAccess = Disabled`; internal load-balancer ingress alone is **not**
+a Private Endpoint. The regional `privatelink.<region>.azurecontainerapps.io`
+zone is linked to the selected PoC VNet. Crucially, the existing environment
+default-domain wildcard A record points to the **actual PE NIC private address**,
+not the environment ILB `staticIp`: retaining the ILB record would bypass the PE.
+The private portal URL and SPA redirect stay unchanged. Bicep reads the PE-owned
+NIC after creation rather than relying on possibly empty `customDnsConfigs`.
+
+Review the exact hosting plan before any apply, including the new PE, regional
+zone/VNet link, DNS zone group and wildcard record update. This source change is
+preparation only: publishing source or preparing full native plans does not
+authorize an apply.
+
+Budget for **both** [Azure Private Link endpoint-hour and inbound/outbound
+data-processing charges](https://azure.microsoft.com/en-us/pricing/details/private-link/)
+and the Container Apps environment's dedicated private-endpoint infrastructure.
+[Microsoft Learn's billing guidance](https://learn.microsoft.com/en-us/azure/container-apps/private-endpoints-with-dns#billing)
+identifies the latter as a separate **Dedicated Plan Management** charge that
+applies to **Consumption as well as Dedicated plans**. Keeping only a Consumption
+workload profile does not avoid this private-endpoint management fee.
+The [Container Apps pricing page](https://azure.microsoft.com/en-us/pricing/details/container-apps/)
+lists the Management (hour) meter and notes that charges for applicable features
+are additive. Private DNS and ordinary workload charges also remain separate;
+this is not a DNS-only or cost-free ingress switch. Confirm current rates for the
+selected region, currency and agreement in the official pricing tables/calculator
+before approval; no numerical rate or fixed total is asserted here.
+After the approved apply, verify connection approval, app-hostname DNS resolution
+to the PE NIC from the approved client path, TLS/authenticated portal access and
+public-access denial. Static tests do not establish any of those live outcomes.
+
+This change does not migrate outbound routing or remove existing egress-only NAT
+public IP resources. Private app/data endpoints are **not** a literal zero-public-IP
+inventory promise: the PoC's two existing outbound NAT public IPs remain blockers
+to that requirement. Removing/replacing them needs a separately chosen and
+approved egress design; do not remove NAT, add public exceptions or claim the
+zero-IP requirement satisfied as part of this source change.
+
 The hard FIPS requirement is **FIPS 140-3 encryption at rest and in transit**, not certification of the entire application, operating system, hashing or JWT-validation code. Before selecting hosting, obtain accepted evidence for the actual service-encryption and TLS paths, including managed ingress and the workload's outbound TLS. An external HTTPS endpoint alone does not establish protection of an internal ingress-to-workload HTTP hop. Select AKS only if Container Apps cannot meet this encryption requirement or another actual runtime constraint; a missing node-level FIPS switch alone does not rule it out.
 
 Container Apps hosting declares

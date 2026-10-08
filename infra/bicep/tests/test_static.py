@@ -152,6 +152,51 @@ class StaticContracts(unittest.TestCase):
         self.assertFalse(app["properties"]["configuration"]["ingress"]["allowInsecure"])
         self.assertEqual(app["properties"]["template"]["scale"]["minReplicas"], 1)
 
+    def test_container_apps_ingress_uses_private_endpoint_not_ilb(self):
+        hosting = self.templates["scenario/hosting.bicep"]["resources"]
+        condition = "[equals(parameters('hosting').kind, 'container_apps')]"
+        for name in ("endpoint", "dns", "private_link_zone", "private_link_vnet"):
+            self.assertEqual(hosting[name]["condition"], condition)
+        env = hosting["environment"]["properties"]
+        self.assertTrue(env["vnetConfiguration"]["internal"])
+        self.assertEqual(env["publicNetworkAccess"], "Disabled")
+        self.assertEqual(env["workloadProfiles"], [{"name": "Consumption", "workloadProfileType": "Consumption"}])
+        endpoint_params = hosting["endpoint"]["properties"]["parameters"]
+        self.assertEqual(endpoint_params["group_id"]["value"], "managedEnvironments")
+        self.assertEqual(endpoint_params["subnet_id"]["value"], "[parameters('network').endpoint_subnet_id]")
+        self.assertIn("Microsoft.App/managedEnvironments", endpoint_params["target_id"]["value"])
+        self.assertIn("privatelink.{0}.azurecontainerapps.io", endpoint_params["dns_zone_ids"]["value"][0])
+        self.assertEqual(hosting["private_link_zone"]["name"], "[format('privatelink.{0}.azurecontainerapps.io', parameters('location'))]")
+        self.assertIn("parameters('network').vnet", json.dumps(hosting["private_link_vnet"]))
+        dns = hosting["dns"]
+        self.assertIn("endpoint", dns["dependsOn"])
+        self.assertIn("network_interface_id", dns["properties"]["parameters"])
+        self.assertNotIn("staticIp", json.dumps(dns))
+        endpoint = self.templates["modules/private-endpoint.bicep"]
+        self.assertIn("networkInterfaces[0].id", endpoint["outputs"]["network_interface_id"]["value"])
+        self.assertIn("privateLinkServiceConnections", endpoint["resources"]["endpoint"]["properties"])
+        self.assertNotIn("manualPrivateLinkServiceConnections", endpoint["resources"]["endpoint"]["properties"])
+        runtime_dns = self.templates["scenario/runtime-dns.bicep"]
+        emitted_dns = list(resources(runtime_dns))
+        self.assertFalse(any(r["type"] == "Microsoft.Network/networkInterfaces" for r in emitted_dns))
+        record = next(r for r in emitted_dns if r["type"] == "Microsoft.Network/privateDnsZones/A")
+        self.assertEqual(record["name"], "[format('{0}/{1}', parameters('domain'), '*')]")
+        self.assertIn("ipConfigurations[0].properties.privateIPAddress", record["properties"]["aRecords"][0]["ipv4Address"])
+        self.assertIn("Microsoft.Network/networkInterfaces", record["properties"]["aRecords"][0]["ipv4Address"])
+        self.assertIn("'2024-05-01'", record["properties"]["aRecords"][0]["ipv4Address"])
+        self.assertNotIn("customDnsConfigs", json.dumps(runtime_dns))
+
+    def test_hosting_endpoint_subnet_contract(self):
+        for example in ("hosting.example.bicepparam", "hosting-aks.example.bicepparam"):
+            values = copy.deepcopy(self.examples[example])
+            self.assertEqual(validate(values, allow_examples=True), [])
+            del values["network"]["endpoint_subnet_id"]
+            self.assertTrue(any("network.endpoint_subnet_id" in error for error in validate(values, allow_examples=True)))
+            values["network"]["endpoint_subnet_id"] = values["network"]["runtime_subnet_id"]
+            self.assertTrue(any("separate endpoint subnet" in error for error in validate(values, allow_examples=True)))
+            values["network"]["endpoint_subnet_id"] = self.examples[example]["network"]["endpoint_subnet_id"].replace("vnet-review-demo/", "vnet-foreign/")
+            self.assertTrue(any("selected runtime VNet" in error for error in validate(values, allow_examples=True)))
+
     def test_private_keyless_storage_foundry_search_registry(self):
         store = self.templates["modules/storage.bicep"]["resources"]["account"]["properties"]
         for key in ("allowBlobPublicAccess", "allowSharedKeyAccess", "isLocalUserEnabled", "allowCrossTenantReplication"):

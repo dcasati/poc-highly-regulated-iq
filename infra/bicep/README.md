@@ -24,7 +24,7 @@ before any separately authorized operation.
 | `foundation/` native stages | `foundation/project.bicep`, `provisioning.bicep`, `capability.bicep`, `runtime-bindings.bicep` | Project identity; three nonshared AAD connections and provisioning grants; native Agents host; discovered container/database-scoped runtime grants. Never creates guessed service-owned containers/databases. Bootstrap-grant revocation is a separate approved deletion/readback, not incremental-template omission. |
 | `highly-regulated/` platform | `scenario/platform.bicep`, `private-links.bicep` | Private Premium ACR/PE, application MI, four dedicated containers, narrow application/project/Search/container roles; only missing processing/billing link requests. Existing foundation settings remain untouched. |
 | `highly-regulated/` knowledge | `knowledge/payloads.bicep` | Declarative custom-analyzer and eight Search request bodies, **outputs only**. Search/CU CRUD, async polling, drift reconciliation, readiness and dependency-ordered deletion are operator-owned, not fake ARM resources. |
-| `highly-regulated/` hosting | `scenario/hosting.bicep` | Conditional Container Apps **or** private AKS with FIPS-enabled pools, Entra RBAC, UDR egress, workload federation, private pulls and internal Istio. No simultaneous runtimes or application container in this stage. |
+| `highly-regulated/` hosting | `scenario/hosting.bicep` | Conditional internal Container Apps with a literal `managedEnvironments` PE and PE-backed DNS **or** private AKS with FIPS-enabled pools, Entra RBAC, UDR egress, workload federation, private pulls and internal Istio. No simultaneous runtimes or application container in this stage. |
 | `highly-regulated/` runtime | `scenario/runtime.bicep`, `aks-manifests.bicep` | Container Apps ARM workload with MI pulls, digest image, shared portal configuration and continuous worker; alternatively reviewable Kubernetes/Istio manifests, not ARM-managed Kubernetes resources. Required browser identity, knowledge and image/platform/transport acceptance. |
 | `acr-build/` | `acr-build/main.bicep` | Only a new VNet-connected dedicated pool under an existing private Premium registry. Never enables public access, admin credentials or trusted-service bypass; does not run a build. |
 | Optional operator MCP connection | No automatic entry point | Terraform's optional `RemoteTool` connection uses a distinct `2025-10-01-preview` contract, not the native AAD connection contract. Native operator setup, permissions and private MCP retrieval require separate review. Do not attach this unfiltered tool to the portal agent or expose it to caseworkers. |
@@ -73,6 +73,21 @@ knowledge deployment or runtime by default**, and no phantom portal URL.
 `portal_url` exists only on the Container Apps runtime entry point and reads its
 actual ingress FQDN. AKS manifest preparation does not emit a deployed portal URL.
 Hosting and runtime are separate entries instead of Terraform stage booleans.
+The hosting network contract includes the existing approved `endpoint_subnet_id`
+alongside `runtime_subnet_id` and `vnet`; the AKS choice does not create a Container
+Apps PE. Container Apps creates the regional Private Link zone/link/zone group and
+routes the environment-domain wildcard to its actual PE-owned NIC, not the ILB.
+The NIC read is dependency-ordered after the PE module; no `customDnsConfigs`
+fallback or supplied IP is used. [Private Link endpoint-hour and data-processing
+charges](https://azure.microsoft.com/en-us/pricing/details/private-link/) and the
+separate Container Apps **Dedicated Plan Management** private-endpoint
+infrastructure charge apply, including with a Consumption workload profile
+([Microsoft Learn billing guidance](https://learn.microsoft.com/en-us/azure/container-apps/private-endpoints-with-dns#billing)).
+DNS/workload charges remain separate; verify current regional/agreement rates
+before explicit plan/cost approval. Source publication and native plan preparation
+do not authorize an apply.
+The [canonical networking distinction](../../docs/highly-regulated-scenario.md#literal-container-apps-private-endpoint-ingress)
+also explains why unchanged outbound NAT IPs block a literal zero-public-IP claim.
 Keep successful resources/configuration on resume; don't reinterpret incremental
 deployment's retained resources as permission to reset ownership or remove grants.
 

@@ -1,4 +1,24 @@
 mock_provider "azurerm" {
+  mock_resource "azurerm_container_app_environment" {
+    override_during = plan
+    defaults = {
+      id                = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-unitpoc/providers/Microsoft.App/managedEnvironments/cae-unitpoc"
+      default_domain    = "unitpoc.westus3.azurecontainerapps.io"
+      static_ip_address = "10.99.1.10"
+    }
+  }
+  mock_resource "azurerm_private_endpoint" {
+    override_during = plan
+    defaults = {
+      private_service_connection = { private_ip_address = "10.99.2.10" }
+    }
+  }
+  mock_resource "azurerm_private_dns_zone" {
+    override_during = plan
+    defaults = {
+      id = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-unitpoc/providers/Microsoft.Network/privateDnsZones/unitpoc.westus3.azurecontainerapps.io"
+    }
+  }
   mock_data "azurerm_client_config" {
     defaults = {
       subscription_id = "00000000-0000-0000-0000-000000000001"
@@ -133,7 +153,7 @@ variables {
 run "platform_without_browser_registrations" {
   command = plan
   assert {
-    condition     = var.identity == null && length(local.portal_env) == 0 && length(azurerm_container_app.app) == 0 && length(azurerm_container_app_environment.app) == 0 && output.portal_url == null
+    condition     = var.identity == null && length(local.portal_env) == 0 && length(azurerm_container_app.app) == 0 && length(azurerm_container_app_environment.app) == 0 && length(azurerm_private_endpoint.container_apps) == 0 && length(azurerm_private_dns_zone.container_apps) == 0 && output.portal_url == null
     error_message = "Platform preparation must not require browser registrations or create an unauthenticated app."
   }
 
@@ -275,6 +295,42 @@ run "reviewed_hosting_without_runtime" {
   }
 }
 
+run "container_apps_private_endpoint_ingress" {
+  command = plan
+  variables { provision_hosting = true }
+  assert {
+    condition = (
+      length(azurerm_private_endpoint.container_apps) == 1 &&
+      azurerm_private_endpoint.container_apps[0].subnet_id == data.azurerm_subnet.endpoints.id &&
+      azurerm_private_endpoint.container_apps[0].private_service_connection[0].private_connection_resource_id == azurerm_container_app_environment.app[0].id &&
+      azurerm_private_endpoint.container_apps[0].private_service_connection[0].subresource_names == tolist(["managedEnvironments"]) &&
+      !azurerm_private_endpoint.container_apps[0].private_service_connection[0].is_manual_connection
+    )
+    error_message = "Hosting must own an automatic managedEnvironments PE in the approved endpoint subnet."
+  }
+  assert {
+    condition = (
+      azurerm_private_dns_zone.container_apps[0].name == "privatelink.westus3.azurecontainerapps.io" &&
+      toset(azurerm_private_endpoint.container_apps[0].private_dns_zone_group[0].private_dns_zone_ids) == toset([azurerm_private_dns_zone.container_apps[0].id]) &&
+      azurerm_private_dns_zone_virtual_network_link.container_apps[0].virtual_network_id == data.azurerm_virtual_network.existing.id &&
+      azurerm_private_dns_zone.app[0].name == azurerm_container_app_environment.app[0].default_domain &&
+      azurerm_private_dns_a_record.app[0].name == "*" &&
+      azurerm_private_dns_a_record.app[0].records == toset([azurerm_private_endpoint.container_apps[0].private_service_connection[0].private_ip_address]) &&
+      !contains(azurerm_private_dns_a_record.app[0].records, azurerm_container_app_environment.app[0].static_ip_address)
+    )
+    error_message = "Regional Private Link DNS and the actual app-domain wildcard must route to the PE NIC, never bypass it through the ILB."
+  }
+  assert {
+    condition = (
+      azurerm_container_app_environment.app[0].internal_load_balancer_enabled &&
+      azurerm_container_app_environment.app[0].public_network_access == "Disabled" &&
+      one(azurerm_container_app_environment.app[0].workload_profile).workload_profile_type == "Consumption" &&
+      length(azurerm_container_app.app) == 0 && output.portal_url == null
+    )
+    error_message = "Adding the PE must preserve the internal workload-profile environment, public-access denial and staged runtime gates."
+  }
+}
+
 run "reject_mismatched_api_scope" {
   command = plan
   variables {
@@ -359,7 +415,7 @@ run "synthetic_runtime_with_deferred_attestations" {
     error_message = "Deferral must remain honestly unapproved, synthetic-only and not certified or production ready."
   }
   assert {
-    condition     = length(azurerm_container_app.app) == 1 && length(restful_resource.analyzer) == 1 && local.portal_env.Portal__ApiScope == var.identity.api_scope && !azurerm_container_registry.app.public_network_access_enabled && azurerm_container_app_environment.app[0].internal_load_balancer_enabled
+    condition     = length(azurerm_container_app.app) == 1 && length(restful_resource.analyzer) == 1 && local.portal_env.Portal__ApiScope == var.identity.api_scope && !azurerm_container_registry.app.public_network_access_enabled && azurerm_container_app_environment.app[0].internal_load_balancer_enabled && azurerm_container_app_environment.app[0].public_network_access == "Disabled" && length(azurerm_private_endpoint.container_apps) == 1
     error_message = "Deferral must preserve knowledge, authenticated runtime and private hosting/registry requirements."
   }
 }
