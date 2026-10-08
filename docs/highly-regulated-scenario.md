@@ -10,23 +10,15 @@ The application accepts a manually exported PDF package, retains the original, e
 
 ## Architecture and ownership
 
-```text
-Organizational browser on approved private network
-  -> private HTTPS review UI/API (Container Apps first; AKS if necessary)
-      -> Entra-validated API identity, Caseworker / Reviewer roles
-      -> original PDF + durable case state in private Blob containers
-      -> Content Understanding custom analyzer over private HTTPS
-      -> confidence/evidence review and explicit human confirmation
-      -> approved PDF + human-validated field JSON
-          -> Search private Blob indexers
-              -> native Content Understanding layout skill + page-aware chunks
-              -> reviewed JSON field indexer
-                  -> scenario-owned Search index
-                      -> searchIndex knowledge source -> knowledge base
-      -> server-authorized, case-and-owner-filtered retrieve
-          -> existing Foundry prompt agent, all agent tools disabled
-              -> grounded answer + source references
-```
+![Target Azure architecture for private document review: retain original PDFs, explicitly validate custom Content Understanding extraction, privately index approved evidence, and retrieve case-and-owner-scoped citations for a tools-disabled prompt agent.](diagrams/private-document-review.svg)
+
+[Open the full-size diagram](diagrams/private-document-review.svg) | [Editable Excalidraw source](diagrams/private-document-review.excalidraw). Edit locally or with the approved [Microsoft Excalidraw instance](https://aka.ms/excalidraw); the SVG is rendered offline without uploading repository content.
+
+This is a **target/designed architecture**, illustrated for human review of Form 3500 exemption applications, not a deployment-status dashboard. The application's analyzer schema is configurable; the diagram does not imply a bundled Form 3500-specific schema or an eligibility engine. Read each numbered lane in its marked direction. The portal worker reads retained PDFs and calls the custom analyzer; explicit human confirmation is required before it publishes unchanged PDF copies and corrected field JSON into the two Search-readable containers. The portal, not the prompt or an unrestricted agent tool, enforces the case-and-owner retrieval boundary.
+
+Dedicated native agent Blob/Cosmos stores are separate from application document and review-state containers. The existing Foundry foundation and its native Agents capability host retain their owner; the scenario does not manage service-generated containers or databases. Approved model deployments and private US processing are target constraints: select and verify the applicable region, CU `geography`/`dataZone`, native layout processing and agent-model boundaries separately. Private endpoints do not by themselves establish processing residency.
+
+**Readiness and cryptography:** provisioned foundation resources do not establish end-to-end readiness. Synthetic agent invocation, CU defaults/custom analysis/native layout, indexing/knowledge retrieval, private ACR build and deployed portal access must pass the acceptance checks below. This diagram neither asserts runtime-permission completion nor FIPS certification; the exact image, platform and TLS boundary require accepted evidence.
 
 | Component | Ownership |
 | --- | --- |
