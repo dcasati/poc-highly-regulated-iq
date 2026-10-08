@@ -1,0 +1,232 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="2530" viewBox="0 0 2400 2530" role="img" aria-labelledby="diagram-title diagram-description">
+<title id="diagram-title">Private document review: target Azure architecture</title>
+<desc id="diagram-description">Human-validated Form 3500 evidence flows from a private portal through separate original and published Blob containers, custom Content Understanding, two private Search indexers, case-and-owner-filtered Foundry IQ retrieval and a tools-disabled managed prompt agent. Native state and staged private ACR builds remain separate ownership boundaries. This is not a readiness or FIPS certification claim.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 L10 4 L0 8 Z" fill="#495057"/></marker></defs>
+<rect width="2400" height="2530" fill="white"/>
+<text x="60" y="35" font-family="Helvetica, Arial, sans-serif" font-size="32" fill="#000000" font-weight="700">
+<tspan x="60" y="67.0">Private document review | TARGET / DESIGNED Azure architecture</tspan>
+</text>
+<text x="60" y="115" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="#000000">
+<tspan x="60" y="137.0">Form 3500 exemption application assistance | Human judgment is authoritative; no eligibility decisions</tspan>
+</text>
+<rect x="80" y="200" width="400" height="150" rx="14" fill="#CFE4FA" stroke="#0078D4" stroke-width="2"/>
+<text x="100" y="215" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="100" y="232.0">Organizational browser</tspan>
+<tspan x="100" y="274.5">Approved private-network access</tspan>
+<tspan x="100" y="317.0">Original PDF upload / case questions</tspan>
+</text>
+<rect x="540" y="200" width="820" height="150" rx="14" fill="#E8DAEF" stroke="#5C2D91" stroke-width="2"/>
+<text x="560" y="215" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="560" y="232.0">Microsoft Entra ID | SPA + API registrations</tspan>
+<tspan x="560" y="274.5">Authorization code + PKCE; delegated API scope</tspan>
+<tspan x="560" y="317.0">Caseworker; publishing requires Caseworker + Reviewer</tspan>
+</text>
+<text x="1450" y="205" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1450" y="222.0">Identity plane: Entra sign-in over approved HTTPS</tspan>
+<tspan x="1450" y="264.5">Document data stays on private service paths</tspan>
+<tspan x="1450" y="307.0">No direct browser access to Search or agent tools</tspan>
+</text>
+<rect x="40" y="390" width="2320" height="1630" rx="18" fill="none" stroke="#0078D4" stroke-width="2" stroke-dasharray="9 6"/>
+<text x="1000" y="405" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="#000000" font-weight="700">
+<tspan x="1000" y="427.0">Private solution data plane | approved US processing target</tspan>
+</text>
+<text x="540" y="465" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="#000000" font-weight="700">
+<tspan x="540" y="487.0">1  Retain, extract and explicitly validate | left to right</tspan>
+</text>
+<rect x="80" y="540" width="400" height="250" rx="14" fill="#CFE4FA" stroke="#0078D4" stroke-width="2"/>
+<text x="100" y="555" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="100" y="572.0">Private HTTPS portal / API / worker</tspan>
+<tspan x="100" y="614.5">Container Apps FIRST; min replica 1</tspan>
+<tspan x="100" y="657.0">API validates JWT, scope + roles</tspan>
+<tspan x="100" y="699.5">AKS only if approved FIPS boundary</tspan>
+<tspan x="100" y="742.0">requires fallback; not both runtimes</tspan>
+</text>
+<rect x="540" y="540" width="400" height="250" rx="14" fill="#DFF6DD" stroke="#107C10" stroke-width="2"/>
+<text x="560" y="555" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="560" y="572.0">Application Blob | private containers</tspan>
+<tspan x="560" y="614.5">originals: retained PDF + SHA-256</tspan>
+<tspan x="560" y="657.0">review-state: durable cases / leases</tspan>
+<tspan x="560" y="699.5">Full extraction + review audit retained</tspan>
+<tspan x="560" y="742.0">Retention lock is administrator-owned</tspan>
+</text>
+<rect x="1000" y="540" width="400" height="250" rx="14" fill="#CFE4FA" stroke="#0078D4" stroke-width="2"/>
+<text x="1020" y="555" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1020" y="572.0">Content Understanding | app call</tspan>
+<tspan x="1020" y="614.5">Custom analyzer: structured fields</tspan>
+<tspan x="1020" y="657.0">Confidence + source / evidence</tspan>
+<tspan x="1020" y="699.5">Async submit + bounded polling</tspan>
+<tspan x="1020" y="742.0">Approved defaults / model mappings</tspan>
+</text>
+<rect x="1460" y="540" width="400" height="250" rx="14" fill="#FFF4CE" stroke="#F7630C" stroke-width="2"/>
+<text x="1480" y="555" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1480" y="572.0">Explicit HUMAN review in portal</tspan>
+<tspan x="1480" y="614.5">Inspect original + extraction evidence</tspan>
+<tspan x="1480" y="657.0">Correct and confirm EVERY field</tspan>
+<tspan x="1480" y="699.5">Reviewer role + owner match</tspan>
+<tspan x="1480" y="742.0">Confirmation gates publication</tspan>
+</text>
+<rect x="1920" y="540" width="400" height="250" rx="14" fill="#DFF6DD" stroke="#107C10" stroke-width="2"/>
+<text x="1940" y="555" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1940" y="572.0">Application Blob | published only</tspan>
+<tspan x="1940" y="614.5">approved: unchanged PDF copy</tspan>
+<tspan x="1940" y="657.0">reviewed-evidence: corrected JSON</tspan>
+<tspan x="1940" y="699.5">case_id + owner_id metadata</tspan>
+<tspan x="1940" y="742.0">Separate from originals / review state</tspan>
+</text>
+<path d="M 280 350 L 280 535" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<rect x="290" y="428" width="165" height="40" fill="white"/>
+<text x="295" y="430" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#000000">
+<tspan x="295" y="446.0">Private HTTPS</tspan>
+</text>
+<path d="M 950 350 L 950 445 L 495 445 L 495 575 L 485 575" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="8 5"/>
+<path d="M 480 665 L 535 665" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<path d="M 940 665 L 995 665" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<path d="M 1400 665 L 1455 665" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<path d="M 1860 665 L 1915 665" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="540" y="815" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="540" y="832.0">Worker reads the retained PDF and calls CU; portal displays results. Only explicit confirmation publishes evidence.</tspan>
+</text>
+<text x="80" y="895" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="#000000" font-weight="700">
+<tspan x="80" y="917.0">2  Private evidence indexing | right to left</tspan>
+</text>
+<rect x="80" y="980" width="860" height="250" rx="14" fill="#F3F2F1" stroke="#495057" stroke-width="2"/>
+<text x="100" y="995" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="100" y="1012.0">Private endpoints / DNS + managed identities / scoped RBAC</tspan>
+<tspan x="100" y="1054.5">Search identity reads ONLY approved + reviewed-evidence containers</tspan>
+<tspan x="100" y="1097.0">Search-to-Blob and CU processing / billing shared links need approval</tspan>
+<tspan x="100" y="1139.5">Existing AI / network owners remain authoritative; no Fabric source</tspan>
+<tspan x="100" y="1182.0">Solid arrows: application / evidence flow; dashed: identity / platform</tspan>
+</text>
+<rect x="1000" y="980" width="400" height="250" rx="14" fill="#E8DAEF" stroke="#5C2D91" stroke-width="2"/>
+<text x="1020" y="995" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1020" y="1012.0">Foundry IQ on Azure AI Search</tspan>
+<tspan x="1020" y="1054.5">searchIndex knowledge source</tspan>
+<tspan x="1020" y="1097.0">Knowledge base: minimal / extractive</tspan>
+<tspan x="1020" y="1139.5">Semantic text retrieval; no embeddings</tspan>
+<tspan x="1020" y="1182.0">required for this retrieval path</tspan>
+</text>
+<rect x="1460" y="980" width="400" height="250" rx="14" fill="#CFE4FA" stroke="#0078D4" stroke-width="2"/>
+<text x="1480" y="995" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1480" y="1012.0">Scenario-owned Search index</tspan>
+<tspan x="1480" y="1054.5">Page-aware original-content chunks</tspan>
+<tspan x="1480" y="1097.0">Human-validated field summaries</tspan>
+<tspan x="1480" y="1139.5">Filterable case_id + owner_id</tspan>
+<tspan x="1480" y="1182.0">Page 0 = field summary, not PDF page</tspan>
+</text>
+<rect x="1920" y="960" width="400" height="145" rx="14" fill="#CFE4FA" stroke="#0078D4" stroke-width="2"/>
+<text x="1940" y="975" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1940" y="992.0">Private PDF indexer -&gt; native CU layout</tspan>
+<tspan x="1940" y="1034.5">Approved PDFs -&gt; page-aware chunks</tspan>
+<tspan x="1940" y="1077.0">NO custom analyzerId on this skill</tspan>
+</text>
+<rect x="1920" y="1140" width="400" height="145" rx="14" fill="#CFE4FA" stroke="#0078D4" stroke-width="2"/>
+<text x="1940" y="1155" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1940" y="1172.0">Private JSON field indexer</tspan>
+<tspan x="1940" y="1214.5">Reviewed field JSON -&gt; same index</tspan>
+<tspan x="1940" y="1257.0">No custom extraction call here</tspan>
+</text>
+<path d="M 2120 790 L 2120 955" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<path d="M 2320 730 L 2340 730 L 2340 1210 L 2325 1210" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<path d="M 1920 1030 L 1885 1030 L 1885 1060 L 1865 1060" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<path d="M 1920 1210 L 1885 1210 L 1885 1160 L 1865 1160" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<path d="M 1460 1105 L 1405 1105" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="1420" y="1305" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#000000">
+<tspan x="1420" y="1321.0">Native layout: separate CU links + approved processing boundary.</tspan>
+</text>
+<text x="80" y="1380" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="#000000" font-weight="700">
+<tspan x="80" y="1402.0">3  Server-authorized, case-scoped questions | left to right</tspan>
+</text>
+<rect x="80" y="1460" width="400" height="220" rx="14" fill="#F3F2F1" stroke="#495057" stroke-width="2"/>
+<text x="100" y="1475" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="100" y="1492.0">Reviewer question through portal</tspan>
+<tspan x="100" y="1534.5">Selected approved case only</tspan>
+<tspan x="100" y="1577.0">Caller cannot choose another owner</tspan>
+<tspan x="100" y="1619.5">No shared case assignment</tspan>
+</text>
+<rect x="540" y="1460" width="400" height="220" rx="14" fill="#F3F2F1" stroke="#495057" stroke-width="2"/>
+<text x="560" y="1475" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="560" y="1492.0">Portal API | authorization boundary</tspan>
+<tspan x="560" y="1534.5">Owner from validated token; Approved</tspan>
+<tspan x="560" y="1577.0">filterAddOn: case_id AND owner_id</tspan>
+<tspan x="560" y="1619.5">Always query source; fail on errors</tspan>
+</text>
+<rect x="1000" y="1460" width="400" height="220" rx="14" fill="#F3F2F1" stroke="#495057" stroke-width="2"/>
+<text x="1020" y="1475" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1020" y="1492.0">Portal verifies EVERY reference</tspan>
+<tspan x="1020" y="1534.5">Matches selected case + token owner</tspan>
+<tspan x="1020" y="1577.0">Missing / partial evidence fails closed</tspan>
+<tspan x="1020" y="1619.5">Pass all corrected fields + evidence</tspan>
+</text>
+<rect x="1460" y="1460" width="400" height="220" rx="14" fill="#E8DAEF" stroke="#5C2D91" stroke-width="2"/>
+<text x="1480" y="1475" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1480" y="1492.0">Existing managed Foundry prompt agent</tspan>
+<tspan x="1480" y="1534.5">Evidence-only assistance + citations</tspan>
+<tspan x="1480" y="1577.0">All tools disabled; tool_choice = none</tspan>
+<tspan x="1480" y="1619.5">store = false; no conversation reuse</tspan>
+</text>
+<rect x="1920" y="1460" width="400" height="220" rx="14" fill="#CFE4FA" stroke="#0078D4" stroke-width="2"/>
+<text x="1940" y="1475" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1940" y="1492.0">Grounded answer + source references</tspan>
+<tspan x="1940" y="1534.5">Returned through portal API / UI</tspan>
+<tspan x="1940" y="1577.0">Missing or conflicting facts explicit</tspan>
+<tspan x="1940" y="1619.5">Human decides; agent never approves</tspan>
+</text>
+<path d="M 480 1570 L 535 1570" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<path d="M 740 1460 L 740 1360 L 970 1360 L 970 1105 L 995 1105" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<path d="M 1200 1230 L 1200 1455" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<path d="M 1400 1570 L 1455 1570" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<path d="M 1860 1570 L 1915 1570" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+<rect x="80" y="1790" width="1320" height="190" rx="14" fill="#FFF4CE" stroke="#F7630C" stroke-width="2"/>
+<text x="100" y="1805" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="100" y="1822.0">Processing and readiness gates | target design, NOT a deployment or certification claim</tspan>
+<tspan x="100" y="1864.5">Approved US region / model geography or dataZone; separately approve native layout processing</tspan>
+<tspan x="100" y="1907.0">Exact image, platform and TLS cryptographic evidence + private synthetic acceptance required</tspan>
+<tspan x="100" y="1949.5">Private endpoints, FIPS node flags and build pools alone are insufficient; service policies still apply</tspan>
+</text>
+<rect x="1460" y="1790" width="400" height="190" rx="14" fill="#E8DAEF" stroke="#5C2D91" stroke-width="2"/>
+<text x="1480" y="1805" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1480" y="1822.0">Native managed-agent state</tspan>
+<tspan x="1480" y="1864.5">Dedicated agent Blob + Cosmos stores</tspan>
+<tspan x="1480" y="1907.0">Private connectivity / service identities</tspan>
+<tspan x="1480" y="1949.5">Service owns generated containers / DB</tspan>
+</text>
+<rect x="1920" y="1790" width="400" height="190" rx="14" fill="#CFE4FA" stroke="#0078D4" stroke-width="2"/>
+<text x="1940" y="1805" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1940" y="1822.0">Foundry model deployments</tspan>
+<tspan x="1940" y="1864.5">Agent inference + CU model defaults</tspan>
+<tspan x="1940" y="1907.0">Approve exact US processing boundary</tspan>
+<tspan x="1940" y="1949.5">No residency or readiness inferred</tspan>
+</text>
+<path d="M 1660 1680 L 1660 1785" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="8 5"/>
+<path d="M 1830 1680 L 1830 1735 L 2120 1735 L 2120 1785" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="8 5"/>
+<rect x="40" y="2080" width="2320" height="340" rx="18" fill="none" stroke="#495057" stroke-width="2" stroke-dasharray="9 6"/>
+<text x="60" y="2095" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="#000000" font-weight="700">
+<tspan x="60" y="2117.0">Deployment / build lane | one approved private execution host; plain Terraform; approvals between stages</tspan>
+</text>
+<rect x="80" y="2180" width="700" height="200" rx="14" fill="#F3F2F1" stroke="#495057" stroke-width="2"/>
+<text x="100" y="2195" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="100" y="2212.0">Terraform | platform -&gt; knowledge -&gt; runtime</tspan>
+<tspan x="100" y="2254.5">infra/highly-regulated + optional infra/acr-build</tspan>
+<tspan x="100" y="2297.0">Separate secured PRIVATE / KEYLESS backend keys</tspan>
+<tspan x="100" y="2339.5">No adoption of native service-generated state</tspan>
+</text>
+<rect x="850" y="2180" width="700" height="200" rx="14" fill="#F3F2F1" stroke="#495057" stroke-width="2"/>
+<text x="870" y="2195" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="870" y="2212.0">Private Azure Container Registry Tasks</tspan>
+<tspan x="870" y="2254.5">VNet-connected ACR agent pool; NO local Docker</tspan>
+<tspan x="870" y="2297.0">Approved base image digest; registry stays private</tspan>
+<tspan x="870" y="2339.5">Existing build registry / network ownership preserved</tspan>
+</text>
+<rect x="1620" y="2180" width="700" height="200" rx="14" fill="#F3F2F1" stroke="#495057" stroke-width="2"/>
+<text x="1640" y="2195" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="1640" y="2212.0">Immutable-digest runtime image + approved evidence</tspan>
+<tspan x="1640" y="2254.5">Runtime revision pulls with managed identity</tspan>
+<tspan x="1640" y="2297.0">Container Apps first OR conditional private AKS</tspan>
+<tspan x="1640" y="2339.5">Live CU / index / agent / portal acceptance still required</tspan>
+</text>
+<path d="M 780 2280 L 845 2280" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="8 5"/>
+<path d="M 1550 2280 L 1615 2280" fill="none" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="8 5"/>
+<text x="60" y="2460" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#000000">
+<tspan x="60" y="2477.0">Generic project branding; no physical resource IDs. Editable source is maintained alongside this offline-rendered diagram.</tspan>
+</text>
+</svg>

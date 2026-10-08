@@ -10,6 +10,8 @@ A private document-review application derived from [the upstream IQ template](ht
 | Optional private ACR task agent pool | `infra/acr-build/` |
 | Staged deployment and acceptance checks | [Scenario tutorial](docs/highly-regulated-scenario.md) |
 
+See the [target Azure architecture and editable diagram](docs/highly-regulated-scenario.md#architecture-and-ownership) for the human-review gate, private evidence flow, case-scoped retrieval and separate build/native-agent ownership boundaries.
+
 ## Deploy
 
 Start with [getting started](docs/getting-started.md), choose one approved private-network-connected execution checkout and secured backend, and tell Copilot **"Deploy the platform."** The repository workflow targets the private review scenario, not the legacy Fabric baseline. Each Terraform plan needs approval before its saved apply.
