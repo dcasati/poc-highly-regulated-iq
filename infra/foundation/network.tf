@@ -12,6 +12,52 @@ locals {
     cosmos    = "privatelink.documents.azure.com"
     registry  = "privatelink.azurecr.io"
   }
+  platform_egress = {
+    build = {
+      mcr      = { tag = "MicrosoftContainerRegistry", ports = ["443"] }
+      mcr_data = { tag = "AzureFrontDoor.FirstParty", ports = ["443"] }
+      keyvault = { tag = "AzureKeyVault", ports = ["443"] }
+      storage  = { tag = "Storage", ports = ["443"] }
+      eventhub = { tag = "EventHub", ports = ["443"] }
+      monitor  = { tag = "AzureMonitor", ports = ["443", "12000"] }
+    }
+    runtime = {
+      mcr      = { tag = "MicrosoftContainerRegistry", ports = ["443"] }
+      mcr_data = { tag = "AzureFrontDoor.FirstParty", ports = ["443"] }
+      storage  = { tag = "Storage.${var.location}", ports = ["443"] }
+    }
+  }
+}
+
+resource "azurerm_public_ip" "platform_egress" {
+  count               = var.provision_platform_egress ? 1 : 0
+  name                = "pip-${var.project_name}-platform-egress"
+  resource_group_name = azurerm_resource_group.foundation.name
+  location            = var.location
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  tags                = local.tags
+}
+
+resource "azurerm_nat_gateway" "platform_egress" {
+  count               = var.provision_platform_egress ? 1 : 0
+  name                = "nat-${var.project_name}-platform-egress"
+  resource_group_name = azurerm_resource_group.foundation.name
+  location            = var.location
+  sku_name            = "Standard"
+  tags                = local.tags
+}
+
+resource "azurerm_nat_gateway_public_ip_association" "platform_egress" {
+  count                = var.provision_platform_egress ? 1 : 0
+  nat_gateway_id       = azurerm_nat_gateway.platform_egress[0].id
+  public_ip_address_id = azurerm_public_ip.platform_egress[0].id
+}
+
+resource "azurerm_subnet_nat_gateway_association" "platform_egress" {
+  for_each       = var.provision_platform_egress ? local.platform_egress : {}
+  subnet_id      = azurerm_subnet.foundation[each.key].id
+  nat_gateway_id = azurerm_nat_gateway.platform_egress[0].id
 }
 
 resource "azurerm_subnet" "foundation" {
@@ -41,6 +87,20 @@ resource "azurerm_network_security_group" "foundation" {
   resource_group_name = azurerm_resource_group.foundation.name
   location            = var.location
   tags                = local.tags
+  dynamic "security_rule" {
+    for_each = var.provision_platform_egress ? lookup(local.platform_egress, each.key, {}) : {}
+    content {
+      name                       = "platform-${security_rule.key}"
+      priority                   = 200 + index(sort(keys(local.platform_egress[each.key])), security_rule.key)
+      direction                  = "Outbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_ranges    = security_rule.value.ports
+      source_address_prefix      = "*"
+      destination_address_prefix = security_rule.value.tag
+    }
+  }
   security_rule {
     name                       = "subnet-internal"
     priority                   = 130

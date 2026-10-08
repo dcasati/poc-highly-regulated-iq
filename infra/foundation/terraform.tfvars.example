@@ -22,6 +22,7 @@ configure_agent_runtime          = false
 configure_agent_provisioning     = false
 provision_agent_capability       = false
 capability_provisioning_verified = false
+provision_platform_egress        = false
 
 # Fill only after actual project identity discovery and separate role-plan review.
 agent_provisioning = {

@@ -25,6 +25,17 @@ project's infrastructure.
   and registry DNS zone, not a registry, pool or build.
 - Existing router/NAT/VM/backend and tailnet/OS DNS settings remain unchanged.
 
+The optional, separately planned `provision_platform_egress` stage adds its own
+outbound-only Standard NAT/public IP for build/runtime, never the agent subnet.
+Existing NAT ownership is untouched. NSGs retain deny-other-egress and permit
+only documented MCR/first-party CDN and platform service tags/ports. Build
+Storage dependencies use the documented Storage service tag; runtime Storage is
+region-scoped. Customer service endpoints remain private. No arbitrary NuGet
+CDN or Internet/AzureCloud wildcard is allowed: use a reviewed offline package
+source for the locked ACR build. NAT/public IP and pool allocation incur costs.
+These controls are not per-FQDN filtering or FIPS/readiness evidence; stricter
+organizational policies require a separately reviewed firewall.
+
 The US Data Zone model SKU allows inference in the US, not only the resource's
 region. Verify model availability/capacity and both Content Understanding
 processing boundaries separately. Serverless is supported by the documented

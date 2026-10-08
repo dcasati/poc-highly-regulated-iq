@@ -58,6 +58,13 @@ variable "network" {
   }
 }
 
+variable "provision_platform_egress" {
+  description = "Separately reviewed outbound-only NAT and service-tag HTTPS dependencies for dedicated build/runtime subnets. No general Internet/AzureCloud access or cryptographic approval."
+  type        = bool
+  default     = false
+  nullable    = false
+}
+
 variable "capability_preview_approved" {
   description = "Explicit acceptance of capability-host API 2025-04-01-preview, not apply or production approval."
   type        = bool

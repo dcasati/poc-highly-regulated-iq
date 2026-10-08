@@ -67,6 +67,29 @@ variables {
   capability_preview_approved = true
 }
 
+run "controlled_platform_egress" {
+  command = plan
+  variables {
+    provision_platform_egress = true
+  }
+  assert {
+    condition = (
+      length(azurerm_nat_gateway.platform_egress) == 1 &&
+      length(azurerm_public_ip.platform_egress) == 1 &&
+      toset(keys(azurerm_subnet_nat_gateway_association.platform_egress)) == toset(["build", "runtime"])
+    )
+    error_message = "Outbound-only NAT must attach only to dedicated build/runtime subnets."
+  }
+  assert {
+    condition = alltrue([for key, nsg in azurerm_network_security_group.foundation :
+      length([for rule in nsg.security_rule : rule if startswith(rule.name, "platform-")]) == (key == "agent" ? 0 : key == "build" ? 6 : 3) &&
+      alltrue([for rule in nsg.security_rule : !contains(["Internet", "AzureCloud"], coalesce(rule.destination_address_prefix, "unset"))]) &&
+      anytrue([for rule in nsg.security_rule : rule.name == "deny-other-egress" && rule.access == "Deny"])
+    ])
+    error_message = "Preserve agent isolation and deny-other-egress; no Internet/AzureCloud wildcard."
+  }
+}
+
 run "private_platform_only" {
   command = plan
   assert {

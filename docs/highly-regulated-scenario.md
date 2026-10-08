@@ -66,6 +66,16 @@ For either hosting option, review the cryptographic boundary with your complianc
 
 The Dockerfile intentionally has **no default runtime image**. Supply an approved .NET 10 runtime image by immutable digest. Changing its crypto packages, configuration, base image or operating environment can invalidate evidence. The build SDK is not claimed to be a validated runtime. Maintain approved OS/.NET versions and evaluate library updates before rebuilding.
 
+For a private build without arbitrary package-CDN egress, stage only the locked
+NuGet packages in an ignored `nuget-offline/` folder inside the inspected ACR
+build context and pass `--build-arg NUGET_SOURCE=/src/nuget-offline`. Verify the
+feed with native `dotnet restore --locked-mode --source <offline-feed>
+--packages <new-empty-cache>` before uploading. NuGet validates its locked
+content hashes; signed archive hashes are not interchangeable with these.
+Candidate-image
+builds may gather evidence, but do not authorize production deployment; keep
+runtime cryptographic approval false until the full boundary is accepted.
+
 Budget for Premium ACR, private endpoints, the runtime environment and retained storage before deploying an application revision. AKS provisions both node pools in the separately reviewed hosting stage; Container Apps keeps at least one application replica once runtime is enabled. Search capacity, Content Understanding/layout processing and agent inference have separate charges. Retention, repeated indexing and explicit analysis retries can increase costs.
 
 The AKS fallback uses a private control plane, Azure CNI Overlay, FIPS-enabled system/application pools, workload identity, internal Istio ingress and STRICT mesh mTLS. It does not copy the reference repository's region or version pins. Choose versions available together in your region. Do not automatically enable preview Istio CNI or assume its compatibility/cryptography has been approved. Changing from Container Apps to AKS after an apply is a migration requiring a separately reviewed plan, not a toggle to try casually.
