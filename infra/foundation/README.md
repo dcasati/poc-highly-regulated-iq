@@ -94,11 +94,16 @@ resources, not secrets from appearing in secured provider state.
    project Storage Blob Data Contributor on agent Storage, Cosmos DB Operator on
    agent Cosmos, and both Search contributor roles on the selected Search service.
    These are project provisioning grants, not caller grants.
-5. **Capability host:** verify those live grants, propagation, connection targets
+5. **Capability host:** verify the successful live grants, actual principal/scopes, connection targets
    and private connectivity; update the evidence reference and set
    `capability_provisioning_verified`. Enable `provision_agent_capability` in a
    separate saved plan. The native host references connection **names**, not
    `capabilitySettings` ARM IDs, and must finish its bounded 30-minute creation.
+   The connection CRUD API has no standalone project-identity access test.
+   Management-plane role visibility or a fixed sleep does not prove service-side
+   authorization propagation. The host create performs the next native provisioning
+   check; preserve state and surface authorization failures rather than broadening
+   access.
    Do not claim a successful plan/host proves a working managed agent.
 6. **Runtime bindings:** discover the actual project's system/user-assigned runtime
    principal IDs, service-created file/intermediate containers and Cosmos database.

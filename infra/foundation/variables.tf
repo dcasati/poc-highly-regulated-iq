@@ -166,7 +166,7 @@ variable "provision_agent_capability" {
 }
 
 variable "capability_provisioning_verified" {
-  description = "Operator verification of actual project identity, AAD connection targets and propagated provisioning grants; not agent readiness."
+  description = "Operator verification of actual project identity, nonshared AAD targets and successful live scoped grant assignments; not proof of managed-service role propagation or agent readiness."
   type        = bool
   default     = false
   nullable    = false

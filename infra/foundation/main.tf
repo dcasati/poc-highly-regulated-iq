@@ -66,7 +66,7 @@ resource "terraform_data" "gates" {
     }
     precondition {
       condition     = !var.provision_agent_capability || var.capability_provisioning_verified
-      error_message = "Verify the project provisioning identity, connection targets and propagated scoped grants before creating the capability host."
+      error_message = "Verify the actual project provisioning identity, nonshared connection targets and successful live scoped grant assignments before creating the capability host."
     }
   }
 }
