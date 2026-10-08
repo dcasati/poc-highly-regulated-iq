@@ -12,11 +12,11 @@ output "runtime_identity_client_id" {
 }
 output "portal_url" {
   description = "Private UI URL; network, authentication, ingestion and cryptographic evidence still require live verification."
-  value       = var.hosting == "container_apps" ? (var.deploy_runtime ? "https://${azurerm_container_app.app[0].ingress[0].fqdn}" : null) : "https://${var.aks.hostname}"
+  value       = !var.provision_hosting || !var.deploy_runtime ? null : (var.hosting == "container_apps" ? "https://${azurerm_container_app.app[0].ingress[0].fqdn}" : "https://${var.aks.hostname}")
 }
 output "aks_cluster_name" {
   description = "Private AKS cluster when Container Apps is ruled out."
-  value       = var.hosting == "aks" ? azurerm_kubernetes_cluster.app[0].name : null
+  value       = var.hosting == "aks" && var.provision_hosting ? azurerm_kubernetes_cluster.app[0].name : null
 }
 output "scenario_resource_group" {
   description = "Resource group owned by this scenario, separate from the existing AI infrastructure."

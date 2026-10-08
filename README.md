@@ -26,7 +26,7 @@ Reviewers can then ask questions about their selected case. The API enforces bot
 | [Azure AI Search](https://learn.microsoft.com/azure/search/) | Two private indexers: native CU layout for approved PDFs and JSON indexing for corrected fields; shared case/owner-filterable evidence index and Foundry IQ knowledge retrieval. |
 | [Microsoft Foundry Agent Service](https://learn.microsoft.com/azure/ai-foundry/agents/overview) | Existing managed prompt agent and approved model deployments; dedicated native Blob/Cosmos stores remain separate from application storage. |
 | [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/) | Private ACR Tasks builds on a VNet-connected agent pool and immutable-digest runtime images; no local Docker daemon. |
-| [Terraform](https://developer.hashicorp.com/terraform/docs) | Approved platform, knowledge and runtime stages with distinct secured private/keyless backend keys. |
+| [Terraform](https://developer.hashicorp.com/terraform/docs) | Approved platform, knowledge, hosting and runtime stages with distinct secured private/keyless backend keys. |
 
 **Target architecture, not a readiness or certification claim.** Private synthetic agent invocation, extraction, indexing, retrieval and portal access require live acceptance checks. Private networking and FIPS node flags alone do not prove cryptographic compliance.
 
@@ -47,9 +47,9 @@ All regional resources and AI processing must remain in the United States; a US 
 Start with [getting started](docs/getting-started.md) and follow the [scenario tutorial](docs/highly-regulated-scenario.md) for prerequisites, approved plans and acceptance checks. In Copilot App or CLI, tell Copilot **"Deploy the platform."** The workflow targets this private review scenario, not the legacy Fabric baseline.
 
 1. Configure the chosen execution host and distinct secured backend keys without duplicating existing deployment state.
-2. Review and approve the Terraform platform plan, then the knowledge plan after required private-link approvals.
+2. Review and approve the Terraform platform plan with hosting/runtime deferred and browser identity null if registrations are pending, then the knowledge plan after required private-link approvals.
 3. Build through private ACR Tasks using an approved VNet-connected agent pool and base-image digest. The optional build-pool root owns only a new pool; ordinary public workers cannot build against the private registry.
-4. Accept the exact cryptographic evidence and approve the immutable-digest runtime plan.
+4. Review hosting dependency egress and approve its separate provisioning plan, then accept the exact browser identity/cryptographic evidence and approve the immutable-digest runtime plan.
 5. Complete synthetic identity, network, extraction, human-review, indexing, case-isolation, recovery and cryptographic acceptance checks.
 
 Each saved Terraform plan requires approval before apply. A successful apply does not establish service readiness.

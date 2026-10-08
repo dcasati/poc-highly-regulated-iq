@@ -135,6 +135,18 @@ resources, not secrets from appearing in secured provider state.
    readiness checks; a working agent does not establish extraction readiness.
    These actions are not run by Terraform provisioners or this root.
 
+   Use the [documented model/defaults contract](https://learn.microsoft.com/azure/ai-services/content-understanding/concepts/models-deployments):
+   `PATCH /contentunderstanding/defaults?api-version=2025-11-01` with a
+   `modelDeployments` map, then GET and compare the returned mappings. Keys are
+   supported model names or prebuilt aliases; values are actual deployment names,
+   not model versions. Check the live analyzer's `supportedModels` before choosing
+   them. Configure the selected completion/embedding model names and the
+   `prebuilt-analyzer-completion`, `prebuilt-analyzer-completion-mini` and
+   `prebuilt-analyzer-embedding` aliases needed by native processing. An alias
+   does not require a new deployment when an existing compatible model is
+   supported. Preserve unrelated defaults and stop on conflicting mappings.
+   Successful readback establishes configuration, not successful extraction.
+
 ### Prompt-agent bootstrap and private smoke test
 
 The reviewed [Exempt Agent definition](../../agents/exempt-agent/definition.json)

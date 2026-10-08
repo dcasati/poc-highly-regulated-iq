@@ -50,7 +50,7 @@ locals {
   index_name  = "${var.project_name}-evidence"
   containers  = { for name in ["originals", "review-state", "approved", "reviewed-evidence"] : name => "${var.project_name}-${name}" }
   image       = var.image_digest == null ? null : "${azurerm_container_registry.app.login_server}/review-portal@${var.image_digest}"
-  portal_env = merge({
+  portal_env = var.identity == null ? {} : merge({
     Portal__TenantId                = var.identity.tenant_id
     Portal__ClientId                = var.identity.spa_client_id
     Portal__ApiAudience             = var.identity.api_client_id
@@ -76,7 +76,7 @@ locals {
 resource "terraform_data" "gates" {
   lifecycle {
     precondition {
-      condition     = data.azurerm_client_config.current.tenant_id == var.identity.tenant_id
+      condition     = var.identity == null ? !var.deploy_runtime : data.azurerm_client_config.current.tenant_id == var.identity.tenant_id
       error_message = "The active Azure directory must match the approved application directory."
     }
     precondition {
@@ -90,6 +90,10 @@ resource "terraform_data" "gates" {
     precondition {
       condition     = try(data.azurerm_search_service.existing.identity[0].principal_id, null) != null
       error_message = "Existing Search must have a system-assigned identity for private Blob indexing and keyless skillset billing."
+    }
+    precondition {
+      condition     = !var.deploy_runtime || var.provision_hosting
+      error_message = "Runtime requires the separately reviewed hosting stage and its approved dependency egress."
     }
     precondition {
       condition     = !var.deploy_runtime || (var.deploy_knowledge && var.compliance.approved && alltrue([for evidence in [var.compliance.platform_evidence, var.compliance.image_evidence, var.compliance.transport_evidence] : length(trimspace(evidence)) > 0]))
@@ -156,6 +160,7 @@ resource "azurerm_container_registry" "app" {
   sku                           = "Premium"
   admin_enabled                 = false
   public_network_access_enabled = false
+  network_rule_bypass_option    = "None"
   data_endpoint_enabled         = true
   tags                          = local.tags
 }

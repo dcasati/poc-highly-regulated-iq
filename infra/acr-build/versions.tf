@@ -1,5 +1,6 @@
 terraform {
   required_version = ">= 1.11, < 2.0"
+  backend "azurerm" {}
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -17,4 +18,6 @@ provider "azurerm" {
   resource_provider_registrations = "none"
 }
 
-provider "azapi" {}
+provider "azapi" {
+  skip_provider_registration = true
+}

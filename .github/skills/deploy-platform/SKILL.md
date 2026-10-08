@@ -37,7 +37,7 @@ Do not request a Fabric PAT, capacity administrator or Fabric consent, run the i
 
 ## 3. Apply the reviewed platform stage
 
-From `infra/highly-regulated/` on the chosen host, initialize the agreed backend without provider upgrades, validate and create a uniquely named saved plan with `-input=false`. For a new deployment keep `deploy_knowledge` and `deploy_runtime` false; on resume preserve the deployed flags and configuration rather than resetting them.
+From `infra/highly-regulated/` on the chosen host, initialize the agreed backend without provider upgrades, validate and create a uniquely named saved plan with `-input=false`. Both scenario and ACR-build roots declare the native azurerm backend; verify their distinct keys. For a new deployment keep `provision_hosting`, `deploy_knowledge` and `deploy_runtime` false; on resume preserve the deployed flags and configuration rather than resetting them. Initial platform preparation needs no browser registrations: use `identity = null`, never placeholder GUIDs. It creates private registry/data/managed-identity prerequisites, not a hosting environment or unauthenticated app. Review runtime dependency egress and a separate `provision_hosting = true` plan before creating the chosen environment or cluster.
 
 Acquire short-lived Search and Content Understanding tokens in each plan/apply shell as ephemeral provider inputs. Never print or persist them. Use native Terraform only, no AZD hooks or custom wrapper.
 
@@ -70,7 +70,7 @@ The runtime root deploys from its own registry. If a different build registry wa
 
 ## 6. Deploy and verify the runtime
 
-Complete the exact platform/image/transport approval references, set `image_digest` and enable `deploy_runtime`. Review/apply a separately saved runtime plan. Preserve the current hosting choice; changing Container Apps to AKS is a migration needing separate review.
+Complete the exact platform/image/transport approval references and real SPA/API identity, set `image_digest` and enable `deploy_runtime` only after `provision_hosting` is enabled. Review/apply a separately saved runtime plan. Preserve the current hosting choice; changing Container Apps to AKS is a migration needing separate review.
 
 Verify runtime provisioning, private DNS/access, Entra redirect/roles, service identities and any AKS certificate/mesh prerequisites. A successful apply or health endpoint is not readiness.
 

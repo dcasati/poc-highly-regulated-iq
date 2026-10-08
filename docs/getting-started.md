@@ -20,10 +20,10 @@ Supply a generic project name and explicit region, verified existing-resource re
 
 ## Follow the staged workflow
 
-1. Configure the ignored scenario tfvars on the chosen host and review/apply the saved **platform** plan.
+1. Configure the ignored scenario tfvars on the chosen host and review/apply the saved **platform** plan with `provision_hosting`, `deploy_knowledge` and `deploy_runtime` false. Browser identity can remain null for this registry/data/managed-identity stage.
 2. Approve the required processing/billing shared links through their owners; review/apply the saved **knowledge** plan.
 3. Use an approved private ACR build pool, or review/apply the separate **build-pool** plan. Build with `az acr build --agent-pool` and the approved runtime image digest.
-4. Verify the output image digest in the scenario's runtime registry, complete compliance approvals and review/apply the saved **runtime** plan.
+4. Review dependency egress and the separate **hosting** plan, enabling `provision_hosting`. Verify the output image digest in the scenario's runtime registry, complete browser identity/compliance approvals and review/apply the saved **runtime** plan.
 5. Run synthetic-only identity, network, extraction, human-review, indexing, case-isolation, recovery and cryptographic acceptance checks.
 
 In Copilot App or CLI, say **"Deploy the platform."** The [repository skill](../.github/skills/deploy-platform/SKILL.md) coordinates these stages without AZD hooks, custom deployment wrappers, automatic plan approval or a claim that an apply proves readiness.

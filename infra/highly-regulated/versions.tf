@@ -1,5 +1,6 @@
 terraform {
   required_version = ">= 1.11, < 2.0"
+  backend "azurerm" {}
   required_providers {
     azapi = {
       source  = "Azure/azapi"
@@ -22,18 +23,21 @@ terraform {
 }
 
 provider "kubernetes" {
-  host                   = var.hosting == "aks" ? azurerm_kubernetes_cluster.app[0].kube_config[0].host : null
-  cluster_ca_certificate = var.hosting == "aks" ? base64decode(azurerm_kubernetes_cluster.app[0].kube_config[0].cluster_ca_certificate) : null
+  host                   = var.hosting == "aks" && var.provision_hosting ? azurerm_kubernetes_cluster.app[0].kube_config[0].host : null
+  cluster_ca_certificate = var.hosting == "aks" && var.provision_hosting ? base64decode(azurerm_kubernetes_cluster.app[0].kube_config[0].cluster_ca_certificate) : null
   exec {
     api_version = "client.authentication.k8s.io/v1beta1"
     command     = "kubelogin"
     args        = ["get-token", "--login", "azurecli", "--server-id", "6dae42f8-4368-4678-94ff-3960e28e3630"]
   }
 }
-provider "azapi" {}
+provider "azapi" {
+  skip_provider_registration = true
+}
 provider "azurerm" {
   features {}
   resource_provider_registrations = "none"
+  storage_use_azuread             = true
 }
 
 provider "restful" {

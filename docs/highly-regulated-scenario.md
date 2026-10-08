@@ -53,7 +53,7 @@ For either hosting option, review the cryptographic boundary with your complianc
 
 The Dockerfile intentionally has **no default runtime image**. Supply an approved .NET 10 runtime image by immutable digest. Changing its crypto packages, configuration, base image or operating environment can invalidate evidence. The build SDK is not claimed to be a validated runtime. Maintain approved OS/.NET versions and evaluate library updates before rebuilding.
 
-Budget for Premium ACR, private endpoints, the runtime environment and retained storage before deploying an application revision. AKS provisions both node pools in the platform stage; Container Apps keeps at least one application replica once enabled. Search capacity, Content Understanding/layout processing and agent inference have separate charges. Retention, repeated indexing and explicit analysis retries can increase costs.
+Budget for Premium ACR, private endpoints, the runtime environment and retained storage before deploying an application revision. AKS provisions both node pools in the separately reviewed hosting stage; Container Apps keeps at least one application replica once runtime is enabled. Search capacity, Content Understanding/layout processing and agent inference have separate charges. Retention, repeated indexing and explicit analysis retries can increase costs.
 
 The AKS fallback uses a private control plane, Azure CNI Overlay, FIPS-enabled system/application pools, workload identity, internal Istio ingress and STRICT mesh mTLS. It does not copy the reference repository's region or version pins. Choose versions available together in your region. Do not automatically enable preview Istio CNI or assume its compatibility/cryptography has been approved. Changing from Container Apps to AKS after an apply is a migration requiring a separately reviewed plan, not a toggle to try casually.
 
@@ -104,9 +104,31 @@ Cases are isolated to the uploading user's tenant object ID. Reviewers cannot br
 
 ## 3. Configure and provision the scenario platform
 
-Copy `infra/highly-regulated/terraform.tfvars.example` to one ignored `terraform.tfvars` in that directory without overwriting another deployment's configuration. Fill verified existing-resource names and endpoints; choose generic branding and an explicit region. Keep both deployment flags false initially.
+Copy `infra/highly-regulated/terraform.tfvars.example` to one ignored `terraform.tfvars` in that directory without overwriting another deployment's configuration. Fill verified existing-resource names and endpoints; choose generic branding and an explicit region. Keep `provision_hosting`, `deploy_knowledge` and `deploy_runtime` false initially.
 
 Configure the approved encrypted remote backend in the derived repository using native Terraform. Use a distinct scenario key. Then, on the selected private execution host:
+
+The scenario and ACR build roots declare an `azurerm` backend; supply each root's
+own ignored backend configuration and verify the distinct agreed key before
+initialization. The scenario uses Entra authentication for keyless Blob management
+and neither root registers providers automatically.
+
+Browser registration approval does not block platform or knowledge preparation:
+omit `identity` or set it to `null` while `deploy_runtime = false`. This creates no
+browser registrations, consent or unauthenticated application. Supply the approved
+real registrations before enabling runtime; Terraform rejects a missing identity,
+wrong directory or mismatched API scope. AKS control-plane authentication uses the
+selected deployment directory even before browser registrations exist.
+
+The initial platform stage creates the private registry/endpoint, application
+identity, dedicated data containers and scoped grants without creating a hosting
+environment or cluster. Set `provision_hosting = true` only in a separately reviewed
+plan after the selected runtime's dependency egress is ready. This lets private
+knowledge and build prerequisites progress without choosing an unverified
+cryptographic hosting boundary or prematurely provisioning billable nodes.
+Container Apps remains the first choice. Runtime additionally requires the real
+browser registrations, knowledge, reviewed image digest and compliance evidence.
+Do not reset any applied stage flags on resume.
 
 ```sh
 cd infra/highly-regulated
@@ -205,9 +227,9 @@ Private connectivity does **not** make an ACR agent pool FIPS validated. If the 
 
 ## 6. Deploy the runtime
 
-Set `image_digest`, complete the three approval references, and set `deploy_runtime = true`. Review/apply a new saved runtime plan with fresh tokens. For Container Apps, the application is reachable only through the internal environment; `external_enabled = true` on the app means reachable from its VNet, **not** a public environment endpoint. Terraform creates its private environment DNS zone and VNet link.
+Set `image_digest`, complete the three approval references and real browser identity, and set `deploy_runtime = true` after the reviewed `provision_hosting = true` stage. Review/apply a new saved runtime plan with fresh tokens. For Container Apps, the application is reachable only through the internal environment; `external_enabled = true` on the app means reachable from its VNet, **not** a public environment endpoint. Terraform creates its private environment DNS zone and VNet link.
 
-For AKS, the platform must already exist before the Kubernetes provider can discover Istio CRDs. From the private runner, verify the actual ingress namespace/selector. Provision the approved certificate as a Kubernetes TLS Secret in the **ingress gateway workload namespace**, using the organization's external secret/certificate procedure; never commit a key or place it in tfvars. Supply the existing secret name. Terraform configures HTTPS Gateway/VirtualService, static internal ingress IP annotation, sidecar injection, strict mTLS, application FIPS-pool scheduling, resource limits, nonroot/read-only containers and network policy.
+For AKS, the hosting stage must already exist before the Kubernetes provider can discover Istio CRDs. From the private runner, verify the actual ingress namespace/selector. Provision the approved certificate as a Kubernetes TLS Secret in the **ingress gateway workload namespace**, using the organization's external secret/certificate procedure; never commit a key or place it in tfvars. Supply the existing secret name. Terraform configures HTTPS Gateway/VirtualService, static internal ingress IP annotation, sidecar injection, strict mTLS, application FIPS-pool scheduling, resource limits, nonroot/read-only containers and network policy.
 
 The organization's internal DNS must map the approved AKS hostname to the reserved private ingress IP. Certificates, DNS and browser redirect registration must agree before enabling access. The network policy permits HTTPS egress for Azure dependencies; **existing UDR/firewall controls** must restrict approved destinations. A TCP 443 rule alone is not a private-only/allowlisted egress policy.
 

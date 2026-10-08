@@ -59,17 +59,21 @@ variable "project_endpoint" {
   }
 }
 variable "identity" {
-  description = "Administrator-approved SPA/API registration. API access token version 2, delegated scope and Caseworker/Reviewer roles are required."
+  description = "Administrator-approved SPA/API registration, required before runtime deployment but optional for platform/knowledge preparation. API v2 tokens, delegated scope and Caseworker/Reviewer roles remain mandatory."
   type = object({
     tenant_id     = string
     spa_client_id = string
     api_client_id = string
     api_scope     = string
   })
+  default = null
   validation {
-    condition = alltrue([for id in [var.identity.tenant_id, var.identity.spa_client_id, var.identity.api_client_id] :
-    can(regex("^[0-9a-fA-F-]{36}$", id))])
-    error_message = "Identity values must be approved directory/application GUIDs."
+    condition = var.identity == null ? !var.deploy_runtime : (
+      alltrue([for id in [var.identity.tenant_id, var.identity.spa_client_id, var.identity.api_client_id] :
+      can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", id))]) &&
+      var.identity.api_scope == "api://${var.identity.api_client_id}/access_as_user"
+    )
+    error_message = "Runtime requires approved directory/application GUIDs and the API's access_as_user scope."
   }
 }
 variable "hosting" {
@@ -95,6 +99,11 @@ variable "compliance" {
 }
 variable "deploy_runtime" {
   description = "Enable only after ACR contains the reviewed image digest and compliance/network/identity gates are approved."
+  type        = bool
+  default     = false
+}
+variable "provision_hosting" {
+  description = "Provision the chosen private hosting environment or AKS cluster only after its dependency egress is reviewed. Keep false for registry/data/identity preparation; runtime requires true. Never reset an applied stage."
   type        = bool
   default     = false
 }

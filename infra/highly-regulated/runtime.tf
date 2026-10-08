@@ -1,5 +1,5 @@
 resource "azurerm_container_app_environment" "app" {
-  count                          = var.hosting == "container_apps" ? 1 : 0
+  count                          = var.hosting == "container_apps" && var.provision_hosting ? 1 : 0
   name                           = "cae-${local.prefix}"
   resource_group_name            = azurerm_resource_group.scenario.name
   location                       = var.location
@@ -13,25 +13,25 @@ resource "azurerm_container_app_environment" "app" {
   tags = local.tags
 }
 resource "azurerm_private_dns_zone" "app" {
-  count               = var.hosting == "container_apps" ? 1 : 0
+  count               = var.hosting == "container_apps" && var.provision_hosting ? 1 : 0
   name                = azurerm_container_app_environment.app[0].default_domain
   resource_group_name = azurerm_resource_group.scenario.name
 }
 resource "azurerm_private_dns_zone_virtual_network_link" "app" {
-  count               = var.hosting == "container_apps" ? 1 : 0
+  count               = var.hosting == "container_apps" && var.provision_hosting ? 1 : 0
   name                = "runtime"
   private_dns_zone_id = azurerm_private_dns_zone.app[0].id
   virtual_network_id  = data.azurerm_virtual_network.existing.id
 }
 resource "azurerm_private_dns_a_record" "app" {
-  count               = var.hosting == "container_apps" ? 1 : 0
+  count               = var.hosting == "container_apps" && var.provision_hosting ? 1 : 0
   name                = "*"
   private_dns_zone_id = azurerm_private_dns_zone.app[0].id
   ttl                 = 300
   records             = [azurerm_container_app_environment.app[0].static_ip_address]
 }
 resource "azurerm_container_app" "app" {
-  count                        = var.hosting == "container_apps" && var.deploy_runtime ? 1 : 0
+  count                        = var.hosting == "container_apps" && var.provision_hosting && var.deploy_runtime ? 1 : 0
   name                         = "review-${var.project_name}"
   resource_group_name          = azurerm_resource_group.scenario.name
   container_app_environment_id = azurerm_container_app_environment.app[0].id
@@ -91,19 +91,19 @@ resource "azurerm_container_app" "app" {
 }
 
 resource "azurerm_user_assigned_identity" "cluster" {
-  count               = var.hosting == "aks" ? 1 : 0
+  count               = var.hosting == "aks" && var.provision_hosting ? 1 : 0
   name                = "id-${local.prefix}-cluster"
   resource_group_name = azurerm_resource_group.scenario.name
   location            = var.location
 }
 resource "azurerm_role_assignment" "cluster_network" {
-  count                = var.hosting == "aks" ? 1 : 0
+  count                = var.hosting == "aks" && var.provision_hosting ? 1 : 0
   scope                = data.azurerm_virtual_network.existing.id
   role_definition_name = "Network Contributor"
   principal_id         = azurerm_user_assigned_identity.cluster[0].principal_id
 }
 resource "azurerm_kubernetes_cluster" "app" {
-  count                               = var.hosting == "aks" ? 1 : 0
+  count                               = var.hosting == "aks" && var.provision_hosting ? 1 : 0
   name                                = "aks-${local.prefix}"
   resource_group_name                 = azurerm_resource_group.scenario.name
   location                            = var.location
@@ -123,7 +123,7 @@ resource "azurerm_kubernetes_cluster" "app" {
     identity_ids = [azurerm_user_assigned_identity.cluster[0].id]
   }
   azure_active_directory_role_based_access_control {
-    tenant_id          = var.identity.tenant_id
+    tenant_id          = data.azurerm_client_config.current.tenant_id
     azure_rbac_enabled = true
   }
   default_node_pool {
@@ -156,7 +156,7 @@ resource "azurerm_kubernetes_cluster" "app" {
   depends_on = [azurerm_role_assignment.cluster_network, terraform_data.gates]
 }
 resource "azurerm_kubernetes_cluster_node_pool" "app" {
-  count                 = var.hosting == "aks" ? 1 : 0
+  count                 = var.hosting == "aks" && var.provision_hosting ? 1 : 0
   name                  = "fipsapp"
   kubernetes_cluster_id = azurerm_kubernetes_cluster.app[0].id
   vm_size               = var.aks.vm_size
@@ -169,19 +169,19 @@ resource "azurerm_kubernetes_cluster_node_pool" "app" {
   node_taints           = ["workload=review:NoSchedule"]
 }
 resource "azurerm_role_assignment" "cluster_pull" {
-  count                = var.hosting == "aks" ? 1 : 0
+  count                = var.hosting == "aks" && var.provision_hosting ? 1 : 0
   scope                = azurerm_container_registry.app.id
   role_definition_name = "AcrPull"
   principal_id         = azurerm_kubernetes_cluster.app[0].kubelet_identity[0].object_id
 }
 resource "azurerm_role_assignment" "cluster_deployer" {
-  count                = var.hosting == "aks" ? 1 : 0
+  count                = var.hosting == "aks" && var.provision_hosting ? 1 : 0
   scope                = azurerm_kubernetes_cluster.app[0].id
   role_definition_name = "Azure Kubernetes Service RBAC Cluster Admin"
   principal_id         = data.azurerm_client_config.current.object_id
 }
 resource "azurerm_federated_identity_credential" "app" {
-  count                     = var.hosting == "aks" ? 1 : 0
+  count                     = var.hosting == "aks" && var.provision_hosting ? 1 : 0
   name                      = "review"
   user_assigned_identity_id = azurerm_user_assigned_identity.app.id
   audience                  = ["api://AzureADTokenExchange"]

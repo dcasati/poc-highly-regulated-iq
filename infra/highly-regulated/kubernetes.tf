@@ -1,5 +1,5 @@
 locals {
-  deploy_kubernetes = var.hosting == "aks" && var.deploy_runtime
+  deploy_kubernetes = var.hosting == "aks" && var.provision_hosting && var.deploy_runtime
 }
 resource "kubernetes_annotations" "ingress" {
   count       = local.deploy_kubernetes ? 1 : 0

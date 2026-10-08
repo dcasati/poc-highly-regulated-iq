@@ -29,14 +29,19 @@ identity = {
   api_client_id = "<approved-api-client-guid>"
   api_scope     = "api://<approved-api-client-guid>/access_as_user"
 }
+# Before the SPA/API registrations are approved, omit identity or set it to null
+# for platform/knowledge preparation only. Never use placeholder GUIDs in a live
+# plan. deploy_runtime remains false until the real identity and compliance gates
+# are satisfied.
 analyzer_models = {
   completion = "<supported-approved-completion-model-name>"
   embedding  = "<supported-approved-embedding-model-name>"
 }
-hosting          = "container_apps"
-deploy_knowledge = false
-deploy_runtime   = false
-image_digest     = null
+hosting           = "container_apps"
+provision_hosting = false
+deploy_knowledge  = false
+deploy_runtime    = false
+image_digest      = null
 compliance = {
   approved           = false
   platform_evidence  = ""
