@@ -39,6 +39,11 @@ For this PoC, provision a **new US-only foundation**, not resources belonging to
 
 Use one approved private-network-connected execution checkout, an explicit region and secured remote state. Administrators own application registrations, role assignments, private-link approvals, certificates and immutable retention. Confirm model availability and the applicable US processing boundaries separately for custom CU, native Search layout and agent inference.
 
+For new browser registrations, the optional `infra/browser-identity/` Terraform
+stage owns only a single-tenant SPA/API and its custom delegated scope/application
+roles in a distinct secured backend. Administrator authority is still required;
+it grants no directory role, Graph permission, client secret or tenant-wide consent.
+
 All regional resources and AI processing must remain in the United States; a US account location alone is insufficient. Use approved US regional/Data Zone models, not Global SKUs. Global Azure control-plane services, Entra ID and Private DNS are not region-pinned. Tailscale is limited to explicitly approved synthetic-only PoC administration and is not FIPS-validated. Only the connectivity and state-backend roots may use their separately approved owner-only local bootstrap state; foundation/scenario/build roots require secured remote state. Backend creation, scoped access grants, exact-hostname split DNS and existing-state migrations require explicit approvals.
 
 **No live deployment or FIPS certification is bundled.** The Dockerfile requires an organization-approved .NET 10 runtime image by immutable digest. Exact platform, image and transport evidence, private connectivity, retention, identity and synthetic acceptance checks must be approved and demonstrated before real documents are processed.
