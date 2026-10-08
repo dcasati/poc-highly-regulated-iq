@@ -13,6 +13,7 @@ param existing_content_links {
 resource search 'Microsoft.Search/searchServices@2025-05-01' existing = { name: search_name }
 var groups = ['foundry_account', 'cognitiveservices_account']
 var names = [existing_content_links.?foundry_account, existing_content_links.?cognitiveservices_account]
+@batchSize(1)
 resource requests 'Microsoft.Search/searchServices/sharedPrivateLinkResources@2025-05-01' = [for (group, i) in groups: if (names[i] == null) {
   parent: search
   name: '${project_name}-${replace(group, '_', '-')}'

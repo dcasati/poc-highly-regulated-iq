@@ -76,6 +76,10 @@ Hosting and runtime are separate entries instead of Terraform stage booleans.
 Keep successful resources/configuration on resume; don't reinterpret incremental
 deployment's retained resources as permission to reset ownership or remove grants.
 
+Search shared-link requests use native `@batchSize(1)` serialization to avoid
+conflicting updates on the same Search service. This orders the resource loop,
+not independent deployments; keep other authors off that service during the stage.
+
 ## Explicit bootstrap-role revocation
 
 `foundation/provisioning.bicep` outputs the deterministic

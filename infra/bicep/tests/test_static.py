@@ -171,6 +171,11 @@ class StaticContracts(unittest.TestCase):
         self.assertEqual(sum(name is None for name in existing.values()), 0)
         self.assertEqual(sum(name is None for name in {"foundry_account": "verified", "cognitiveservices_account": None}.values()), 1)
 
+    def test_shared_link_requests_are_serialized_on_search(self):
+        requests = self.templates["scenario/private-links.bicep"]["resources"]["requests"]
+        self.assertEqual(requests["copy"]["mode"], "serial")
+        self.assertEqual(requests["copy"]["batchSize"], 1)
+
     def test_roles_are_scoped_deterministic_and_native_data_remains_read_only(self):
         roles = self.templates["modules/service-roles.bicep"]
         allowed = roles["parameters"]["role_id"]["allowedValues"]
