@@ -53,6 +53,9 @@ resource "azapi_resource" "chat_prompt_shields" {
   name                      = "chat-prompt-shields"
   parent_id                 = azapi_resource.foundry.id
   schema_validation_enabled = true
+  # Preserve service-added filters while detecting drift in each owned name/source pair.
+  ignore_other_items_in_list = ["properties.contentFilters"]
+  list_unique_id_property    = { "properties.contentFilters" = "name,source" }
   body = {
     properties = {
       basePolicyName = "Microsoft.Default"

@@ -85,6 +85,11 @@ its association with the chat deployment only. It retains default harm and
 protected-material protections and enables the native user-prompt and indirect
 attack detectors. Embedding configuration, IAM and private networking are
 unchanged. Review this policy/model update in a full saved foundation plan.
+Azure can append service-owned Defender/tool-stage filters on readback.
+AzAPI manages the declared filters by their `(name, source)` identity and
+preserves undeclared entries; it does not ignore changes to our blocking
+flags, thresholds or policy mode. Do not ignore the entire filter list or
+copy service-generated defaults into the template.
 
 The managed prompt agent owns its task boundary. Use
 [`review-agent.instructions.txt`](review-agent.instructions.txt) when creating

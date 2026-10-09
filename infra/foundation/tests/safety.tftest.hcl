@@ -87,6 +87,13 @@ run "blocking_chat_prompt_shields" {
   }
   assert {
     condition = (
+      toset(azapi_resource.chat_prompt_shields.ignore_other_items_in_list) == toset(["properties.contentFilters"]) &&
+      azapi_resource.chat_prompt_shields.list_unique_id_property == tomap({ "properties.contentFilters" = "name,source" })
+    )
+    error_message = "Preserve only service-added filter entries; owned name/source pairs must retain drift detection."
+  }
+  assert {
+    condition = (
       toset([for filter in azapi_resource.chat_prompt_shields.body.properties.contentFilters : "${filter.name}:${filter.source}"
         if contains(["Hate", "Sexual", "Violence", "Selfharm"], filter.name) && try(filter.severityThreshold == "Medium", false)
       ]) == toset([for pair in setproduct(["Hate", "Sexual", "Violence", "Selfharm"], ["Prompt", "Completion"]) : "${pair[0]}:${pair[1]}"]) &&
