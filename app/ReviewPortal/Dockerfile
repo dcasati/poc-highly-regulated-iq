@@ -12,7 +12,8 @@ RUN dotnet publish --no-restore -c Release -o /out /p:UseAppHost=false
 FROM ${RUNTIME_IMAGE} AS runtime
 WORKDIR /app
 COPY --from=build /out .
-COPY --chmod=0444 openssl-tls.cnf /app/openssl-tls.cnf
+COPY openssl-tls.cnf /app/openssl-tls.cnf
+RUN chmod 0444 /app/openssl-tls.cnf
 USER 1654:1654
 RUN test -r /etc/pki/tls/openssl.cnf && test -s /etc/pki/tls/openssl.cnf \
     && test -r /etc/pki/tls/symcrypt_prov.cnf && test -s /etc/pki/tls/symcrypt_prov.cnf \

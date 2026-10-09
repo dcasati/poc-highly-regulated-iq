@@ -30,7 +30,8 @@ public sealed class OpenSslProfileTests
     {
         var docker = Source("Dockerfile");
         var runtime = docker[docker.IndexOf("FROM ${RUNTIME_IMAGE} AS runtime", StringComparison.Ordinal)..];
-        Assert.Contains("COPY --chmod=0444 openssl-tls.cnf /app/openssl-tls.cnf", runtime);
+        Assert.Contains("COPY openssl-tls.cnf /app/openssl-tls.cnf\nRUN chmod 0444 /app/openssl-tls.cnf\nUSER 1654:1654", runtime);
+        Assert.DoesNotContain("--chmod", runtime);
         Assert.Contains("USER 1654:1654\nRUN test -r /etc/pki/tls/openssl.cnf && test -s /etc/pki/tls/openssl.cnf", runtime);
         Assert.Contains("&& test -r /etc/pki/tls/symcrypt_prov.cnf && test -s /etc/pki/tls/symcrypt_prov.cnf", runtime);
         Assert.Contains("openssl_conf[[:space:]]*=[[:space:]]*openssl_init", runtime);
