@@ -23,7 +23,7 @@ public sealed class FrontendTests
         Assert.Equal(ids.Length, ids.Distinct().Count());
         foreach (var id in new[] { "signin", "notice", "upload", "pdf", "refresh", "cases",
             "state", "original", "retry", "review", "fields", "approve", "chat", "question",
-            "answer", "references" })
+            "chat-messages", "chat-empty", "chat-send", "chat-stop", "chat-new" })
             Assert.Contains(id, ids);
     }
 
@@ -64,7 +64,7 @@ public sealed class FrontendTests
         var html = Source("index.html");
         Assert.True(html.IndexOf("/report.js", StringComparison.Ordinal) <
             html.IndexOf("/portal.js", StringComparison.Ordinal));
-        Assert.Contains("ReviewReport.render", Source("portal.js"));
+        Assert.Contains("ReviewReport.render", Source("chat.js"));
         Assert.Contains("document.createTextNode", script);
         Assert.Contains("element.textContent = text", script);
         Assert.Contains("sources.has(id)", script);
@@ -73,5 +73,26 @@ public sealed class FrontendTests
         Assert.DoesNotContain("innerHTML", script);
         Assert.DoesNotContain("insertAdjacentHTML", script);
         Assert.DoesNotContain("eval(", script);
+    }
+
+    [Fact]
+    public void ConversationIsTabLocalBoundedAndUsesCaseScopedRequests()
+    {
+        var script = Source("chat.js");
+        var html = Source("index.html");
+        Assert.Contains("CaseChat.create", Source("portal.js"));
+        Assert.Contains("""role="log" aria-label="Application conversation" """, html);
+        Assert.Contains("turns.slice(-6)", script);
+        Assert.Contains("> 48000", script);
+        Assert.Contains("question.length > 4000", script);
+        Assert.Contains("12000", script);
+        Assert.Contains("generation !== currentGeneration || caseId !== currentCase", script);
+        Assert.Contains("controller.signal.aborted", script);
+        Assert.Contains("new AbortController()", script);
+        Assert.Contains("!event.isComposing", script);
+        Assert.Contains("JSON.stringify({ question, history: context })", script);
+        Assert.DoesNotContain("localStorage", script);
+        Assert.DoesNotContain("sessionStorage", script);
+        Assert.DoesNotContain("innerHTML", script);
     }
 }

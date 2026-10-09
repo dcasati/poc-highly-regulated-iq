@@ -61,7 +61,41 @@ public sealed record ReviewCase(Guid Id, string OwnerId, string FileName, DateTi
 
 public sealed record CaseSnapshot(ReviewCase Case, string Version);
 public sealed record ReviewInput(Dictionary<string, string>? Values, string? Version);
-public sealed record ChatInput(string Question);
+public sealed record ChatMessage(string? Role, string? Content);
+public sealed record ChatInput(string? Question, IReadOnlyList<ChatMessage?>? History = null);
+
+public static class ChatContextRules
+{
+    public const int MaxQuestionCharacters = 4000;
+    public const int MaxHistoryMessages = 12;
+    public const int MaxUserMessageCharacters = 4000;
+    public const int MaxAssistantMessageCharacters = 12000;
+    public const int MaxHistoryCharacters = 48000;
+
+    public static string? ValidationError(string? question, IReadOnlyList<ChatMessage?>? history)
+    {
+        if (string.IsNullOrWhiteSpace(question) || question.Length > MaxQuestionCharacters)
+            return $"Enter a question of 1-{MaxQuestionCharacters} characters.";
+        if (history is null) return null;
+        if (history.Count > MaxHistoryMessages || history.Count % 2 != 0)
+            return $"History must contain at most {MaxHistoryMessages} messages in complete user/assistant pairs.";
+        var total = 0;
+        for (var index = 0; index < history.Count; index++)
+        {
+            var message = history[index];
+            var expectedRole = index % 2 == 0 ? "user" : "assistant";
+            if (message is null || message.Role != expectedRole)
+                return "History must alternate user then assistant, starting with user and ending with assistant.";
+            var limit = expectedRole == "user" ? MaxUserMessageCharacters : MaxAssistantMessageCharacters;
+            if (string.IsNullOrWhiteSpace(message.Content) || message.Content.Length > limit)
+                return $"Each history {expectedRole} message must contain 1-{limit} characters.";
+            total += message.Content.Length;
+        }
+        return total > MaxHistoryCharacters
+            ? $"History must contain at most {MaxHistoryCharacters} characters in total."
+            : null;
+    }
+}
 
 public static class ReviewRules
 {

@@ -32,6 +32,8 @@ const ReviewReport = (() => {
             link.setAttribute("aria-label", `Read source ${source.number}: ${source.title}`);
             link.addEventListener("click", event => {
               event.preventDefault();
+              const group = source.element.parentElement.closest("details");
+              if (group) group.open = true;
               source.element.open = true;
               source.element.scrollIntoView({ block: "start" });
               source.element.querySelector("summary").focus({ preventScroll: true });
@@ -138,7 +140,7 @@ const ReviewReport = (() => {
       "Reviewed field record" : "Page location not provided";
   }
 
-  function render(answerElement, referencesElement, answer, references) {
+  function render(answerElement, referencesElement, answer, references, options = {}) {
     if (typeof answer !== "string" || !Array.isArray(references))
       throw new Error("The answer response could not be displayed. Contact the operator.");
     const sources = new Map(), evidence = document.createDocumentFragment();
@@ -147,7 +149,7 @@ const ReviewReport = (() => {
       if (!id || sources.has(id)) throw new Error("Evidence references are missing or ambiguous.");
       const data = reference.sourceData || {}, title = sourceTitle(data), number = index + 1;
       const details = node("details", undefined, "report-source");
-      details.id = `report-source-${number}`;
+      details.id = `${options.idPrefix || "report"}-source-${number}`;
       const summary = node("summary"), badge = node("span", String(number), "source-number");
       const label = node("span", undefined, "source-label");
       label.append(node("strong", title), node("span", pageLabel(data), "source-location"));
@@ -155,18 +157,21 @@ const ReviewReport = (() => {
       details.append(summary, node("div", data.content || "Source text not returned.", "source-content"));
       sources.set(id, { number, title, element: details }); evidence.append(details);
     });
-    const article = node("article", undefined, "answer-report"), header = node("header", undefined, "report-heading");
+    const article = node("article", undefined, options.compact ? "chat-answer" : "answer-report"), header = node("header", undefined, "report-heading");
     const title = node("h3", "Application evidence report");
-    title.id = "report-title"; article.setAttribute("aria-labelledby", title.id);
+    title.id = `${options.idPrefix || "report"}-title`;
+    if (!options.compact) article.setAttribute("aria-labelledby", title.id);
     header.append(node("p", "Reviewed evidence", "eyebrow"), title,
       node("p", `${references.length} supporting ${references.length === 1 ? "source" : "sources"}`, "report-meta"));
     const content = node("div", undefined, "report-body");
     body(content, answer, sources);
-    article.append(header, content, node("p",
-      "Assistant-generated summary. Verify statements against the supporting evidence; this is not an application decision.",
-      "report-disclaimer"));
+    if (!options.compact) article.append(header);
+    article.append(content);
+    if (!options.compact) article.append(node("p",
+      "Assistant-generated summary. Verify statements against the supporting evidence; this is not an application decision.", "report-disclaimer"));
     answerElement.replaceChildren(article);
-    referencesElement.replaceChildren(node("h3", "Supporting evidence"), evidence);
+    referencesElement.classList.add("evidence-list");
+    referencesElement.replaceChildren(...(options.compact ? [evidence] : [node("h3", "Supporting evidence"), evidence]));
   }
 
   return { render };

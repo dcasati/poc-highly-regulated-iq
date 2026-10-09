@@ -1,7 +1,7 @@
 "use strict";
 const $ = id => document.getElementById(id);
 let config, token, selected, version, poll;
-let loadSequence = 0, chatSequence = 0;
+let loadSequence = 0, selectedStatus;
 const notice = (text, error = false) => {
   $("notice").textContent = text;
   $("notice").classList.toggle("error", error);
@@ -16,12 +16,35 @@ async function api(path, options = {}) {
   if (options.body && !(options.body instanceof File)) headers.set("Content-Type", "application/json");
   const response = await fetch(path, { ...options, headers, cache: "no-store" });
   if (!response.ok) {
-    if (response.status === 401) { token = null; clearInterval(poll); }
+    if (response.status === 401) { token = null; clearInterval(poll); chatUI.refresh(); }
     const body = await response.json().catch(() => ({}));
     throw new Error(`${body.error || `Request failed (${response.status})`}${body.requestId ? ` Request ID: ${body.requestId}` : ""}`);
   }
   return response.status === 204 || response.headers.get("content-length") === "0" ? null : response.json();
 }
+const chatUI = CaseChat.create({ request: api, authenticated: () => Boolean(token), notify: notice });
+function workspace(panel, focus = false) {
+  for (const [id, tab] of [["validation", "review-tab"], ["assistant", "assistant-tab"]]) {
+    const active = id === panel;
+    $(id).hidden = !active;
+    $(tab).setAttribute("aria-selected", String(active));
+    $(tab).tabIndex = active ? 0 : -1;
+    if (active && focus) $(tab).focus();
+  }
+  if (panel === "assistant" && !focus) chatUI.focus();
+}
+for (const [tab, panel] of [["review-tab", "validation"], ["assistant-tab", "assistant"]]) {
+  $(tab).addEventListener("click", () => workspace(panel));
+  $(tab).addEventListener("keydown", event => {
+    if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      workspace(event.key === "Home" ? "validation" : event.key === "End" ? "assistant" :
+        panel === "validation" ? "assistant" : "validation", true);
+    }
+  });
+}
+for (const link of document.querySelectorAll('.site-nav a[href="#validation"],.site-nav a[href="#assistant"]'))
+  link.addEventListener("click", () => workspace(link.hash.slice(1)));
 const base64url = bytes => btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 async function signin() {
   const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)));
@@ -80,6 +103,12 @@ async function load(id) {
   if (sequence !== loadSequence) return;
   const previous = selected;
   selected = id;
+  const previousStatus = selectedStatus;
+  selectedStatus = snapshot.case.status;
+  chatUI.selectCase(id, snapshot.case.status);
+  if (previous !== id || previousStatus !== snapshot.case.status)
+    workspace(snapshot.case.status === "Approved" ? "assistant" : "validation");
+  $("workspace-state").textContent = `Application ${id.slice(0, 8)} - ${snapshot.case.status}`;
   for (const button of $("cases").querySelectorAll("button")) {
     if (button.dataset.caseId === id) {
       button.textContent = `${id.slice(0, 8)} · ${snapshot.case.status}`;
@@ -91,8 +120,6 @@ async function load(id) {
   $("state").textContent = `Case ${id} · ${snapshot.case.status}${snapshot.case.failureCode ? ` · ${snapshot.case.failureCode}` : ""}`;
   $("original").disabled = false;
   $("retry").hidden = snapshot.case.status !== "Failed";
-  $("chat").querySelector("button").disabled = snapshot.case.status !== "Approved";
-  if (previous !== id) { ++chatSequence; $("answer").textContent = ""; $("references").replaceChildren(); }
   // Preserve an in-progress human review when the stored case hasn't changed.
   if (version === snapshot.version && previous === id) return;
   version = snapshot.version;
@@ -149,13 +176,6 @@ $("original").addEventListener("click", safe(async () => {
   const url = URL.createObjectURL(await response.blob()), link = document.createElement("a");
   link.href = url; link.download = "application.pdf"; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
-}));
-$("chat").addEventListener("submit", safe(async () => {
-  const caseId = selected, sequence = ++chatSequence;
-  const result = await api(`/api/cases/${caseId}/chat`, { method: "POST", body: JSON.stringify({ question: $("question").value }) });
-  if (selected !== caseId || sequence !== chatSequence) return;
-  notice("Answer generated from your reviewed application evidence.");
-  ReviewReport.render($("answer"), $("references"), result.answer, result.references);
 }));
 safe(async () => {
   config = await api("/api/config");

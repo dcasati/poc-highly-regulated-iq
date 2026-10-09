@@ -153,11 +153,12 @@ api.MapPost("/{id:guid}/retry", async (Guid id, ClaimsPrincipal user, CaseStore 
 api.MapPost("/{id:guid}/chat", async (Guid id, ChatInput input, ClaimsPrincipal user, CaseStore store,
     CloudServices cloud, CancellationToken ct) =>
 {
-    if (string.IsNullOrWhiteSpace(input.Question) || input.Question.Length > 4000)
-        return Results.BadRequest(new { error = "Enter a question of 1-4000 characters." });
+    var validationError = ChatContextRules.ValidationError(input.Question, input.History);
+    if (validationError is not null)
+        return Results.BadRequest(new { error = validationError });
     var item = (await store.Load(Owner(user), id, ct)).Case;
     if (item.Status != "Approved") return Results.Conflict(new { error = "Human validation and publication must finish first." });
-    return Results.Ok(await cloud.Chat(item, input.Question, ct));
+    return Results.Ok(await cloud.Chat(item, input.Question!, ct, input.History));
 });
 app.Run();
 

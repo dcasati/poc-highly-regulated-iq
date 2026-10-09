@@ -479,6 +479,34 @@ Use `dotnet run --project app/ReviewPortal` with `ASPNETCORE_ENVIRONMENT=Develop
 
 The scenario deliberately adds the Kubernetes provider to its own lock file; base provider versions and the base lock file are unchanged. Static checks cannot validate quota, private-link approval, DNS, image evidence, service preview availability, Content Understanding defaults, native-skill data residency or a live agent response.
 
+### Case-scoped conversation
+
+Reviewed applications open a chat workspace with a scrollable transcript,
+message bubbles, a bottom composer and expandable evidence for each reply.
+Enter sends a message; Shift+Enter inserts a newline. Stop cancels the browser's
+wait (it does not guarantee cancellation or billing reversal in cloud services).
+Failed replies can be retried explicitly. Human validation remains available
+on its separate tab and remains required before any question.
+
+Conversation stays in the current tab's memory only. New chat, selecting another
+application, or reloading clears it. Each request sends at most six completed
+user/assistant pairs, totaling at most 48,000 characters. Questions/user messages
+are limited to 4,000 characters; historical assistant replies to 12,000. Older
+pairs are omitted as needed; an oversized previous answer displays a warning
+requiring an explicit question without follow-up context.
+
+The server validates this optional stateless history and treats it as untrusted
+context, not evidence. Every turn retrieves fresh evidence for the authenticated
+owner and selected application; prior assistant answers/citation identifiers
+cannot authorize retrieval or establish facts. Foundry conversation reuse,
+agent tools and response storage remain disabled.
+
+Run `node --check app/ReviewPortal/wwwroot/chat.js` alongside the other script
+checks. With the same local static server and installed Playwright/Chromium, run
+`python3 app/ReviewPortal.Tests/chat_browser_tests.py` for isolated interaction,
+history, retry/cancellation and case-isolation checks. These are browser fixtures,
+not authenticated cloud acceptance checks.
+
 ## Sources and design references
 
 - [Private Foundry IQ tutorial overview](https://learn.microsoft.com/azure/foundry/agents/how-to/foundry-iq-tutorial-private-overview) and [retrieval validation](https://learn.microsoft.com/azure/foundry/agents/how-to/foundry-iq-tutorial-private-retrieval).

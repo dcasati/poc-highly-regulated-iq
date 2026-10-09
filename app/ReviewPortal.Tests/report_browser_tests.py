@@ -52,8 +52,13 @@ def api(route):
 
 def render(page, answer, references=REFERENCES):
     page.evaluate(
-        "value => ReviewReport.render(document.getElementById('answer'), "
-        "document.getElementById('references'), value.answer, value.references)",
+        """value => {
+          const host = document.getElementById('chat-messages');
+          const answer = document.createElement('div'), refs = document.createElement('div');
+          answer.id = 'answer'; refs.id = 'references';
+          host.replaceChildren(answer, refs);
+          ReviewReport.render(answer, refs, value.answer, value.references);
+        }""",
         {"answer": answer, "references": references},
     )
 
@@ -68,9 +73,9 @@ with sync_playwright() as p:
             page.route("**/api/**", api)
             page.goto(BASE_URL + "/", wait_until="networkidle")
             page.evaluate("async id => { token = 'synthetic-ui-fixture'; await list(); await load(id); }", CASE)
-            page.get_by_label("Your question").fill("What activities and budget are proposed?")
-            page.get_by_role("button", name="Ask review assistant").click()
-            page.get_by_role("heading", name="Application evidence report").wait_for()
+            page.get_by_label("Message the application assistant").fill("What activities and budget are proposed?")
+            page.get_by_role("button", name="Send message", exact=True).click()
+            page.locator(".assistant-message .report-body").wait_for()
             assert page.locator(".report-body h4").all_text_contents() == ["Proposed activities", "Annual budget"]
             assert page.locator(".report-body strong").count() == 13
             assert "**" not in page.locator(".report-body").inner_text()
@@ -78,16 +83,17 @@ with sync_playwright() as p:
             assert page.locator(".report-citation").all_text_contents() == ["[3]", "[2]", "[1]"]
             for amount in ["$100,000", "$90,000", "$10,000", "$78,000", "$12,000", "$0"]:
                 assert amount in page.locator(".report-body").inner_text()
-            assert "0-0" not in page.locator("#references").inner_text()
-            assert CASE not in " ".join(page.locator("#references summary").all_text_contents())
-            assert "Reviewed field record" in page.locator("#references").inner_text()
-            assert page.locator("#references details").count() == 4
+            assert "0-0" not in page.locator(".evidence-list").text_content()
+            assert CASE not in " ".join(page.locator(".evidence-list summary").all_text_contents())
+            assert "Reviewed field record" in page.locator(".evidence-list").text_content()
+            assert page.locator(".evidence-list details").count() == 4
             page.get_by_role("link", name="Read source 3: Reviewed application fields").click()
-            assert page.locator("#report-source-3").evaluate("node => node.open")
-            assert page.locator("#report-source-3 summary").evaluate("node => node === document.activeElement")
-            page.locator("#report-source-1 summary").focus()
-            page.locator("#report-source-1 summary").press("Enter")
-            assert page.locator("#report-source-1").evaluate("node => node.open")
+            assert page.locator(".message-evidence").evaluate("node => node.open")
+            assert page.locator(".report-source").nth(2).evaluate("node => node.open")
+            assert page.locator(".report-source summary").nth(2).evaluate("node => node === document.activeElement")
+            page.locator(".report-source summary").first.focus()
+            page.locator(".report-source summary").first.press("Enter")
+            assert page.locator(".report-source").first.evaluate("node => node.open")
             assert not page.evaluate("document.documentElement.scrollWidth > innerWidth")
             assert not errors, errors
             screenshots = os.environ.get("REPORT_SCREENSHOT_DIR")
@@ -126,8 +132,7 @@ with sync_playwright() as p:
             else:
                 raise AssertionError("Duplicate sources were accepted")
             page.evaluate("id => load(id)", OTHER_CASE)
-            assert page.locator("#answer").inner_text() == ""
-            assert page.locator("#references").inner_text() == ""
+            assert page.locator("#answer,#references,.chat-message").count() == 0
             page.close()
             print(f"Report formatting, citations, inert untrusted text and responsive layout: {width}px/{theme} passed")
     finally:
