@@ -15,6 +15,7 @@
     <None Include="../ReviewPortal/wwwroot/index.html" Link="FrontendSources/index.html" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../ReviewPortal/wwwroot/style.css" Link="FrontendSources/style.css" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../ReviewPortal/wwwroot/portal.js" Link="FrontendSources/portal.js" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../ReviewPortal/wwwroot/report.js" Link="FrontendSources/report.js" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
     <PackageReference Include="xunit" Version="2.9.3" />

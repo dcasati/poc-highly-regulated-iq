@@ -271,6 +271,10 @@ light informational panels. Styles, scripts and typography are served locally:
 do not add external browser assets, tracking, official agency names or logos.
 Field values and source evidence have separate widths; small screens stack
 the review fields without changing the required human confirmation workflow.
+Answers are displayed as evidence reports with safe text-based emphasis,
+headings, lists and tables. Citations open the matching supporting source;
+reviewed field records do not pretend to have PDF page numbers. Model text is
+never inserted as raw HTML, and model-provided links are not activated.
 
 ## 3. Configure and provision the scenario platform
 
@@ -455,6 +459,7 @@ Use .NET 10 and the repository's Terraform toolchain. Keep configuration outside
 dotnet restore app/ReviewPortal/ReviewPortal.csproj --locked-mode
 dotnet test app/ReviewPortal.Tests/ReviewPortal.Tests.csproj
 node --check app/ReviewPortal/wwwroot/portal.js
+node --check app/ReviewPortal/wwwroot/report.js
 terraform -chdir=infra/highly-regulated init -backend=false -input=false -lockfile=readonly
 terraform -chdir=infra/highly-regulated fmt -check
 terraform -chdir=infra/highly-regulated validate
@@ -463,6 +468,12 @@ terraform -chdir=infra/acr-build init -backend=false -input=false -lockfile=read
 terraform -chdir=infra/acr-build fmt -check
 terraform -chdir=infra/acr-build validate
 ```
+
+For isolated report-presentation browser checks, use an installed Python
+Playwright/Chromium environment, serve `app/ReviewPortal/wwwroot` on
+`127.0.0.1:5297`, and run `python3 app/ReviewPortal.Tests/report_browser_tests.py`.
+The fixtures intercept all API calls; they do not sign in, retrieve live cases
+or execute cloud services. Stop the local server after checking.
 
 Use `dotnet run --project app/ReviewPortal` with `ASPNETCORE_ENVIRONMENT=Development` and an approved HTTPS launch configuration/certificate. An Entra SPA redirect must match the actual origin. Do not run live extraction/indexing just to maintain the template. If local deployment configuration/state exists, use an isolated static-check copy containing only current Terraform sources and the lock file, per the maintenance skill.
 

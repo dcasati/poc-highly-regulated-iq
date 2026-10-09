@@ -56,4 +56,22 @@ public sealed class FrontendTests
         Assert.Contains("""input.disabled = snapshot.case.status !== "NeedsReview";""", script);
         Assert.Contains("""checkbox.required = true""", script);
     }
+
+    [Fact]
+    public void AnswerFormattingUsesLocalDomRenderingAndKeepsUntrustedTextInert()
+    {
+        var script = Source("report.js");
+        var html = Source("index.html");
+        Assert.True(html.IndexOf("/report.js", StringComparison.Ordinal) <
+            html.IndexOf("/portal.js", StringComparison.Ordinal));
+        Assert.Contains("ReviewReport.render", Source("portal.js"));
+        Assert.Contains("document.createTextNode", script);
+        Assert.Contains("element.textContent = text", script);
+        Assert.Contains("sources.has(id)", script);
+        Assert.Contains("source.element.open = true", script);
+        Assert.Contains("Reviewed field record", script);
+        Assert.DoesNotContain("innerHTML", script);
+        Assert.DoesNotContain("insertAdjacentHTML", script);
+        Assert.DoesNotContain("eval(", script);
+    }
 }

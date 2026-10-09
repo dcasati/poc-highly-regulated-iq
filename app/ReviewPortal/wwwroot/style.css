@@ -153,10 +153,38 @@ li button { width: 100%; text-align: left; background: var(--cp-surface-soft); c
 li button:hover:not(:disabled) { background: var(--cp-accent-soft); color: var(--cp-text); }
 li button[aria-current="true"] { border-left: 4px solid var(--cp-accent); background: var(--cp-accent-soft); }
 #question { min-height: 132px; }
-#answer { white-space: pre-wrap; line-height: 1.8; padding: 16px 0; }
+#answer { margin-top: 24px; }
 #answer:empty { display: none; }
-#references details { padding: 16px; border: 1px solid var(--cp-border); border-left: 3px solid var(--cp-accent); border-radius: 0.625rem; margin: 12px 0; }
-#references summary { color: var(--cp-link); cursor: pointer; font-weight: 600; }
+.answer-report { padding: 24px; border: 1px solid var(--cp-border); border-top: 4px solid var(--cp-brand-gold); border-radius: 0 0 0.625rem 0.625rem; background: var(--cp-bg-elevated); }
+.report-heading { padding-bottom: 20px; border-bottom: 1px solid var(--cp-border); margin-bottom: 24px; }
+.report-heading h3 { font-size: 24px; line-height: 1.3; }
+.report-meta { margin: 8px 0 0; font-size: 14px; color: var(--cp-text-muted); }
+.report-body { line-height: 1.8; overflow-wrap: anywhere; }
+.report-body p { color: var(--cp-text); margin: 12px 0 24px; }
+.report-body h4, .report-body h5, .report-body h6 { color: var(--cp-accent); font-size: 20px; line-height: 1.4; margin: 24px 0 12px; }
+.report-body > :first-child { margin-top: 0; }
+.report-body strong { font-weight: 700; }
+.report-body ul, .report-body ol { margin: 12px 0 24px; padding-left: 24px; }
+.report-body ul { list-style: disc; }
+.report-body li { margin: 8px 0; padding-left: 4px; }
+.report-body code { font-family: Consolas, "Courier New", Courier, monospace; font-size: .9em; background: var(--cp-surface-soft); padding: 2px 6px; border-radius: 4px; }
+.report-code { padding: 16px; background: var(--cp-surface-soft); border-radius: 0.625rem; }
+.report-citation { display: inline-block; margin-inline: 3px; font-size: 13px; font-weight: 700; color: var(--cp-link); white-space: nowrap; vertical-align: super; line-height: 1.3; }
+.report-disclaimer { padding-top: 16px; margin: 20px 0 0; border-top: 1px solid var(--cp-border); color: var(--cp-text-muted); font-size: 13px; line-height: 1.6; }
+.report-table-scroll { overflow-x: auto; margin-block: 16px 24px; }
+.report-table { margin: 0; font-size: 15px; table-layout: auto; }
+.report-table th, .report-table td { padding: 12px; }
+#references:not(:empty) { margin-top: 28px; }
+#references > h3 { font-size: 20px; margin-bottom: 16px; }
+#references details { border: 1px solid var(--cp-border); border-left: 3px solid var(--cp-accent); border-radius: 0.625rem; margin: 12px 0; overflow: hidden; }
+#references summary { display: flex; align-items: center; gap: 12px; padding: 16px; color: var(--cp-link); cursor: pointer; }
+#references summary::after { content: "+"; margin-left: auto; font-size: 24px; }
+#references details[open] summary::after { content: "-"; }
+.source-number { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border: 1px solid var(--cp-accent); border-radius: 50%; font-size: 14px; font-weight: 700; }
+.source-label { min-width: 0; }
+.source-label strong { display: block; font-size: 16px; overflow-wrap: anywhere; }
+.source-location { display: block; color: var(--cp-text-muted); font-size: 13px; margin-top: 4px; }
+.source-content { white-space: pre-wrap; overflow-wrap: anywhere; padding: 20px; color: var(--cp-text); background: var(--cp-surface-soft); border-top: 1px solid var(--cp-border); font-size: 15px; line-height: 1.7; }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.6 Consolas, "Courier New", Courier, monospace; }
 .site-footer { padding: 32px 0; background: var(--cp-panel); border-top: 4px solid var(--cp-brand-gold); font-size: 14px; }
 .site-footer strong { font-size: 20px; color: var(--cp-text); }
@@ -197,4 +225,8 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.6 Consolas, "
   .field-confirm { text-align: left; }
   .field-confirm::before { display: inline; margin-right: 16px; }
   td textarea { min-height: 96px; }
+  .answer-report { padding: 20px; }
+  .report-heading h3 { font-size: 21px; }
+  .report-body { font-size: 16px; }
+  #references summary { padding: 16px 12px; }
 }

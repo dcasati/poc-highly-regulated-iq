@@ -155,14 +155,7 @@ $("chat").addEventListener("submit", safe(async () => {
   const result = await api(`/api/cases/${caseId}/chat`, { method: "POST", body: JSON.stringify({ question: $("question").value }) });
   if (selected !== caseId || sequence !== chatSequence) return;
   notice("Answer generated from your reviewed application evidence.");
-  $("answer").textContent = result.answer; $("references").replaceChildren();
-  for (const ref of result.references) {
-    const details = document.createElement("details"), summary = document.createElement("summary"), body = document.createElement("pre");
-    const data = ref.sourceData || {};
-    summary.textContent = `Evidence ${ref.id} · ${data.title || "source"} · pages ${data.page_from ?? "?"}-${data.page_to ?? "?"}`;
-    body.textContent = data.content || "Source text not returned.";
-    details.append(summary, body); $("references").append(details);
-  }
+  ReviewReport.render($("answer"), $("references"), result.answer, result.references);
 }));
 safe(async () => {
   config = await api("/api/config");
