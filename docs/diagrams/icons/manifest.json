@@ -1,0 +1,52 @@
+{
+  "entra_roles": {
+    "file": "10340-icon-service-Entra-Identity-Roles-and-Administrators.svg",
+    "source": "Icons/identity/10340-icon-service-Entra-Identity-Roles-and-Administrators.svg",
+    "sha256": "5e88e52170776cc04df1ad5ffe86f0c76db85c29535a09433654368590bccb3c"
+  },
+  "container_apps": {
+    "file": "02989-icon-service-Container-Apps-Environments.svg",
+    "source": "Icons/other/02989-icon-service-Container-Apps-Environments.svg",
+    "sha256": "3cf4ba9242e31496f778a27e92c9c2b2a09664f105c58325d5e2dcb142d3c3b9"
+  },
+  "storage": {
+    "file": "10086-icon-service-Storage-Accounts.svg",
+    "source": "Icons/storage/10086-icon-service-Storage-Accounts.svg",
+    "sha256": "7190d3bb14ce30ce74bd0af873915830fe821e8c5f6ef6f3149e6f7cfb2aa4f7"
+  },
+  "content": {
+    "file": "10162-icon-service-Cognitive-Services.svg",
+    "source": "Icons/ai + machine learning/10162-icon-service-Cognitive-Services.svg",
+    "sha256": "7f1d2831085f00103df5f6fd6305bdbbbe4c4530e98831d7ce6508d236c467c2"
+  },
+  "iq": {
+    "file": "038470497-icon-service-Azure-AI-Foundry-IQ.svg",
+    "source": "Icons/ai + machine learning/038470497-icon-service-Azure-AI-Foundry-IQ.svg",
+    "sha256": "245e33416ecc1c745bfff6f72ebf1ffa04cfee1cdd0c1b1b8970d0844409c9c7"
+  },
+  "search": {
+    "file": "10044-icon-service-Cognitive-Search.svg",
+    "source": "Icons/ai + machine learning/10044-icon-service-Cognitive-Search.svg",
+    "sha256": "f7af1213ce089236593835cb5564d6d3f01358cba6488fe562aa8bbc8adc3b38"
+  },
+  "agent": {
+    "file": "038470523-icon-service-Foundry-Agent-Service.svg",
+    "source": "Icons/ai + machine learning/038470523-icon-service-Foundry-Agent-Service.svg",
+    "sha256": "aedb65eeb06c1d4f3d57568edd2e8e7205065589ae8ceba4513a2fd21b4053ca"
+  },
+  "network": {
+    "file": "10061-icon-service-Virtual-Networks.svg",
+    "source": "Icons/networking/10061-icon-service-Virtual-Networks.svg",
+    "sha256": "64a5e75ecef2f9f69067faa2eb131266cb8f2858706f8ab74bfea5ad0d98b14d"
+  },
+  "foundry": {
+    "file": "035746832-icon-service-AI-Foundry.svg",
+    "source": "Icons/ai + machine learning/035746832-icon-service-AI-Foundry.svg",
+    "sha256": "fab039a771f72780ae34e59065d61c66a02d3c347d50923ef2956f34912ea02c"
+  },
+  "registry": {
+    "file": "10105-icon-service-Container-Registries.svg",
+    "source": "Icons/containers/10105-icon-service-Container-Registries.svg",
+    "sha256": "c134b0a442f203a7eeeb6f99a1f02ed34e51373d7fca59f96c9f125874c9d7d4"
+  }
+}
