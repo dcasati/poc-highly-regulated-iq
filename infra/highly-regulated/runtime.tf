@@ -57,6 +57,7 @@ resource "azurerm_private_endpoint" "container_apps" {
     name                 = "container-apps"
     private_dns_zone_ids = [azurerm_private_dns_zone.container_apps[0].id]
   }
+  depends_on = [azapi_update_resource.peer_encryption]
 }
 resource "azurerm_private_dns_zone_virtual_network_link" "app" {
   count               = var.hosting == "container_apps" && var.provision_hosting ? 1 : 0
