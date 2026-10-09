@@ -1,4 +1,4 @@
-import { us_region } from '../types.bicep'
+import { us_region, platform_egress } from '../types.bicep'
 @description('Generic branding.')
 param project_name string
 @description('Explicit US region.')
@@ -12,6 +12,8 @@ param endpoint_cidr string
 @description('Runtime reservation delegation; choose the AKS alternative before creation, not after deployment.')
 @allowed(['container_apps', 'aks'])
 param hosting string = 'container_apps'
+@description('Approved controlled outbound transport for runtime/build only; no unrestricted Internet rule.')
+param outbound platform_egress
 var subnets = [
   { name: 'agent', number: 0, delegated: true }
   { name: 'runtime', number: 1, delegated: hosting == 'container_apps' }
@@ -22,7 +24,7 @@ resource nsgs 'Microsoft.Network/networkSecurityGroups@2024-05-01' = [for subnet
   name: 'nsg-${project_name}-${subnet.name}'
   location: location
   properties: {
-    securityRules: [
+    securityRules: concat([
       {
         name: 'private-endpoint-https'
         properties: { priority: 100, direction: 'Outbound', access: 'Allow', protocol: 'Tcp', sourcePortRange: '*', destinationPortRange: '443', sourceAddressPrefix: '*', destinationAddressPrefix: endpoint_cidr }
@@ -43,7 +45,20 @@ resource nsgs 'Microsoft.Network/networkSecurityGroups@2024-05-01' = [for subnet
         name: 'deny-other-egress'
         properties: { priority: 4096, direction: 'Outbound', access: 'Deny', protocol: '*', sourcePortRange: '*', destinationPortRange: '*', sourceAddressPrefix: '*', destinationAddressPrefix: '*' }
       }
-    ]
+    ], map((subnet.name == 'runtime' ? outbound.runtime : subnet.name == 'build' ? outbound.build : []), (rule, i) => {
+      name: 'approved-platform-${i}'
+      properties: {
+        priority: 200 + i
+        direction: 'Outbound'
+        access: 'Allow'
+        protocol: 'Tcp'
+        sourcePortRange: '*'
+        destinationPortRange: string(rule.port)
+        sourceAddressPrefix: '*'
+        destinationAddressPrefix: rule.destination_cidr
+        description: outbound.verification.evidence_reference
+      }
+    }))
   }
 }]
 resource reservations 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' = [for (subnet, i) in subnets: {
@@ -53,6 +68,7 @@ resource reservations 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' = [
     addressPrefix: cidrSubnet(vnet_cidr, 24, subnet.number)
     defaultOutboundAccess: false
     networkSecurityGroup: { id: nsgs[i].id }
+    ...subnet.name != 'agent' ? { natGateway: { id: outbound.nat_gateway_id } } : {}
     delegations: subnet.delegated ? [{
       name: 'container-apps'
       properties: { serviceName: 'Microsoft.App/environments' }

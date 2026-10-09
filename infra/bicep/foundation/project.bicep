@@ -28,3 +28,5 @@ resource caller 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 }
 output project_id string = project.id
 output project_principal_id string = project.identity.principalId
+output project_name string = project.name
+output project_endpoint string = project.properties.endpoints['AI Foundry API']

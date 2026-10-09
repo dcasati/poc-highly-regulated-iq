@@ -11,3 +11,9 @@ param models = {
 }
 param caller_principal_id = '11111111-1111-4111-8111-111111111111'
 param caller_principal_type = 'User'
+param outbound = {
+  nat_gateway_id: '/subscriptions/11111111-1111-4111-8111-111111111111/resourceGroups/rg-review-demo-connectivity/providers/Microsoft.Network/natGateways/nat-review-demo-connectivity'
+  runtime: []
+  build: []
+  verification: { approved: true, evidence_reference: 'EXAMPLE-reviewed-exact-destinations-required' }
+}

@@ -1,4 +1,4 @@
-import { us_region, reference, model } from '../types.bicep'
+import { us_region, reference, model, platform_egress } from '../types.bicep'
 @description('Generic PoC branding.')
 @minLength(3)
 @maxLength(16)
@@ -23,6 +23,8 @@ param caller_principal_id string
 @description('Verified deployment caller principal type.')
 @allowed(['User', 'ServicePrincipal'])
 param caller_principal_type string
+@description('Bicep-owned or intentionally existing outbound-only NAT and separately reviewed exact runtime/build destinations. Agent subnet receives no NAT.')
+param outbound platform_egress
 
 var suffix = uniqueString(subscription().id, project_name, 'foundation')
 var prefix = '${project_name}-${take(suffix, 6)}'
@@ -37,6 +39,7 @@ module reservations './network.bicep' = {
     vnet_cidr: vnet_cidr
     endpoint_cidr: cidrSubnet(vnet_cidr, 24, 2)
     hosting: hosting
+    outbound: outbound
   }
 }
 module stores '../modules/storage.bicep' = [for (name, i) in storage_names: {
@@ -202,3 +205,13 @@ output agent_storage_name string = stores[1].outputs.name
 output agent_cosmos_name string = cosmos.name
 output model_deployments object = { chat: deployments[0].name, embedding: deployments[1].name }
 output reserved_subnets object = { agent: reservations.outputs.agent_subnet_id, runtime: reservations.outputs.runtime_subnet_id, build: reservations.outputs.build_subnet_id }
+output account_id string = account.id
+output chat_rai_policy_id string = chat_prompt_shields.id
+output service_endpoints object = {
+  blob: stores[0].outputs.blob_endpoint
+  agent_blob: stores[1].outputs.blob_endpoint
+  cosmos: cosmos.properties.documentEndpoint
+  search: 'https://${search.name}.search.windows.net/'
+  content: 'https://${account.name}.cognitiveservices.azure.com/'
+}
+output registry_dns_zone_id string = dns[5].id

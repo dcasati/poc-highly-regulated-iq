@@ -45,3 +45,4 @@ resource blob 'Microsoft.Storage/storageAccounts/blobServices@2025-06-01' = {
 }
 output id string = account.id
 output name string = account.name
+output blob_endpoint string = account.properties.primaryEndpoints.blob

@@ -117,7 +117,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-11-01' = {
     osProfile: {
       computerName: name
       adminUsername: admin_username
-      customData: base64(loadTextContent('../../connectivity/cloud-init.yaml'))
+      customData: base64(loadTextContent('./cloud-init.yaml'))
       linuxConfiguration: {
         disablePasswordAuthentication: true
         provisionVMAgent: true
@@ -129,4 +129,6 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-11-01' = {
   }
 }
 output network_id string = network.id
+output network_name string = network.name
+output nat_gateway_id string = nat.id
 output vm_id string = vm.id

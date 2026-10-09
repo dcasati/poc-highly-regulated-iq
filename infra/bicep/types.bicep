@@ -32,6 +32,26 @@ type model = {
 
 @export()
 @sealed()
+type egress_rule = {
+  @minLength(1)
+  destination_cidr: string
+  @minValue(1)
+  @maxValue(65535)
+  port: int
+}
+
+@export()
+@sealed()
+type platform_egress = {
+  @minLength(1)
+  nat_gateway_id: string
+  runtime: egress_rule[]
+  build: egress_rule[]
+  verification: approval
+}
+
+@export()
+@sealed()
 type browser_identity = {
   @minLength(36)
   @maxLength(36)

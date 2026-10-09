@@ -61,6 +61,8 @@ class StaticContracts(unittest.TestCase):
 
     def test_every_entry_has_a_compiled_example(self):
         required = {
+            "main.bicep", "foundation/bootstrap-payloads.bicep",
+            "identity/api-payload.bicep", "identity/spa-payload.bicep", "identity/finalize-payloads.bicep",
             "groups.bicep", "connectivity/main.bicep", "state-backend/main.bicep", "state-backend/grant.bicep",
             "foundation/main.bicep", "foundation/project.bicep", "foundation/provisioning.bicep",
             "foundation/capability.bicep", "foundation/runtime-bindings.bicep",
@@ -74,6 +76,128 @@ class StaticContracts(unittest.TestCase):
             covered.add(str((path.parent / match[1]).resolve().relative_to(ROOT)))
             self.assertEqual(validate(self.examples[path.name], allow_examples=True), [], path.name)
         self.assertEqual(required, covered)
+
+    def test_new_solution_composition_has_no_state_or_existing_resource_prerequisite(self):
+        template = self.templates["main.bicep"]
+        modules = template["resources"]
+        self.assertEqual(template["metadata"]["_generator"]["version"].split(".")[:2], ["0", "44"])
+        self.assertIn("connectivity", modules["private_network"]["dependsOn"])
+        self.assertIn("private_network", modules["foundation"]["dependsOn"])
+        self.assertIn("connectivity", modules["foundation"]["dependsOn"])
+        emitted = list(resources(template))
+        types = {item["type"] for item in emitted if not item.get("existing")}
+        for kind in ("Microsoft.Network/virtualNetworks", "Microsoft.Network/natGateways",
+                     "Microsoft.Network/virtualNetworks/subnets", "Microsoft.Network/privateDnsZones",
+                     "Microsoft.CognitiveServices/accounts", "Microsoft.Search/searchServices",
+                     "Microsoft.DocumentDB/databaseAccounts", "Microsoft.Storage/storageAccounts"):
+            self.assertIn(kind, types)
+        self.assertEqual(modules["foundation"]["properties"]["parameters"]["hosting"]["value"], "container_apps")
+        for key in ("network", "services", "resource_groups"):
+            self.assertIn(key, template["outputs"])
+        self.assertFalse(any("state" in key.lower() for key in template["parameters"]))
+        serialized = json.dumps(template).lower()
+        self.assertNotIn("terraform", serialized)
+        self.assertNotIn("tfstate", serialized)
+        for path in ROOT.rglob("*.bicep"):
+            for reference in re.findall(r"(?:from|module\s+\w+|loadTextContent\(|loadJsonContent\()\s*'([^']+)'", path.read_text()):
+                self.assertTrue((path.parent / reference).resolve().is_relative_to(ROOT), f"{path}: {reference}")
+
+    def test_runtime_build_nat_and_exact_egress_are_wired_without_agent_nat(self):
+        network = self.templates["foundation/network.bicep"]["resources"]
+        subnet = network["reservations"]["properties"]
+        serialized = json.dumps(subnet)
+        self.assertIn("nat_gateway_id", serialized)
+        self.assertIn("'agent'", serialized)
+        rules = json.dumps(network["nsgs"]["properties"]["securityRules"])
+        self.assertIn("deny-other-egress", rules)
+        self.assertIn("outbound", rules)
+        self.assertIn("destination_cidr", rules)
+        foundation = self.templates["foundation/main.bicep"]
+        self.assertIn("outbound", foundation["resources"]["reservations"]["properties"]["parameters"])
+        self.assertNotIn("defaultValue", foundation["parameters"]["outbound"])
+
+    def test_rai_policy_is_native_blocking_declared_only_and_associated_with_chat(self):
+        template = self.templates["foundation/main.bicep"]
+        policy = template["resources"]["chat_prompt_shields"]
+        self.assertEqual(policy["apiVersion"], "2025-06-01")
+        self.assertEqual(policy["properties"]["mode"], "Blocking")
+        self.assertEqual(policy["properties"]["basePolicyName"], "Microsoft.Default")
+        self.assertEqual(template["variables"]["harm_filter_pairs"], [
+            {"name": name, "source": source}
+            for name in ("Hate", "Sexual", "Violence", "Selfharm")
+            for source in ("Prompt", "Completion")
+        ])
+        declared = (ROOT / "foundation/main.bicep").read_text()
+        for name in ("Jailbreak", "Indirect Attack", "Protected Material Text", "Protected Material Code"):
+            self.assertIn(name, declared)
+        self.assertNotIn("Task Adherence", declared)
+        self.assertIn("blocking: true", declared)
+        association = json.dumps(template["resources"]["deployments"])
+        self.assertIn("raiPolicyName", association)
+        self.assertIn("'chat'", association)
+        self.assertIn("chat_prompt_shields", association)
+        self.assertIn("NoAutoUpgrade", association)
+
+    def test_agent_and_cu_bootstrap_are_owned_native_payloads_not_terraform_assets(self):
+        template = self.templates["foundation/bootstrap-payloads.bicep"]
+        self.assertEqual(template.get("resources", {}), {})
+        outputs = template["outputs"]
+        for name in ("agent_request", "new_agent_request"):
+            self.assertEqual(outputs[name]["value"]["method"], "POST")
+        self.assertNotIn("DELETE", json.dumps(outputs))
+        self.assertEqual(outputs["agent_request"]["value"]["path"],
+                         "[format('/agents/{0}/versions?api-version=2025-11-15-preview', parameters('agent_name'))]")
+        definition_text = json.dumps(template["variables"]["definition"])
+        self.assertIn("rai_policy_name", definition_text)
+        self.assertIn("chat_rai_policy_id", definition_text)
+        self.assertIn("'tools', createArray()", definition_text)
+        self.assertIn("refuse the ENTIRE", json.dumps(template["variables"]))
+        self.assertIn("CURRENT retrieved evidence", json.dumps(template["variables"]))
+        self.assertIn("preserved_agent", definition_text)
+        self.assertEqual(outputs["content_defaults_request"]["value"]["method"], "PATCH")
+        mappings = outputs["content_defaults_request"]["value"]["body"]["modelDeployments"]
+        for alias in ("prebuilt-analyzer-completion", "prebuilt-analyzer-completion-mini", "prebuilt-analyzer-embedding"):
+            self.assertIn(alias, mappings)
+        self.assertIn("existing_model_deployments", mappings)
+        reconciler = (ROOT / "native/reconcile_knowledge.py").read_text()
+        self.assertNotIn("/agents", reconciler)
+        self.assertNotIn("terraform", reconciler.lower())
+        self.assertNotIn("tfstate", reconciler.lower())
+
+    def test_entra_native_payloads_are_single_tenant_delegated_user_roles_not_consent(self):
+        api = self.templates["identity/api-payload.bicep"]
+        body = api["outputs"]["api_request"]["value"]["body"]
+        self.assertEqual(body["signInAudience"], "AzureADMyOrg")
+        self.assertEqual(body["api"]["requestedAccessTokenVersion"], 2)
+        self.assertEqual(body["api"]["oauth2PermissionScopes"][0]["value"], "access_as_user")
+        role = next(item["input"] for item in api["variables"]["copy"] if item["name"] == "roles")
+        self.assertEqual(role["allowedMemberTypes"], ["User"])
+        spa = self.templates["identity/spa-payload.bicep"]["outputs"]["spa_request"]["value"]["body"]
+        self.assertFalse(spa["web"]["implicitGrantSettings"]["enableAccessTokenIssuance"])
+        self.assertFalse(spa["web"]["implicitGrantSettings"]["enableIdTokenIssuance"])
+        self.assertIn("spa", spa)
+        self.assertEqual(spa["requiredResourceAccess"][0]["resourceAccess"][0]["type"], "Scope")
+        requests = self.templates["identity/finalize-payloads.bicep"]["outputs"]["graph_requests"]["value"]
+        self.assertTrue(requests[1]["body"]["appRoleAssignmentRequired"])
+        for name in ("identity/api-payload.bicep", "identity/spa-payload.bicep", "identity/finalize-payloads.bicep"):
+            serialized = json.dumps(self.templates[name]).lower()
+            self.assertNotIn("oauth2permissiongrants", serialized)
+            self.assertNotIn("approleassignments", serialized)
+            self.assertNotIn("directoryroles", serialized)
+
+    def test_new_nested_egress_and_identity_semantic_guards(self):
+        for name in ("main.example.bicepparam", "foundation.example.bicepparam"):
+            values = copy.deepcopy(self.examples[name])
+            targets = values.get("platform_destinations", values.get("outbound"))
+            targets["runtime"] = [{"destination_cidr": cidr, "port": 443} for cidr in ("0.0.0.0/1", "128.0.0.0/1")]
+            self.assertTrue(any("combined" in error for error in validate(values, allow_examples=True)))
+        values = copy.deepcopy(self.examples["bootstrap.example.bicepparam"])
+        values["chat_rai_policy_id"] = "chat-prompt-shields"
+        self.assertTrue(validate(values, allow_examples=True))
+        values = copy.deepcopy(self.examples["identity-spa.example.bicepparam"])
+        for uri in ("http://localhost/", "https://*.example/", "https://user:password@internal.example/"):
+            values["redirect_uris"] = [uri]
+            self.assertTrue(validate(values, allow_examples=True))
 
     def test_platform_stage_has_no_hosting_runtime_or_knowledge(self):
         types = {r["type"] for r in resources(self.templates["scenario/platform.bicep"]) if not r.get("existing")}

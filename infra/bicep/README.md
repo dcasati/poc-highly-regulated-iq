@@ -1,15 +1,21 @@
-# Parallel Bicep infrastructure
+# Standalone native Bicep infrastructure
 
-Standalone Bicep for the derived private Form 3500 review PoC, **alongside
-Terraform, not replacing it**. Today's live deployment remains Terraform-owned.
+Standalone Bicep for the complete private document-review PoC. The **new-solution
+path has no Terraform dependency**: start with `main.bicep`, then follow the native
+ordered stages in [the standalone runbook](../../docs/bicep-deployment.md).
+Today's live deployment remains separately owned.
 These files do not authorize deployment, resource adoption or state migration.
 Do not apply Bicep over Terraform-owned resources, even when names appear to match.
 Choose exactly one owner for each boundary, with separate migration review if that
-choice changes. The inherited `infra/*.tf` Fabric platform is not converted.
+choice changes. The inherited Fabric platform is not part of this solution.
+No Terraform outputs/state/configuration, state backend or precreated service is
+required. Existing-resource interfaces on individual stage entries are intentional
+handoffs from earlier Bicep/native stages, not an implicit Terraform prerequisite.
 
 ## Coverage and ownership
 
-All entry points except `groups.bicep` target a resource group. References and
+`main.bicep` and `groups.bicep` target subscription scope; other entries target a
+resource group. References and
 cross-RG modules stay in the selected subscription; no unrelated subscription,
 tenant, network, service, peering or deployment IDs are bundled. The caller must
 verify the selected subscription, directory, principal, ownership tags and region
@@ -17,18 +23,21 @@ before any separately authorized operation.
 
 | Terraform boundary | Bicep entry point(s) | Coverage / honest parity boundary |
 | --- | --- | --- |
+| Entire initial new-solution foundation | `main.bicep` → `foundation/private-network.bicep`, connectivity and foundation | Owns/creates three RGs, network/NAT/VM, endpoint subnet/Blob DNS and private service/model prerequisites; no state backend. Emits complete subsequent-stage handoffs. |
 | Resource groups | `groups.bicep` (subscription scope) | New connectivity/state/foundation/scenario groups only. No resources are adopted. |
 | `connectivity/` | `connectivity/main.bicep` | New VNet, router subnet/NSG, egress-only NAT IP, private NIC and Trusted Launch SSH-only VM. Reuses the reviewed cloud-init source; never enrolls in a tailnet. Bicep deliberately adds deny-other-egress: exact approved bootstrap/package/tailnet destinations are required, not the Terraform router's default unrestricted outbound behavior. |
 | `state-backend/` | `state-backend/main.bicep`, `grant.bicep` | New private/keyless state account, versioning/soft delete, state container, reserved endpoint subnet, Blob DNS/link and PE. A separate approved entry creates the container-scoped caller grant. Neither initializes/migrates Terraform state. |
-| `foundation/` dependencies | `foundation/main.bicep` | Separate application/agent Storage, serverless Cosmos, Search S1, account/models, private endpoints/DNS, subnet reservations/NSGs, scoped operator/service grants and Search-to-application-Blob link request. No project, host, native stores, knowledge, hosting or application. |
+| `foundation/` dependencies | `foundation/main.bicep` | Separate application/agent Storage, serverless Cosmos, Search S1, account/models/native blocking chat RAI, private endpoints/DNS, subnet reservations/NSGs, runtime/build controlled NAT associations and exact reviewed egress, scoped operator/service grants and Search-to-application-Blob link request. No project, host, native stores, knowledge, hosting or application. |
 | `foundation/` native stages | `foundation/project.bicep`, `provisioning.bicep`, `capability.bicep`, `runtime-bindings.bicep` | Project identity; three nonshared AAD connections and provisioning grants; native Agents host; discovered container/database-scoped runtime grants. Never creates guessed service-owned containers/databases. Bootstrap-grant revocation is a separate approved deletion/readback, not incremental-template omission. |
 | `highly-regulated/` platform | `scenario/platform.bicep`, `private-links.bicep` | Private Premium ACR/PE, application MI, four dedicated containers, narrow application/project/Search/container roles; only missing processing/billing link requests. Existing foundation settings remain untouched. |
-| `highly-regulated/` knowledge | `knowledge/payloads.bicep` | Declarative custom-analyzer and eight Search request bodies, **outputs only**. Search/CU CRUD, async polling, drift reconciliation, readiness and dependency-ordered deletion are operator-owned, not fake ARM resources. |
+| Private CU/agent bootstrap | `foundation/bootstrap-payloads.bicep` + native REST | Preserved CU defaults and supported-model aliases; hardened tools-disabled agent/new version with full native RAI policy ID and preserved metadata/description. Native operator executes reviewed requests, never silently deletes earlier versions. |
+| `highly-regulated/` knowledge | `knowledge/payloads.bicep` + `native/reconcile_knowledge.py` | Declarative custom-analyzer and eight Search request bodies; focused native GET/PUT drift reconciliation and bounded same-origin async polling. Ingestion/readiness and reviewed dependency-ordered deletion remain explicit operator actions, not fake ARM resources. |
+| Browser identity | `identity/api-payload.bicep`, `spa-payload.bicep`, `finalize-payloads.bicep` + native Graph | Owned single-tenant API/SPA/SP creation, v2 delegated custom scope, user-only roles, explicit owner, implicit flow disabled; PKCE in unchanged app. Preauthorization/consent/user assignments require separate administrator decisions. No credentials or directory grants. |
 | `highly-regulated/` hosting | `scenario/hosting.bicep` | Conditional internal Container Apps with a literal `managedEnvironments` PE and PE-backed DNS **or** private AKS with FIPS-enabled pools, Entra RBAC, UDR egress, workload federation, private pulls and internal Istio. No simultaneous runtimes or application container in this stage. |
 | `highly-regulated/` runtime | `scenario/runtime.bicep`, `aks-manifests.bicep` | Container Apps ARM workload with MI pulls, digest image, shared portal configuration and continuous worker; alternatively reviewable Kubernetes/Istio manifests, not ARM-managed Kubernetes resources. Required browser identity, knowledge and image/platform/transport acceptance. |
 | `acr-build/` | `acr-build/main.bicep` | Only a new VNet-connected dedicated pool under an existing private Premium registry. Never enables public access, admin credentials or trusted-service bypass; does not run a build. |
 | Optional operator MCP connection | No automatic entry point | Terraform's optional `RemoteTool` connection uses a distinct `2025-10-01-preview` contract, not the native AAD connection contract. Native operator setup, permissions and private MCP retrieval require separate review. Do not attach this unfiltered tool to the portal agent or expose it to caseworkers. |
-| Lifecycle / Entra / retention | Administrator/operator | Bicep incremental deployments do not implement Terraform `prevent_destroy`, automatic drift/deletion ordering, state locking, app registrations/consent, user roles, certificate provisioning or locked immutable retention. Use approved resource locks/retention and change control separately; no complete-mode deployment as a deletion shortcut. |
+| Lifecycle / consent / retention | Administrator/operator | Bicep incremental deployments do not implement automatic destruction protection, service data-plane deletions, user-role assignments/consent, certificate provisioning or locked immutable retention. Use approved resource locks/retention and change control separately; no complete-mode deployment as a deletion shortcut. |
 
 Names are deterministic but intentionally **not a Terraform import mapping**.
 Bicep uses `uniqueString` rather than Terraform's SHA-256 suffixes. Keep branding
@@ -51,20 +60,22 @@ from another checkout. Retain the `using` path relative to `examples/`.
 
 | Stage | Entry point | Required operator dependency / scope |
 | --- | --- | --- |
+| New solution (preferred) | `main.bicep` | New Bicep-owned boundary only; US region, model pins, caller, SSH public key, administration and exact dependency-egress approval. Creates all initial prerequisites; no backend/state requirement. |
 | Groups | `groups.bicep` | Selected new Bicep-owned boundary, US location; subscription scope. |
 | Connectivity | `connectivity/main.bicep` | `rg-<project>-connectivity`; separately approved synthetic-only VM and exact destination egress. NAT IP is not VM public ingress. Cloud-init package installation needs approved access; an empty example egress list is intentionally not operational. VM enrollment/route/ACL/exact-hostname split DNS remain separate approvals. |
 | Backend | `state-backend/main.bicep` | `rg-<project>-state`; verified connectivity VNet and separate backend approval. Endpoint subnet is created in the network RG. No role grant or state migration is implied. |
 | State access | `state-backend/grant.bicep` | State RG; separate container-scoped identity grant approval after verifying the state account/container. No migration is implied. |
-| Foundation dependencies | `foundation/main.bicep` | `rg-<project>-foundation`; read verified PoC VNet, endpoint subnet and backend Blob zone. Caller has cross-RG subnet/DNS join rights and scoped RBAC rights. New Search Blob shared link needs target-owner approval. |
+| Foundation dependencies (individual-stage alternative) | `foundation/main.bicep` | `rg-<project>-foundation`; verified owned VNet, endpoint subnet, Blob zone and outbound-only NAT. `main.bicep` creates all of them; individually supplied existing boundaries require intentional ownership verification. No backend requirement. Caller has scoped join/RBAC rights. New Search Blob shared link needs target-owner approval. |
 | Project | `foundation/project.bicep` | Actual private DNS/CNAME/TLS/keyless store access and caller-role propagation, not only PE IPs. |
 | Connections/grants | `foundation/provisioning.bicep` | Discover real project system identity and service endpoints. Grants automatically target that actual identity, not a supplied guess. Three AAD connections must target the selected agent stores/Search and remain nonshared. |
 | Native host | `foundation/capability.bicep` | Separate preview acceptance and verification of successful native provisioning grants/private targets. Observe host creation for at most 30 minutes; stop and preserve assets on terminal failure or timeout, without broadening access. |
 | Runtime bindings | `foundation/runtime-bindings.bicep` | Host must be Succeeded. Discover actual file/intermediate containers/database and identity associations; include actual project system identity automatically, only distinct verified extra principals. Inspect existing stores; never derive names from `internalId`. Revoke the temporary grant as described below. |
-| Private bootstrap | Native operator | Follow [foundation private bootstrap](../foundation/README.md#native-stages) for supported CU defaults, supportedModels, tools-disabled prompt-agent readback and synthetic inference. Successful host provisioning does not prove inference or extraction. |
+| Private bootstrap | `foundation/bootstrap-payloads.bicep` + native operator | Follow the [standalone runbook](../../docs/bicep-deployment.md#cu-defaults-and-agent) for supported CU defaults, supportedModels, hardened tools-disabled prompt-agent readback and in-scope synthetic inference. Successful host provisioning does not prove inference or extraction. |
 | Scenario platform | `scenario/platform.bicep` | `rg-<project>-scenario`; verified private/keyless Storage, Foundry and Search S1+ with system identity. Creates only registry/data/identity/scoped grants. Browser identity may remain absent/null in local preparation because this template has no browser/runtime parameters. |
-| Shared links / knowledge | `scenario/private-links.bicep`, `knowledge/payloads.bicep` | Links run in Search's RG; inspect target/group pairs first. Target owners approve Blob, `foundry_account` and `cognitiveservices_account`. Payload-only knowledge preparation cannot establish ingestion/readiness. |
+| Shared links / knowledge | `scenario/private-links.bicep`, `knowledge/payloads.bicep`, native reconciler | Links run in Search's RG; inspect target/group pairs first. Target owners approve Blob, `foundry_account` and `cognitiveservices_account`. Native ordered reconciliation does not establish ingestion/readiness. |
 | Build pool / build | `acr-build/main.bicep`, native ACR Tasks | Pool runs in existing registry RG; verify Premium/private registry, Approved PE, same-region subnet and reviewed build dependencies. Build through `az acr build --agent-pool <approved-pool>` with exact approved base-image digest, never local Docker/public workers/AZD. |
-| Hosting | `scenario/hosting.bicep` | Scenario RG; separate dependency-egress approval. Default selects only Container Apps. AKS requires explicit supported Kubernetes/FIPS OS/VM/Istio versions, nonoverlapping ranges and working UDR/firewall routing. Runtime/build reservations alone are not functional egress. |
+| Hosting | `scenario/hosting.bicep` | Scenario RG; use Container Apps, with controlled NAT and separate dependency-egress approval. The inherited AKS alternative is not used for this document-review path. |
+| Browser registration | `identity/*-payload*.bicep` + native Graph | Explicit selected directory/owner, created API/SPA client and object IDs, exact private HTTPS redirect, separate administrator authorization. No automatic consent or user assignments. |
 | Runtime | `scenario/runtime.bicep` OR `scenario/aks-manifests.bicep` | Real same-directory SPA/API registrations, Caseworker/Reviewer roles/consent, `access_as_user`, verified tools-disabled existing agent, knowledge readiness, scenario-registry image existence and exact image/platform/transport acceptance. Do not compile placeholders and treat them as evidence. |
 | Acceptance | Native operator | All canonical [synthetic acceptance checks](../../docs/highly-regulated-scenario.md#7-demonstrate-readiness-using-synthetic-documents-first). No real documents before identity/network/extraction/human-review/indexing/isolation/recovery/cryptographic checks and locked retention. |
 
@@ -146,7 +157,10 @@ use ephemeral Entra authentication only on the approved private operator host.
    `case_id` and `owner_id` are filterable, but a knowledge base/MCP endpoint is
    not an authorization boundary. The unchanged application enforces both filters
    and validated references; all agent calls disable tools and conversation reuse.
-5. Maintain operator-owned drift reconciliation. A source name/kind replacement
+5. Use `native/reconcile_knowledge.py` for reviewed declared-property drift
+   reconciliation; it defaults to read-only comparison and refuses unreviewed
+   analyzer replacement. It authenticates ephemerally, refuses redirects and
+   cross-origin polling, and propagates native failures. A source name/kind replacement
    requires rebuilding the dependent base in a reviewed operation. Any separately
    approved teardown deletes base before source, indexers before skillset/data
    sources/index, and does not delete native service-generated objects.
@@ -182,10 +196,12 @@ az bicep build-params --file infra/bicep/examples/platform.example.bicepparam \
 python3 -m unittest discover -s infra/bicep/tests -p 'test_*.py' -v
 ```
 
-The suite compiles **every** `.bicep` and sanitized parameter example with no
+The vetted native compiler is Bicep **0.44.1**. The suite compiles **every** `.bicep` and sanitized parameter example with no
 warnings, tests emitted stage conditions/resource absence, native store ownership,
 typed evidence/identity gates, private/keyless contracts, scoped deterministic
-RBAC, missing/existing shared-link conditions, dual-indexer evidence design,
+RBAC, new-solution module ordering/no Terraform prerequisites, controlled NAT,
+native RAI/chat/agent association, Graph identity/consent boundaries,
+mocked native polling/drift/auth-origin checks, missing/existing shared-link conditions, dual-indexer evidence design,
 digest/worker/mesh controls and invalid compiler parameter shapes.
 Temporary outputs are deleted after the suite. `BICEP_CLI` can select an existing
 local compiler; it defaults to PATH or Azure CLI's installed compiler, never an

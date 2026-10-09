@@ -54,4 +54,6 @@ module aks './hosting-aks.bicep' = if (hosting.kind == 'aks') {
   params: { project_name: project_name, location: location, config: hosting, network: { runtime_subnet_id: network.runtime_subnet_id, vnet: network.vnet }, platform: platform, verification: hosting_dependencies.evidence_reference }
 }
 output container_apps_environment_name string? = hosting.kind == 'container_apps' ? environment!.name : null
+@description('Actual environment domain for separately approved SPA redirect preparation, not a deployed portal URL.')
+output container_apps_default_domain string? = hosting.kind == 'container_apps' ? environment!.properties.defaultDomain : null
 output aks_cluster_name string? = hosting.kind == 'aks' ? aks!.outputs.cluster_name : null

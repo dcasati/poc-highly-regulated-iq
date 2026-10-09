@@ -9,6 +9,7 @@ import json
 import re
 import uuid
 from pathlib import Path
+from urllib.parse import urlparse
 
 US_REGIONS = {
     "westus", "westus2", "westus3", "westcentralus", "centralus",
@@ -31,7 +32,7 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
         reject("vnet_cidr", "use the canonical PoC 10.x.0.0/16")
     for name in ("models",):
         for model in values.get(name, {}).values():
-            if model["sku"] not in ("Standard", "DataZoneStandard"):
+            if "sku" in model and model["sku"] not in ("Standard", "DataZoneStandard"):
                 reject(name, "Global model SKUs are forbidden")
 
     def walk(value, path=""):
@@ -58,6 +59,7 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
                     "principal_id", "caller_principal_id", "deployment_principal_id",
                     "deployer_principal_id", "tenant_id", "spa_client_id", "api_client_id",
                     "identity_client_id",
+                    "owner_object_id", "object_id", "client_id",
                 }:
                     try:
                         if uuid.UUID(item).int == 0:
@@ -67,6 +69,10 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
                 if key.endswith("_endpoint") or key in ("target", "blob", "cosmos", "search") and path == "endpoints":
                     if isinstance(item, str) and not item.startswith("https://"):
                         reject(child, "use a verified private HTTPS endpoint")
+                if key == "chat_rai_policy_id" and not re.fullmatch(
+                    r"/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\.CognitiveServices/accounts/[^/]+/raiPolicies/[^/]+", item, re.IGNORECASE
+                ):
+                    reject(child, "supply the full native RAI policy ARM ID from the selected foundation")
                 walk(item, child)
         elif isinstance(value, list):
             for i, item in enumerate(value):
@@ -76,6 +82,8 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
                 reject(path, "sanitized examples are not deployment configuration or approval")
 
     walk(values)
+    if expected_tenant_id and values.get("tenant_id", expected_tenant_id).lower() != expected_tenant_id.lower():
+        reject("tenant_id", "must match the separately verified Graph deployment directory")
     runtime = values.get("runtime")
     if "runtime" in values and not isinstance(runtime, dict):
         reject("runtime", "runtime cannot be null or omit the typed acceptance record")
@@ -108,13 +116,27 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
             reject("application.processing_location", "Global processing is forbidden")
         if not app.get("field_names") or len(app["field_names"]) != len(set(app["field_names"])):
             reject("application.field_names", "provide distinct fields matching the reviewed analyzer")
-    egress_by_port = {}
-    for i, rule in enumerate(values.get("approved_egress", [])):
-        network = check_cidr(rule["destination_cidr"], f"approved_egress[{i}]", reject)
-        if network is not None:
-            egress_by_port.setdefault(rule["port"], []).append(network)
-    for networks in egress_by_port.values():
-        check_egress_union(networks, "approved_egress", reject)
+    egress_sets = {
+        "approved_egress": values.get("approved_egress", []),
+        "administration_egress": values.get("administration_egress", []),
+        "outbound.runtime": values.get("outbound", {}).get("runtime", []),
+        "outbound.build": values.get("outbound", {}).get("build", []),
+        "platform_destinations.runtime": values.get("platform_destinations", {}).get("runtime", []),
+        "platform_destinations.build": values.get("platform_destinations", {}).get("build", []),
+    }
+    for path, rules in egress_sets.items():
+        egress_by_port = {}
+        for i, rule in enumerate(rules):
+            network = check_cidr(rule["destination_cidr"], f"{path}[{i}]", reject)
+            if network is not None:
+                egress_by_port.setdefault(rule["port"], []).append(network)
+        for networks in egress_by_port.values():
+            check_egress_union(networks, path, reject)
+    for i, uri in enumerate(values.get("redirect_uris", [])):
+        parsed = urlparse(uri)
+        if (parsed.scheme != "https" or not parsed.hostname or parsed.hostname == "localhost"
+                or "*" in uri or parsed.username or parsed.password or parsed.query or parsed.fragment):
+            reject(f"redirect_uris[{i}]", "use an exact approved private HTTPS SPA redirect URI")
     https_networks = []
     for i, cidr in enumerate(values.get("approved_https_cidrs", [])):
         network = check_cidr(cidr, f"approved_https_cidrs[{i}]", reject)

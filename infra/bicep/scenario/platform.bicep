@@ -74,6 +74,8 @@ module project_role '../modules/project-role.bicep' = {
 }
 output identity_name string = identity.name
 output identity_client_id string = identity.properties.clientId
+output identity_id string = identity.id
+output identity_principal_id string = identity.properties.principalId
 output registry_name string = registry.name
 output registry_login_server string = registry.properties.loginServer
 output containers array = containers
