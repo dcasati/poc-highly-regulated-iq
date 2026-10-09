@@ -48,10 +48,56 @@ resource "azapi_resource" "foundry" {
   ]
 }
 
+resource "azapi_resource" "chat_prompt_shields" {
+  type                      = "Microsoft.CognitiveServices/accounts/raiPolicies@2025-06-01"
+  name                      = "chat-prompt-shields"
+  parent_id                 = azapi_resource.foundry.id
+  schema_validation_enabled = true
+  body = {
+    properties = {
+      basePolicyName = "Microsoft.Default"
+      mode           = "Blocking"
+      contentFilters = concat(
+        flatten([for category in ["Hate", "Sexual", "Violence", "Selfharm"] : [
+          for source in ["Prompt", "Completion"] : {
+            name              = category
+            source            = source
+            enabled           = true
+            blocking          = true
+            severityThreshold = "Medium"
+          }
+        ]]),
+        [
+          for detector in ["Jailbreak", "Indirect Attack"] : {
+            name     = detector
+            source   = "Prompt"
+            enabled  = true
+            blocking = true
+          }
+        ],
+        [
+          for detector in ["Protected Material Text", "Protected Material Code"] : {
+            name     = detector
+            source   = "Completion"
+            enabled  = true
+            blocking = true
+          }
+        ]
+      )
+    }
+  }
+  # The API catalog's policy filter name is "Indirect Attack", not its ARM ID "IndirectAttack".
+  # Document detection requires JSON-escaped """ <documents> ... </documents> """ context.
+  # Microsoft's document-format contract describes Chat Completions, not Responses:
+  # https://learn.microsoft.com/azure/ai-foundry/openai/concepts/content-filter-document-embedding
+  lifecycle { prevent_destroy = true }
+}
+
 resource "azurerm_cognitive_deployment" "model" {
   for_each               = { chat = var.models.chat, embedding = var.models.embedding }
   name                   = each.key
   cognitive_account_id   = azapi_resource.foundry.id
+  rai_policy_name        = each.key == "chat" ? azapi_resource.chat_prompt_shields.name : null
   version_upgrade_option = "NoAutoUpgrade"
   model {
     format  = "OpenAI"

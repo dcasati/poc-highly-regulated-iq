@@ -1,4 +1,9 @@
 mock_provider "azurerm" {
+  mock_resource "azurerm_cognitive_deployment" {
+    # rai_policy_name is optional/computed; an unconfigured embedding keeps the service default.
+    defaults        = { rai_policy_name = "Microsoft.Default" }
+    override_during = plan
+  }
   mock_data "azurerm_client_config" {
     defaults = {
       subscription_id = "00000000-0000-0000-0000-000000000001"
@@ -65,6 +70,43 @@ variables {
     blob_dns_resource_group = "rg-unitpoc-state"
   }
   capability_preview_approved = true
+}
+
+run "blocking_chat_prompt_shields" {
+  command = plan
+  assert {
+    condition = (
+      azapi_resource.chat_prompt_shields.type == "Microsoft.CognitiveServices/accounts/raiPolicies@2025-06-01" &&
+      azapi_resource.chat_prompt_shields.schema_validation_enabled &&
+      azapi_resource.chat_prompt_shields.body.properties.basePolicyName == "Microsoft.Default" &&
+      azapi_resource.chat_prompt_shields.body.properties.mode == "Blocking" &&
+      length(azapi_resource.chat_prompt_shields.body.properties.contentFilters) == 12 &&
+      alltrue([for filter in azapi_resource.chat_prompt_shields.body.properties.contentFilters : filter.enabled && filter.blocking])
+    )
+    error_message = "Chat safety must remain schema-validated, blocking and always enabled on the Microsoft.Default baseline."
+  }
+  assert {
+    condition = (
+      toset([for filter in azapi_resource.chat_prompt_shields.body.properties.contentFilters : "${filter.name}:${filter.source}"
+        if contains(["Hate", "Sexual", "Violence", "Selfharm"], filter.name) && try(filter.severityThreshold == "Medium", false)
+      ]) == toset([for pair in setproduct(["Hate", "Sexual", "Violence", "Selfharm"], ["Prompt", "Completion"]) : "${pair[0]}:${pair[1]}"]) &&
+      toset([for filter in azapi_resource.chat_prompt_shields.body.properties.contentFilters : "${filter.name}:${filter.source}"
+        if !contains(["Hate", "Sexual", "Violence", "Selfharm"], filter.name)
+      ]) == toset(["Jailbreak:Prompt", "Indirect Attack:Prompt", "Protected Material Text:Completion", "Protected Material Code:Completion"]) &&
+      alltrue([for filter in azapi_resource.chat_prompt_shields.body.properties.contentFilters :
+        !contains(keys(filter), "severityThreshold") if contains(["Jailbreak", "Indirect Attack"], filter.name)
+      ])
+    )
+    error_message = "Retain all medium harm filters and protected-material defaults; binary Prompt Shields must use official names without severity thresholds."
+  }
+  assert {
+    condition = (
+      azurerm_cognitive_deployment.model["chat"].rai_policy_name == azapi_resource.chat_prompt_shields.name &&
+      azurerm_cognitive_deployment.model["embedding"].rai_policy_name == "Microsoft.Default" &&
+      alltrue([for deployment in azurerm_cognitive_deployment.model : deployment.version_upgrade_option == "NoAutoUpgrade"])
+    )
+    error_message = "Attach Prompt Shields to chat only and preserve pinned model versions."
+  }
 }
 
 run "controlled_platform_egress" {

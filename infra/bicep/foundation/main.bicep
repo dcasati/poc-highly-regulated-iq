@@ -116,12 +116,55 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   }
   dependsOn: [caller_blob, caller_cosmos, links]
 }
+var harm_filter_pairs = [
+  { name: 'Hate', source: 'Prompt' }
+  { name: 'Hate', source: 'Completion' }
+  { name: 'Sexual', source: 'Prompt' }
+  { name: 'Sexual', source: 'Completion' }
+  { name: 'Violence', source: 'Prompt' }
+  { name: 'Violence', source: 'Completion' }
+  { name: 'Selfharm', source: 'Prompt' }
+  { name: 'Selfharm', source: 'Completion' }
+]
+var harm_filters = [for filter in harm_filter_pairs: {
+  name: filter.name
+  source: filter.source
+  enabled: true
+  blocking: true
+  severityThreshold: 'Medium'
+}]
+var prompt_shields = [for detector in ['Jailbreak', 'Indirect Attack']: {
+  name: detector
+  source: 'Prompt'
+  enabled: true
+  blocking: true
+}]
+var protected_material = [for detector in ['Protected Material Text', 'Protected Material Code']: {
+  name: detector
+  source: 'Completion'
+  enabled: true
+  blocking: true
+}]
+resource chat_prompt_shields 'Microsoft.CognitiveServices/accounts/raiPolicies@2025-06-01' = {
+  parent: account
+  name: 'chat-prompt-shields'
+  properties: {
+    basePolicyName: 'Microsoft.Default'
+    mode: 'Blocking'
+    contentFilters: concat(harm_filters, prompt_shields, protected_material)
+  }
+}
+// Document protection also requires the documented Chat Completions document delimiters;
+// policy attachment alone does not establish indirect-attack coverage for Responses.
 var model_list = [{ deployment: 'chat', config: models.chat }, { deployment: 'embedding', config: models.embedding }]
 resource deployments 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = [for item in model_list: {
   parent: account
   name: item.deployment
   sku: { name: item.config.sku, capacity: item.config.capacity }
-  properties: { model: { format: 'OpenAI', name: item.config.name, version: item.config.version }, versionUpgradeOption: 'NoAutoUpgrade' }
+  properties: union(
+    { model: { format: 'OpenAI', name: item.config.name, version: item.config.version }, versionUpgradeOption: 'NoAutoUpgrade' },
+    item.deployment == 'chat' ? { raiPolicyName: chat_prompt_shields.name } : {}
+  )
 }]
 var endpoint_subnet_id = resourceId(network.resource_group_name, 'Microsoft.Network/virtualNetworks/subnets', network.name, endpoint_subnet_name)
 var blob_dns_id = resourceId(blob_dns_resource_group, 'Microsoft.Network/privateDnsZones', 'privatelink.blob.${environment().suffixes.storage}')

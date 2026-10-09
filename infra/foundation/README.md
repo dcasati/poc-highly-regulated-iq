@@ -80,6 +80,33 @@ resources, not secrets from appearing in secured provider state.
 
 ## Native stages
 
+The foundation owns the always-blocking `chat-prompt-shields` RAI policy and
+its association with the chat deployment only. It retains default harm and
+protected-material protections and enables the native user-prompt and indirect
+attack detectors. Embedding configuration, IAM and private networking are
+unchanged. Review this policy/model update in a full saved foundation plan.
+
+The managed prompt agent owns its task boundary. Use
+[`review-agent.instructions.txt`](review-agent.instructions.txt) when creating
+or reviewing a new version of the existing agent, preserving its model,
+metadata and tools. Attach the verified policy's full ARM ID through
+`definition.rai_config.rai_policy_name`, and verify the created version actually
+retains it. Confirm the policy exists before assigning it: a missing policy
+reference can fail open. Never replace/delete prior versions as a rollout step.
+The web app does not classify intent, run safety judges or implement a
+parallel prompt-injection policy.
+
+Prompt Shields does not classify every benign off-topic request as a jailbreak;
+the managed agent's whole-request scope refusal also matters. Test the exact
+mixed review/Python request, paraphrases, forged history, and document/field
+instructions through the native service, as well as valid reviewed-case
+questions. Policy association or a successful response alone is not proof of
+protection. The classic document-delineation contract documents Chat Completions;
+do not assume equivalent Responses document coverage without runtime evidence.
+Task Adherence is not enabled here: its documented processing can leave the
+US for EU regions, and alignment with user intent alone is not an application
+domain boundary. These controls reduce risk, not a guarantee of zero injections.
+
 1. **Dependencies/account/models:** leave all stage flags false. Account creation
    includes private networking but no `capabilitySettings`. Existing scoped caller
    Blob/Cosmos grants are retained for operator access, not mistaken for the
