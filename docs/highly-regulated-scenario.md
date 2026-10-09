@@ -246,7 +246,7 @@ The existing deployment must provide:
 - An approved Search-to-Blob shared private link for the selected Storage account and an existing Search system-assigned identity. Terraform grants that identity `Storage Blob Data Reader` on only the new approved PDF/evidence containers; it does not grant access to originals or review state.
 - Search identity `Cognitive Services User` on the selected Foundry account. Content Understanding processing and billing need `foundry_account` and `cognitiveservices_account` shared links. Supply their existing names in `existing_content_links`; otherwise Terraform creates **only these missing links**. Inspect existing links first to avoid duplicate resource/subresource pairs.
 - Existing Content Understanding defaults mapping `analyzer_models` to supported, approved model deployments. Availability of a prompt agent or a GPT deployment alone does not establish Content Understanding readiness. The custom analyzer uses `2025-11-01` and an explicitly selected `geography` or `dataZone` processing location. The native Search layout skill's processing/data-boundary behavior must also be approved; the app's setting does not configure the native skill.
-- An existing **prompt** agent accessible to the runtime project identity. The portal invokes its Responses endpoint without tools or conversation reuse. Review its instructions; this integration replaces request instructions to enforce the evidence-only/human-decision policy. The existing agent definition is not mutated.
+- An existing **prompt** agent accessible to the runtime project identity. The portal invokes its Responses endpoint without tools or conversation reuse. Review its instructions; this integration supplies the evidence-only/human-decision policy as a typed developer message alongside `agent_reference`, not a top-level `instructions` override that the service rejects. The existing agent definition is not mutated.
 - A project identity with Search retrieval permissions if operators use the optional MCP project connection. The application itself uses its own Search reader identity.
 - Deployment identity ARM/RBAC rights and Search Service Contributor, Cognitive Services User, plus required Blob data-plane access. Provider data sources can return resource keys into Terraform state even though runtime and data-plane management are keyless. Encrypt and restrict state, saved plans and logs; never enable HTTP/debug body logging.
 - Required resource providers registered by an administrator: ContainerRegistry, Network, ManagedIdentity, Storage, Search, CognitiveServices and App or ContainerService. This root deliberately does not register providers or modify tenant settings.
@@ -265,6 +265,12 @@ Have the administrator approve a SPA registration and an API registration in the
 Authorization-code PKCE uses browser cryptography. Bearer tokens remain in memory; only the short-lived PKCE verifier/state is temporarily in session storage. Refreshing the page requires sign-in again. No client secret, cloud key, document or bearer token is persisted in browser storage. The portal uses same-origin APIs and no third-party JavaScript CDN.
 
 Cases are isolated to the uploading user's tenant object ID. Reviewers cannot browse another user's cases. Shared assignment/delegation is not implemented; do not bypass this with a client-supplied owner ID. Users must not receive direct service-wide Search access or access to the unfiltered MCP connection. The model's prompt is **not** an access-control boundary.
+
+The portal uses neutral public-service branding, blue actions, gold accents and
+light informational panels. Styles, scripts and typography are served locally:
+do not add external browser assets, tracking, official agency names or logos.
+Field values and source evidence have separate widths; small screens stack
+the review fields without changing the required human confirmation workflow.
 
 ## 3. Configure and provision the scenario platform
 

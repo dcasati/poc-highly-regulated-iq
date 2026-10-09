@@ -9,24 +9,51 @@
   <script src="/portal.js" defer></script>
 </head>
 <body>
-  <header><div><strong>Private document review</strong><p>Evidence assistance. Human judgment remains authoritative.</p></div><button id="signin">Sign in</button></header>
-  <p id="notice" role="status" aria-live="polite">Sign in with your organizational account to begin.</p>
-  <main>
-    <aside class="card"><h1>Applications</h1><p>Upload an exported PDF package. No connection to existing business systems is made.</p>
-      <form id="upload"><label for="pdf">Application and attachments (PDF)</label><input id="pdf" type="file" accept="application/pdf" required><button disabled>Upload securely</button></form>
-      <button id="refresh" disabled>Refresh cases</button><ul id="cases"></ul>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="utility-bar"><div class="container"><span>Private review workspace</span><span>Synthetic test use only</span></div></div>
+  <header class="site-header">
+    <div class="container branding">
+      <a class="brand" href="/" aria-label="Document review home">
+        <span class="brand-mark" aria-hidden="true">D<span>R</span></span>
+        <span><span class="brand-kicker">Secure application services</span><strong>Document review</strong></span>
+      </a>
+      <button id="signin">Sign in</button>
+    </div>
+    <nav class="site-nav" aria-label="Workspace navigation"><div class="container">
+      <a href="#applications">Applications</a><a href="#validation">Review evidence</a><a href="#assistant">Review assistant</a>
+    </div></nav>
+  </header>
+  <section class="page-heading"><div class="container">
+    <p class="eyebrow">Application services / Private workspace</p>
+    <h1>Private document review</h1>
+    <p>Review applications with confidence. Evidence assistance supports your work; human judgment remains authoritative.</p>
+    <ol class="workflow" aria-label="Application workflow"><li><span>1</span> Upload an application</li><li><span>2</span> Validate the evidence</li><li><span>3</span> Ask a question</li></ol>
+  </div></section>
+  <div class="container notice-container"><p id="notice" role="status" aria-live="polite">Sign in with your organizational account to begin.</p></div>
+  <main id="main-content" tabindex="-1">
+    <aside class="card applications" id="applications" aria-labelledby="applications-heading">
+      <div class="section-heading"><p class="eyebrow">Step 1</p><h2 id="applications-heading">Applications</h2></div>
+      <p>Upload an exported PDF package. No connection to existing business systems is made.</p>
+      <form id="upload"><label for="pdf">Application and attachments</label><span class="field-help">One PDF containing your application and supporting documents.</span><input id="pdf" type="file" accept="application/pdf" required><button disabled>Upload securely</button></form>
+      <div class="case-list-heading"><h3>Your applications</h3><button id="refresh" class="button-secondary" disabled>Refresh cases</button></div>
+      <ul id="cases" aria-label="Your applications"></ul>
     </aside>
-    <section class="card"><h2>Human validation</h2><p id="state">Select an application.</p>
-      <button id="original" disabled>Download original PDF</button><button id="retry" hidden>Retry failed processing</button>
-      <form id="review"><div class="table-scroll"><table><thead><tr><th>Field</th><th>Value to confirm</th><th>Confidence / evidence</th><th>Confirmed</th></tr></thead><tbody id="fields"></tbody></table></div>
-        <p>Blank values remain explicitly missing. A detected signature does not prove authority or validity.</p>
+    <section class="card validation" id="validation" aria-labelledby="validation-heading">
+      <div class="section-heading"><p class="eyebrow">Step 2</p><h2 id="validation-heading">Human validation</h2></div>
+      <p id="state" class="case-state">Select an application.</p>
+      <div class="review-actions"><button id="original" class="button-secondary" disabled>Download original PDF</button><button id="retry" class="button-secondary" hidden>Retry failed processing</button></div>
+      <form id="review"><div class="table-scroll"><table><caption class="visually-hidden">Confirm each extracted field against the original application.</caption><colgroup><col class="column-field"><col class="column-value"><col class="column-evidence"><col class="column-confirm"></colgroup><thead><tr><th scope="col">Field</th><th scope="col">Value to confirm</th><th scope="col">Confidence / evidence</th><th scope="col">Confirmed</th></tr></thead><tbody id="fields"></tbody></table></div>
+        <p class="review-guidance">Blank values remain explicitly missing. A detected signature does not prove authority or validity.</p>
         <button id="approve" disabled>Confirm fields and publish evidence</button>
       </form>
     </section>
-    <section class="card chat"><h2>Ask about this application</h2><p>Questions are limited to your selected, reviewed case. Answers cannot grant or deny an application.</p>
-      <form id="chat"><label for="question">Question</label><textarea id="question" maxlength="4000" required></textarea><button disabled>Ask review assistant</button></form>
+    <section class="card chat" id="assistant" aria-labelledby="assistant-heading">
+      <div class="section-heading"><p class="eyebrow">Step 3</p><h2 id="assistant-heading">Ask about this application</h2></div>
+      <p>Questions are limited to your selected, reviewed case. Answers cannot grant or deny an application.</p>
+      <form id="chat"><label for="question">Your question</label><textarea id="question" maxlength="4000" placeholder="Ask about the activities, supporting evidence, or budget in this application." required></textarea><button disabled>Ask review assistant</button></form>
       <div id="answer" aria-live="polite"></div><div id="references"></div>
     </section>
   </main>
+  <footer class="site-footer"><div class="container"><strong>Document review</strong><p>Private access. Evidence-led assistance. Decisions remain with authorized reviewers.</p><a href="#main-content">Back to workspace</a></div></footer>
 </body>
 </html>

@@ -67,6 +67,8 @@ async function list() {
   $("cases").replaceChildren();
   for (const item of cases) {
     const li = document.createElement("li"), button = document.createElement("button");
+    button.dataset.caseId = item.id;
+    if (item.id === selected) button.setAttribute("aria-current", "true");
     button.textContent = `${item.id.slice(0, 8)} · ${item.status}`;
     button.addEventListener("click", safe(() => load(item.id)));
     li.append(button); $("cases").append(li);
@@ -78,6 +80,14 @@ async function load(id) {
   if (sequence !== loadSequence) return;
   const previous = selected;
   selected = id;
+  for (const button of $("cases").querySelectorAll("button")) {
+    if (button.dataset.caseId === id) {
+      button.textContent = `${id.slice(0, 8)} · ${snapshot.case.status}`;
+      button.setAttribute("aria-current", "true");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+  }
   $("state").textContent = `Case ${id} · ${snapshot.case.status}${snapshot.case.failureCode ? ` · ${snapshot.case.failureCode}` : ""}`;
   $("original").disabled = false;
   $("retry").hidden = snapshot.case.status !== "Failed";
@@ -90,17 +100,21 @@ async function load(id) {
   for (const field of snapshot.case.fields || []) {
     const row = document.createElement("tr");
     row.classList.toggle("attention", field.confidence == null || field.confidence < config.confidenceThreshold || !field.value.trim());
-    const name = document.createElement("td"); name.textContent = field.name;
+    const name = document.createElement("th"); name.textContent = field.name;
+    name.scope = "row"; name.className = "field-name";
     const value = document.createElement("td"), input = document.createElement("textarea");
+    value.dataset.label = "Value to confirm";
     input.value = field.value; input.maxLength = 4000; input.dataset.field = field.name;
     input.setAttribute("aria-label", `${field.name} value`);
     input.disabled = snapshot.case.status !== "NeedsReview";
     value.append(input);
     const evidence = document.createElement("td");
+    evidence.dataset.label = "Confidence / evidence";
     evidence.textContent = field.confidence == null ? "Unknown confidence" : `${Math.round(field.confidence * 100)}%`;
     const source = document.createElement("small"); source.textContent = field.source || "No source position returned.";
     evidence.append(source);
     const confirm = document.createElement("td"), checkbox = document.createElement("input");
+    confirm.dataset.label = "Confirmed"; confirm.className = "field-confirm";
     checkbox.type = "checkbox"; checkbox.required = true; checkbox.checked = field.reviewed;
     checkbox.setAttribute("aria-label", `Confirm ${field.name}`);
     checkbox.disabled = snapshot.case.status !== "NeedsReview"; confirm.append(checkbox);
@@ -140,6 +154,7 @@ $("chat").addEventListener("submit", safe(async () => {
   const caseId = selected, sequence = ++chatSequence;
   const result = await api(`/api/cases/${caseId}/chat`, { method: "POST", body: JSON.stringify({ question: $("question").value }) });
   if (selected !== caseId || sequence !== chatSequence) return;
+  notice("Answer generated from your reviewed application evidence.");
   $("answer").textContent = result.answer; $("references").replaceChildren();
   for (const ref of result.references) {
     const details = document.createElement("details"), summary = document.createElement("summary"), body = document.createElement("pre");
