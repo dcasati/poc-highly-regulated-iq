@@ -88,7 +88,7 @@ with sync_playwright() as p:
 
             composer.fill("What does that leave as surplus?")
             composer.press("Enter")
-            page.wait_for_function("document.querySelectorAll('.chat-answer').length === 2")
+            page.wait_for_function("() => document.querySelectorAll('.chat-answer').length === 2")
             assert requests[1]["history"][0] == {"role": "user", "content": "What is the budget?"}
             assert requests[1]["history"][1]["role"] == "assistant"
             assert "$100,000" in requests[1]["history"][1]["content"]
@@ -107,7 +107,7 @@ with sync_playwright() as p:
             user_count = page.locator(".user-message").count()
             state["fail"] = False
             page.get_by_role("button", name="Try again").click()
-            page.wait_for_function("document.querySelectorAll('.chat-answer').length === 3")
+            page.wait_for_function("() => document.querySelectorAll('.chat-answer').length === 3")
             assert page.locator(".user-message").count() == user_count
             assert page.locator(".reply-error").count() == 0
 
@@ -158,7 +158,7 @@ with sync_playwright() as p:
             page.evaluate("""() => window.fixtureResolve(new Response(JSON.stringify({
               answer: 'STALE_OTHER_CASE_ANSWER', references: []
             }), {status:200, headers:{'Content-Type':'application/json'}}))""")
-            page.wait_for_function("document.getElementById('chat-send').hidden === false")
+            page.wait_for_function("() => document.getElementById('chat-send').hidden === false")
             assert "STALE_OTHER_CASE_ANSWER" not in page.locator("#chat-messages").inner_text()
             assert page.locator(".chat-message").count() == 0
             page.evaluate("window.fetch = window.fixtureFetch")
