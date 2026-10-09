@@ -72,7 +72,7 @@ the mode, encryption approval and three encryption evidence fields.
 Both implementations emit `runtime_attestation_status` with
 `deferred_not_certified`, `synthetic_only = true` and
 `production_readiness = "not_established"` in deferred mode. This does not
-disable encryption controls, private endpoints/no public IP, dependency
+disable encryption controls, private endpoints/no public app/data ingress, dependency
 authorization, US processing/residency, hosting/knowledge setup, immutable image
 digest, real SPA/API identities/roles/consent, retention or explicit human review.
 It does not authorize builds or native deployments: review and explicitly approve
@@ -119,12 +119,23 @@ After the approved apply, verify connection approval, app-hostname DNS resolutio
 to the PE NIC from the approved client path, TLS/authenticated portal access and
 public-access denial. Static tests do not establish any of those live outcomes.
 
-This change does not migrate outbound routing or remove existing egress-only NAT
-public IP resources. Private app/data endpoints are **not** a literal zero-public-IP
-inventory promise: the PoC's two existing outbound NAT public IPs remain blockers
-to that requirement. Removing/replacing them needs a separately chosen and
-approved egress design; do not remove NAT, add public exceptions or claim the
-zero-IP requirement satisfied as part of this source change.
+Private ingress requires **no public inbound app/data endpoint** and no
+`publicIPAddress` assigned to the app or its ingress gateway. Explicitly approved
+controlled **outbound-only NAT is acceptable** and does not expose unsolicited
+inbound access. Its public IP resources are not blockers to private-ingress
+deployment or readiness when the operator has accepted them. This distinction
+does not approve unrestricted Internet egress, IAM/permission broadening or public
+access: retain approved destination/routing controls, Private Endpoints/DNS,
+`publicNetworkAccess = Disabled`, registry admin disabled and bypass `None`.
+Identity/end-user authorization, human review, US processing and encryption
+controls remain mandatory, as do exact native/saved-plan approvals.
+
+A **literal zero-public-IP inventory** remains a separate optional stricter
+architecture, not the accepted private-ingress requirement. Removing/replacing
+outbound NAT for that optional architecture needs a separately chosen and
+approved egress design; do not remove NAT, add public exceptions or claim a
+zero-IP inventory as part of this source change. NAT acceptance does not imply
+an AKS migration or change the selected hosting runtime.
 
 The hard FIPS requirement is **FIPS 140-3 encryption at rest and in transit**, not certification of the entire application, operating system, hashing or JWT-validation code. Before selecting hosting, obtain accepted evidence for the actual service-encryption and TLS paths, including managed ingress and the workload's outbound TLS. An external HTTPS endpoint alone does not establish protection of an internal ingress-to-workload HTTP hop. Select AKS only if Container Apps cannot meet this encryption requirement or another actual runtime constraint; a missing node-level FIPS switch alone does not rule it out.
 

@@ -56,9 +56,17 @@ Only explicit user authorization for a **synthetic-only PoC** permits
 all three encryption evidence references exactly empty. Bicep uses equivalent
 `runtime.attestation_mode`. Outputs label this **deferred/not certified**, never
 production-ready. [The canonical exception](docs/highly-regulated-scenario.md#explicit-synthetic-poc-attestation-deferral)
-preserves private endpoints/no public IP, encryption controls, US processing,
+preserves private endpoints/no public app/data ingress, encryption controls, US processing,
 real SPA/API authorization, knowledge, immutable images and human review.
 Each exact deployment plan still needs separate approval.
+
+No public inbound app/data endpoint or `publicIPAddress` assigned to the app or
+its ingress gateway is permitted. Explicitly approved controlled outbound-only
+NAT is acceptable and does not expose unsolicited inbound access; it is not a
+deployment blocker or approval for unrestricted Internet egress. Preserve private
+DNS, disabled public network access, registry admin disabled and bypass `None`.
+See the [canonical networking distinction](docs/highly-regulated-scenario.md#literal-container-apps-private-endpoint-ingress);
+a literal zero-public-IP inventory is a separate optional stricter architecture.
 
 Start with [getting started](docs/getting-started.md) and follow the [scenario tutorial](docs/highly-regulated-scenario.md) for prerequisites, approved plans and acceptance checks. In Copilot App or CLI, tell Copilot **"Deploy the platform."** The workflow targets this private review scenario, not the legacy Fabric baseline.
 

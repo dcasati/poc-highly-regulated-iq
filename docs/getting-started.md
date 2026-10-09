@@ -25,9 +25,18 @@ Only explicit user authorization permits `"synthetic_poc_attestation_deferred"`
 for a synthetic-only PoC: retain `compliance.approved = false` and exactly empty
 platform/image/transport evidence. Bicep's equivalent is
 `runtime.attestation_mode`. See [the canonical exception](highly-regulated-scenario.md#explicit-synthetic-poc-attestation-deferral):
-private endpoints/no public IP, encryption controls, US processing, identity,
+private endpoints/no public app/data ingress, encryption controls, US processing, identity,
 knowledge, image digest and human review are not waived. Report deferred/not
 certified, never production ready; each exact runtime plan still needs approval.
+
+Require no public inbound app/data endpoint or `publicIPAddress` assigned to the
+app or its ingress gateway. Explicitly approved controlled outbound-only NAT is
+acceptable and does not expose unsolicited inbound access; accepted NAT is not
+a deployment blocker. This does not authorize unrestricted Internet egress,
+IAM/permission changes or public access. Preserve Private Endpoints/DNS, disabled
+public network access, registry admin disabled and bypass `None`. A literal
+zero-public-IP inventory is an optional stricter architecture, not a requirement
+to migrate hosting. Exact native/saved-plan approvals remain unchanged.
 
 Choose one infrastructure owner per resource boundary:
 

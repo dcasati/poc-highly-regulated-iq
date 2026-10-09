@@ -87,7 +87,15 @@ DNS/workload charges remain separate; verify current regional/agreement rates
 before explicit plan/cost approval. Source publication and native plan preparation
 do not authorize an apply.
 The [canonical networking distinction](../../docs/highly-regulated-scenario.md#literal-container-apps-private-endpoint-ingress)
-also explains why unchanged outbound NAT IPs block a literal zero-public-IP claim.
+requires no public inbound app/data endpoint or `publicIPAddress` assigned to the
+app or its ingress gateway. Explicitly approved controlled outbound-only NAT is
+acceptable and does not expose unsolicited inbound access; it is not a
+private-ingress deployment blocker. A literal zero-public-IP inventory is an
+optional stricter architecture, not a hosting-migration requirement. Preserve
+Private Endpoints/DNS, disabled public network access, registry admin disabled,
+bypass `None` and approved egress destinations; this is not unrestricted Internet
+egress or IAM/permission/public-access approval. Exact native plan approvals are
+unchanged.
 Keep successful resources/configuration on resume; don't reinterpret incremental
 deployment's retained resources as permission to reset ownership or remove grants.
 
