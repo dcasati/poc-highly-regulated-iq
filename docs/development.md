@@ -1,6 +1,6 @@
 # Developer setup and Copilot
 
-The [scenario tutorial](highly-regulated-scenario.md) is the canonical private deployment guide. This derived project's **"Deploy the platform"** workflow targets the staged `infra/foundation/`, `infra/highly-regulated/` and optional `infra/acr-build/` roots, not the inherited Fabric baseline.
+The [scenario tutorial](highly-regulated-scenario.md) is the canonical private deployment guide. This derived project's **"Deploy the platform"** workflow targets the staged `infra/foundation/`, `infra/highly-regulated/` and optional `infra/acr-build/` and `infra/browser-identity/` roots, not the inherited Fabric baseline.
 
 ## Select one execution host
 

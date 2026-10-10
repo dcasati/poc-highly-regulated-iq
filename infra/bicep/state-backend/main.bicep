@@ -3,7 +3,7 @@ import { us_region, approval, reference } from '../types.bicep'
 @minLength(3)
 @maxLength(16)
 param project_name string
-@description('Explicit approved US region.')
+@description('Explicit approved supported Azure region permitted by deployment validation rules.')
 param location us_region
 @description('Separate approval for a new backend only. Scoped access grants and each state migration need separate approval.')
 param bootstrap approval

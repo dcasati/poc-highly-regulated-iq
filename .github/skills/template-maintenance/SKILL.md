@@ -16,7 +16,8 @@ Read `AGENTS.md` and inspect the current diff before editing. Preserve unrelated
 | Foundry or knowledge retrieval | `infra/foundry.tf`, `infra/knowledge.tf`, `infra/outputs.tf`, `docs/ontology-knowledge.md` |
 | Workspace definitions or notebooks | The `fabric-workspace` skill and its linked guides |
 | Developer tools or initialization | `.devcontainer/`, the `initialize-project` skill and `docs/development.md` |
-| Guided deployment | The `deploy-platform` skill, its native-request reference and `cicd/README.md` |
+| Guided private application deployment | The `deploy-platform` skill, `docs/getting-started.md` and `docs/highly-regulated-scenario.md`; use `docs/bicep-deployment.md` only for a separately authorized new Bicep-owned solution |
+| Inherited Fabric deployment reference | `cicd/README.md` and `deploy-platform/references/native-requests.md`; neither belongs to the private application workflow |
 | Highly regulated review application or private ACR build pool | `docs/highly-regulated-scenario.md`, `app/`, and the separate `infra/highly-regulated/` and `infra/acr-build/` roots; preserve the base infrastructure/initializer contract |
 
 Preserve the non-obvious infrastructure constraints:

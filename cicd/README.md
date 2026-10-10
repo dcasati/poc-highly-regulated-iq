@@ -1,5 +1,9 @@
 # Native Fabric bootstrap and promotion
 
+This is inherited upstream reference material, not the private document-review
+deployment path. Do not connect Fabric Git, apply the legacy `infra/` root or
+execute these notebooks for the application; use [getting started](../docs/getting-started.md).
+
 Use [Git integration](https://learn.microsoft.com/fabric/cicd/git-integration/intro-to-git-integration) for DEV and [native deployment pipelines](https://learn.microsoft.com/fabric/cicd/deployment-pipelines/intro-to-deployment-pipelines) for promotion. Attach a [deployment plan (preview)](https://learn.microsoft.com/fabric/cicd/deployment-plan/deployment-plan-overview) when item deployment must run seed notebooks or follow an explicit order.
 
 ```text
@@ -7,7 +11,7 @@ Terraform platform -> Git /workspace + Bootstrap -> seeded DEV -> Terraform know
                                       reviewed DEV -> TEST -> approved TEST -> PROD
 ```
 
-There is no fabric-cicd dependency, `fab deploy` configuration, or custom deployment wrapper. Start with [getting started](../docs/getting-started.md); infrastructure still uses plain Terraform and one local tfvars file. Derived repositories own unattended automation, tests and approval gates.
+There is no fabric-cicd dependency, `fab deploy` configuration, or custom deployment wrapper. For a separately authorized Fabric deployment, start with [the upstream template's getting-started guide](https://github.com/dcasati/private-iq-template/blob/main/docs/getting-started.md); infrastructure still uses plain Terraform and one local tfvars file. Derived repositories own unattended automation, tests and approval gates.
 
 ## Ownership and included items
 

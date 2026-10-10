@@ -1,12 +1,12 @@
-# Private US Terraform state backend
+# Private Terraform state backend
 
-This isolated root bootstraps a **new PoC-owned US backend** against the already verified PoC connectivity VNet. It does not adopt another project's storage, networking or state. Every plan and apply runs on the chosen authoritative checkout; the connectivity root remains its existing state owner.
+This isolated root bootstraps a **new PoC-owned backend** against the already verified PoC connectivity VNet. It does not adopt another project's storage, networking or state. Every plan and apply runs on the chosen authoritative checkout; the connectivity root remains its existing state owner.
 
 ## Design
 
 | Component | Scope |
 | --- | --- |
-| Account | New Standard StorageV2, Hot/LRS, selected US region, Microsoft-managed encryption plus infrastructure encryption. No cross-tenant replication. |
+| Account | New Standard StorageV2, Hot/LRS, explicitly approved supported region permitted by the deployment's validation rules, Microsoft-managed encryption plus infrastructure encryption. No cross-tenant replication. |
 | Authentication | Entra ID; Shared Key, local users and anonymous Blob access disabled. Minimum TLS 1.2 and HTTPS only; not a FIPS claim. |
 | Networking | Public access disabled, firewall default Deny with no bypass. New Blob private endpoint in the reserved third `/24` of the PoC VNet. No VNet peering or existing-subnet modification. |
 | DNS | New PoC-owned Blob private zone/link. Private DNS is a global Azure resource, not a region-pinned data store. |
@@ -44,7 +44,7 @@ Tests mock Azure; they do not grant permissions, create resources or prove live 
 
 ## Private access before migration
 
-Verify the endpoint connection is Approved, the new account remains private/keyless, versions/retention are set, and the expected identity grant exists. Use the actual `blob_hostname` output to configure **that exact hostname and its exact private-link CNAME** as restricted split-DNS domains through the US router's Tailscale address. For a verified account named `<account>`, these are `<account>.blob.core.windows.net` and `<account>.privatelink.blob.core.windows.net`. A client can resolve the CNAME separately, so routing only the original hostname can still produce a public answer. In a shared tailnet, do not replace global Azure service-suffix DNS and affect unrelated projects. Tailnet DNS/ACL changes need separate administrator approval.
+Verify the endpoint connection is Approved, the new account remains private/keyless, versions/retention are set, and the expected identity grant exists. Use the actual `blob_hostname` output to configure **that exact hostname and its exact private-link CNAME** as restricted split-DNS domains through the PoC router's Tailscale address. For a verified account named `<account>`, these are `<account>.blob.core.windows.net` and `<account>.privatelink.blob.core.windows.net`. A client can resolve the CNAME separately, so routing only the original hostname can still produce a public answer. In a shared tailnet, do not replace global Azure service-suffix DNS and affect unrelated projects. Tailnet DNS/ACL changes need separate administrator approval.
 
 On macOS, verify both names through normal OS resolution, not only Tailscale's internal resolver. If existing supplemental resolvers prevent the approved routes from reaching the OS, obtain separate approval before adding exact-hostname files under `/etc/resolver`, each pointing only to the router. Preserve existing DNS settings. Refresh stale DNS caches locally when necessary; administrator authentication remains with the operator.
 
@@ -58,4 +58,4 @@ Before migration, verify source lineage/serial without printing resource attribu
 
 Use native `terraform init -migrate-state` for the explicitly approved copy. Check the actual migration prompt/source/target instead of silently confirming or force-unlocking. Afterward verify remote lineage/serial, locking and a no-change plan before treating the remote backend as authoritative. Retain protected local bootstrap backups until the user authorizes cleanup. Migration of the backend's own state and connectivity state are separate from provisioning this backend.
 
-The new US AI foundation is still a separate reviewed implementation. It must consume these PoC-owned network/DNS outputs without importing this root's resources. Foundation, scenario and build-pool roots must start with distinct keys in this secured remote backend.
+The new AI foundation is still a separate reviewed implementation. It must consume these PoC-owned network/DNS outputs without importing this root's resources. Foundation, scenario and build-pool roots must start with distinct keys in this secured remote backend.

@@ -1,7 +1,7 @@
 import { us_region } from '../types.bicep'
 @description('New globally unique storage account name.')
 param name string
-@description('Explicit US region.')
+@description('Explicit approved supported Azure region permitted by deployment validation rules.')
 param location us_region
 @description('Soft-delete retention, not locked immutable retention.')
 @minValue(7)

@@ -19,7 +19,7 @@ output "vm_private_ip" {
 }
 
 output "vnet" {
-  description = "New US VNet identity for separately owned future PoC subnets; no inline subnets or unrelated imports."
+  description = "New VNet identity for separately owned future PoC subnets; no inline subnets or unrelated imports."
   value = {
     id                  = azurerm_virtual_network.poc.id
     name                = azurerm_virtual_network.poc.name
@@ -40,7 +40,7 @@ output "outbound_public_ip" {
 }
 
 output "future_endpoint_prefix" {
-  description = "Reserved prefix for future US PoC private endpoints; this root does not create that subnet or any AI endpoints."
+  description = "Reserved prefix for future PoC private endpoints; this root does not create that subnet or any AI endpoints."
   value       = local.future_endpoint_prefix
 }
 

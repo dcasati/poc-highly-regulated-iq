@@ -3,7 +3,7 @@ import { us_region, reference, approval } from '../types.bicep'
 @minLength(3)
 @maxLength(16)
 param project_name string
-@description('Explicit US region.')
+@description('Explicit approved supported Azure region permitted by deployment validation rules.')
 param location us_region
 @description('Existing verified private application Storage, Search and Foundry references. Account and project share a resource group.')
 param existing { storage: reference, search: reference, foundry: reference, project_name: string }

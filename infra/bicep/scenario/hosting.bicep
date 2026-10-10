@@ -2,7 +2,7 @@ import { us_region, approval, reference } from '../types.bicep'
 import { hosting_config } from './hosting-types.bicep'
 @description('Generic PoC branding.')
 param project_name string
-@description('Explicit US region.')
+@description('Explicit approved supported Azure region permitted by deployment validation rules.')
 param location us_region
 @description('First-choice Container Apps OR approved private AKS fallback; never both.')
 param hosting hosting_config = { kind: 'container_apps' }

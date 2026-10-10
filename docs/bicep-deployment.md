@@ -19,17 +19,17 @@ the operator deliberately chooses and separately verifies an existing boundary.
 
 | Boundary | Native owner / entry | Gate before next stage |
 | --- | --- | --- |
-| Three new resource groups, VNet, administration NSG/NIC/VM, controlled NAT | `infra/bicep/main.bicep` → connectivity | US/nonoverlapping ranges, approved destination-specific egress, SSH public key, pinned VM image; administrator enrolls VM separately |
+| Three new resource groups, VNet, administration NSG/NIC/VM, controlled NAT | `infra/bicep/main.bicep` → connectivity | Approved supported region, nonoverlapping address ranges, approved destination-specific egress, SSH public key, pinned VM image; administrator enrolls VM separately |
 | Endpoint subnet, Blob DNS and VNet link | `foundation/private-network.bicep` through `main.bicep` | No backend/state account prerequisite |
 | Agent/runtime/build reservations, runtime/build NAT associations and NSGs | `foundation/network.bicep` through foundation | Agent has no NAT; runtime/build only approved exact destinations; deny-other-egress remains |
 | Private application/agent Blob stores, Cosmos, private keyless Search, account, PEs/DNS | `foundation/main.bicep` through `main.bicep` | Private DNS/TLS/identity tests and propagation, not just successful ARM provisioning |
-| Pinned US models and blocking native chat RAI policy | `foundation/main.bicep` | Regional Standard/US DataZoneStandard only; explicit versions/quota; verify declared filter pairs and chat association |
+| Pinned models and blocking native chat RAI policy | `foundation/main.bicep` | `Standard`/`DataZoneStandard` as permitted by validation rules; explicit versions/quota; verify selected processing boundary, declared filter pairs and chat association |
 | Project identity, AAD connections, provisioning roles, native capability host | `foundation/project.bicep`, `provisioning.bicep`, `capability.bicep` | Each is separately ordered; host Succeeded within 30 minutes |
 | Native file/intermediate/Cosmos runtime grants | `foundation/runtime-bindings.bicep` | Actual service-created stores and associated identities, never guessed names; separately revoke temporary Blob grant |
 | CU supported-model defaults and hardened tools-disabled prompt agent/version | `foundation/bootstrap-payloads.bicep` + native REST | Preserve existing defaults/description/metadata; full native RAI policy ID; old agent versions retained |
 | Runtime UAMI, private Premium ACR, four evidence containers and scoped roles | `scenario/platform.bicep` | Account/keyless Search/project grants and two read-only Search container grants; no browser direct service access |
 | Search → Blob/CU processing/billing private links | Foundation Blob request + `scenario/private-links.bicep` | Inspect exact target/group pairs, target owners approve separately, serialize requests |
-| Custom CU analyzer, PDF/JSON index/data sources/skillset/indexers/source/base | `knowledge/payloads.bicep` + `native/reconcile_knowledge.py` | Native ordered GET/PUT/readback, bounded analyzer polling; separately verify ingestion and US processing |
+| Custom CU analyzer, PDF/JSON index/data sources/skillset/indexers/source/base | `knowledge/payloads.bicep` + `native/reconcile_knowledge.py` | Native ordered GET/PUT/readback, bounded analyzer polling; separately verify ingestion and selected processing boundaries |
 | Private build pool and immutable image | `acr-build/main.bicep` + native ACR Tasks | Approved source/base digest, private pool dependencies and build success; registry stays private/admin-disabled/bypass None |
 | Internal ACA environment, literal PE, private DNS and peer encryption | `scenario/hosting.bicep` with `kind: 'container_apps'` | Correct endpoint NIC-backed DNS and private HTTPS; no public app/gateway IP |
 | Single-tenant API/SPA, v2 delegated scope, PKCE and user roles | `identity/*-payload*.bicep` + native Graph | Real IDs; explicit directory authorization; no automatic Graph consent, user assignment or directory role |
@@ -57,8 +57,9 @@ chmod 700 .azure/checks
 Keep outputs/readbacks in owner-only ignored
 `.azure/checks/bicep-parity-*.json`. Never save tokens or dump resource secrets.
 Create ignored `infra/bicep/examples/<stage>.local.bicepparam` files using native
-Bicep outputs and service readbacks, not a Terraform file. Require an explicit
-US region and approved model version/SKU/quota. Resolve exact package/tailnet,
+Bicep outputs and service readbacks, not a Terraform file. Require an explicitly
+approved supported Azure region permitted by the deployment's validation rules and approved
+model version/SKU/quota. Resolve exact package/tailnet,
 Container Apps and private-build dependency destinations; an empty egress fixture
 is not operational. Review current Azure dependency requirements, resolve approved
 IPv4 prefixes, and maintain them under change control. NAT alone does not authorize
@@ -69,11 +70,11 @@ reviewing native what-if and authorizing deployment. The documented offline suit
 uses Bicep **0.44.1**; no live what-if/deployment is part of static validation.
 
 ```sh
-az deployment sub what-if --name review-foundation --location "$US_REGION" \
+az deployment sub what-if --name review-foundation --location "$APPROVED_REGION" \
   --template-file infra/bicep/main.bicep \
   --parameters infra/bicep/examples/main.local.bicepparam
 # Only after explicit review/authorization of this exact new boundary:
-az deployment sub create --name review-foundation --location "$US_REGION" \
+az deployment sub create --name review-foundation --location "$APPROVED_REGION" \
   --template-file infra/bicep/main.bicep \
   --parameters infra/bicep/examples/main.local.bicepparam \
   --query properties.outputs --output json \
@@ -178,7 +179,8 @@ az rest --method patch \
 ```
 
 GET defaults again and compare every declared mapping while preserving unrelated
-ones. Verify both CU custom-analyzer and native layout processing stay US-only.
+ones. Verify both CU custom-analyzer and native layout processing conform to the
+selected approved processing boundary; account location alone is insufficient.
 
 For the agent, GET the selected project's `/agents` and
 `/agents/<name>/versions?api-version=2025-11-15-preview` first. An existing agent
@@ -196,8 +198,9 @@ metadata/description and `definition.rai_config.rai_policy_name` equal to the
 **full native RAI ARM ID**. The model also references the blocking native policy.
 Compare declared filter name/source pairs, not all GET fields: Azure adds
 Defender/tool-stage defaults. Never disable protections to remove those defaults.
-Task Adherence is deliberately absent because its documented processing may
-leave the US.
+Task Adherence is not enabled: its processing-residency suitability has not been
+reviewed for the selected boundary, and alignment with user intent alone does
+not enforce this application's restricted review scope.
 
 Use `/openai/v1/responses` for a synthetic **in-scope evidence-review** smoke test,
 with the verified `agent_reference` name/version, `tool_choice: "none"`,
@@ -279,13 +282,14 @@ original evidence. This path does not implement destructive teardown automation.
 ## 4. Private build and Container Apps hosting
 
 If a private build is needed, deploy `acr-build/main.bicep` in the registry group
-with the created dedicated build subnet, same US region and verified dependencies.
+with the created dedicated build subnet, same approved supported region as the
+registry and build VNet, and verified dependencies.
 Wait for pool Succeeded and at least one instance. Then run the native build on
 that pool only, supplying the separately approved immutable runtime/base image:
 
 ```sh
 az acr build --registry "$REGISTRY_NAME" --agent-pool "$AGENT_POOL_NAME" \
-  --image review-portal:reviewed-build --file app/ReviewPortal/Dockerfile \
+  --platform linux/amd64 --image review-portal:reviewed-build --file Dockerfile \
   --build-arg "RUNTIME_IMAGE=$APPROVED_RUNTIME_IMAGE_DIGEST" app/ReviewPortal
 ```
 
@@ -375,8 +379,8 @@ Default safe mode requires accepted **FIPS 140-3 encryption-path evidence**.
 Only explicit synthetic-PoC authorization permits
 `attestation_mode: 'synthetic_poc_attestation_deferred'`, `approved: false` and
 all three encryption evidence strings exactly empty. The output is deferred/not
-certified, not production readiness. It does not waive private networking, US
-processing, real identity, digest, retained evidence, human confirmation or
+certified, not production readiness. It does not waive private networking, approved
+processing boundaries, real identity, digest, retained evidence, human confirmation or
 case/owner isolation. A FIPS node/image flag, algorithm or successful deployment
 is not certification.
 
@@ -387,8 +391,8 @@ before approval, both evidence paths become searchable afterward, and foreign
 cases/owners cannot be retrieved or cited. Test backup/recovery and any approved
 locked retention policy separately. Never lock/delete evidence implicitly.
 
-Preview availability, model quota, DNS/RBAC propagation, supported CU/layout US
-processing, native Entra consent, private build dependencies, locked retention,
+Preview availability, model quota, DNS/RBAC propagation, supported CU/layout
+processing boundaries, native Entra consent, private build dependencies, locked retention,
 cryptographic acceptance and end-to-end chat readiness require real operator
 evidence. Compilation and current-owned-resource readback do not prove a fresh
 recreation. Isolated service calls do not establish complete browser-workflow readiness.

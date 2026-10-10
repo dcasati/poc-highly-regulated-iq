@@ -1,8 +1,8 @@
 # Linux crypto observation harness
 
-This separate .NET 10 console is **not the portal**, an approval gate, a cryptographic
+This separate .NET 10 console application is **not the portal**, an approval gate, a cryptographic
 module, a compliance workaround or a FIPS certification. It uses synthetic inputs
-only. It never processes a Form3500 document or makes an eligibility/review decision.
+only. It never processes a Form 3500 document or makes an eligibility/review decision.
 No production project, image, provider configuration or cryptographic default is
 changed. It has no package dependencies; tests use the existing test-package versions.
 
@@ -116,7 +116,7 @@ Only a DNS hostname is accepted: no URL, IP literal, userinfo, path, query,
 headers, bearer token or client certificate. One TCP/TLS handshake is performed;
 no HTTP request or application authentication is sent. DNS, trust-chain building
 and online certificate revocation may require additional network access; the
-operator must approve those destinations and US-only processing boundaries.
+operator must approve those destinations and the selected processing boundaries.
 Hostname/trust verification remains enabled. There is no certificate callback or
 credential/hostname-check bypass. TLS 1.2 and online revocation are explicit;
 the negotiated cipher suite is observed, **not declared approved**. The default

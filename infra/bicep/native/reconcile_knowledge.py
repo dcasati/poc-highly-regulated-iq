@@ -193,7 +193,7 @@ def main():
             changed += int(reconcile(client, search, request, apply=args.approve_write))
     except (Failure, OSError, ValueError, KeyError, subprocess.TimeoutExpired) as error:
         parser.exit(1, (str(error) if isinstance(error, Failure) else "Local/native request failed; inspect privately.") + "\n")
-    print(f"Declared objects reconciled ({changed} writes). Ingestion, US processing, authorization and runtime readiness NOT established.")
+    print(f"Declared objects reconciled ({changed} writes). Ingestion, selected processing boundaries, authorization and runtime readiness NOT established.")
 
 
 if __name__ == "__main__":

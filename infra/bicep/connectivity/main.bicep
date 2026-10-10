@@ -4,7 +4,7 @@ import { us_region, approval } from '../types.bicep'
 @minLength(3)
 @maxLength(16)
 param project_name string
-@description('Explicit approved US region.')
+@description('Explicit approved supported Azure region permitted by deployment validation rules.')
 param location us_region
 @description('Separately approved synthetic-only administration and reviewed destination-specific egress; not regulated transport approval.')
 param administration approval

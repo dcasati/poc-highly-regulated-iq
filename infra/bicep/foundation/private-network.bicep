@@ -1,7 +1,7 @@
 import { us_region, reference } from '../types.bicep'
 @description('Generic PoC branding.')
 param project_name string
-@description('Explicit approved US region.')
+@description('Explicit approved supported Azure region permitted by deployment validation rules.')
 param location us_region
 @description('Connectivity created by Bicep, or an intentionally supplied owned existing VNet.')
 param network reference

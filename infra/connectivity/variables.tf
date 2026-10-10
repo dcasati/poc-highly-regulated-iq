@@ -9,7 +9,7 @@ variable "project_name" {
 }
 
 variable "location" {
-  description = "Explicit approved US region for every regional resource in this root."
+  description = "Explicit approved supported Azure region permitted by this root's validation rules for every regional resource."
   type        = string
   nullable    = false
   validation {

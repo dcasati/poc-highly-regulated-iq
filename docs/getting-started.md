@@ -6,15 +6,15 @@ This derived repository deploys the **private document-review scenario**, not th
 
 Use the published, reviewed repository commit on one approved execution host with private connectivity. Reuse any existing configuration/backend for this deployment; missing files in an App worktree are not permission to create a second state owner.
 
-Configure distinct secured remote backend keys for `infra/foundation/`, `infra/highly-regulated/` and, if required, `infra/acr-build/` and `infra/browser-identity/`. Keep credentials, real tfvars, backend configuration, saved plans and state out of Git. The subscription comes from the selected Azure CLI account or standard `ARM_*` variables, not committed configuration.
+For the current Terraform path, configure distinct secured remote backend keys for `infra/foundation/`, `infra/highly-regulated/` and, if required, `infra/acr-build/` and `infra/browser-identity/`. Keep credentials, real tfvars, backend configuration, saved plans and state out of Git. The subscription comes from the selected Azure CLI account or standard `ARM_*` variables, not committed configuration. For a separately authorized new Bicep-owned solution, follow the [standalone native runbook](bicep-deployment.md); it needs neither Terraform nor a state backend.
 
-This deployment must use **new PoC-owned US resources**. Unrelated projects are excluded: do not reuse their registry, networking or AI services, import them or create peering. Start with the reviewed [`infra/connectivity/`](../infra/connectivity/README.md) root when private access is missing, then the separately reviewed [`infra/state-backend/`](../infra/state-backend/README.md) root for private/keyless US state storage. These bootstrap roots own the network/router and state/DNS/endpoint subnet, not the AI foundation. Each has its own narrowly approved encrypted-host, owner-only local-state exception. Backend apply, its scoped identity grant, exact-hostname split DNS and each state migration require approval; later roots require secured remote state.
+This deployment must use **new PoC-owned resources**. Unrelated projects are excluded: do not reuse their registry, networking or AI services, import them or create peering. For Terraform, start with the reviewed [`infra/connectivity/`](../infra/connectivity/README.md) root when private access is missing, then the separately reviewed [`infra/state-backend/`](../infra/state-backend/README.md) root for private/keyless state storage. These bootstrap roots own the network/router and state/DNS/endpoint subnet, not the AI foundation. Each has its own narrowly approved encrypted-host, owner-only local-state exception. Backend apply, its scoped identity grant, exact-hostname split DNS and each state migration require approval; later Terraform roots require secured remote state.
 
 ## Confirm prerequisites
 
-Provision the new US AI foundation through [`infra/foundation/`](../infra/foundation/README.md) before using the scenario root. Start with the private account/dependencies/models stage, verify exact-hostname DNS and keyless private access, then review project creation, verified project provisioning roles/AAD connections, the native capability host and discovered runtime bindings in separate plans. The host uses the documented capability-host preview, not account `capabilitySettings`; it retains private/keyless controls. Configure supported Content Understanding defaults and bootstrap/verify the prompt agent over private endpoints. The connectivity root does not create these services. Scenario data sources must reference only that verified PoC-owned foundation. Administrators own SPA/API registrations, consent, user roles, certificates and immutable retention; no tenant-wide permissions are granted automatically.
+For Terraform, provision the new AI foundation through [`infra/foundation/`](../infra/foundation/README.md) before using the scenario root. Start with the private account/dependencies/models stage, verify exact-hostname DNS and keyless private access, then review project creation, verified project provisioning roles/AAD connections, the native capability host and discovered runtime bindings in separate plans. The host uses the documented capability-host preview, not account `capabilitySettings`; it retains private/keyless controls. Configure supported Content Understanding defaults and bootstrap/verify the prompt agent over private endpoints. The connectivity root does not create these services. Scenario data sources must reference only that verified PoC-owned foundation. Administrators own SPA/API registrations, consent, user roles, certificates and immutable retention; no tenant-wide permissions are granted automatically.
 
-Use supported US regional or US Data Zone model deployments rather than Global SKUs. Validate Content Understanding resource-region support and both custom-analyzer and native-skill processing boundaries. Global control-plane services, Entra ID and Private DNS aren't region-pinned; resource placement alone does not establish US-only processing or FIPS compliance.
+Use an explicitly approved supported Azure region and a regional or Data Zone model SKU permitted by the deployment's validation rules, rather than Global SKUs. Validate Content Understanding resource-region support and both custom-analyzer and native-skill processing boundaries. Global control-plane services, Entra ID and Private DNS aren't region-pinned; resource placement alone does not establish processing residency or FIPS compliance. Documentation wording does not expand executable region or SKU support.
 
 Supply a generic project name and explicit region, verified existing-resource references and approved subnet choices. The hard FIPS requirement is encryption at rest and in transit using FIPS 140-3 validated modules, not independent whole-app/hash/JWT certification. Supply accepted image TLS, platform/service and transport encryption evidence. AES-256, TLS or private connectivity alone does not prove module validation.
 
@@ -25,7 +25,7 @@ Only explicit user authorization permits `"synthetic_poc_attestation_deferred"`
 for a synthetic-only PoC: retain `compliance.approved = false` and exactly empty
 platform/image/transport evidence. Bicep's equivalent is
 `runtime.attestation_mode`. See [the canonical exception](highly-regulated-scenario.md#explicit-synthetic-poc-attestation-deferral):
-private endpoints/no public app/data ingress, encryption controls, US processing, identity,
+private endpoints/no public app/data ingress, encryption controls, approved processing boundaries, identity,
 knowledge, image digest and human review are not waived. Report deferred/not
 certified, never production ready; each exact runtime plan still needs approval.
 
@@ -43,14 +43,14 @@ Choose one infrastructure owner per resource boundary:
 | Path | Use |
 | --- | --- |
 | Terraform (current live owner) | Follow the approved saved-plan procedure below without changing state ownership. |
-| [Parallel Bicep](../infra/bicep/README.md) | Separate staged ARM sources for newly authorized boundaries; Search/CU CRUD and Kubernetes remain explicit operator steps. Initial platform preparation creates no hosting/runtime/knowledge or portal URL. |
+| [Standalone Bicep](bicep-deployment.md) | Terraform-independent new-solution composition followed by ordered native ARM, Graph and Search/CU stages. Container Apps is the selected host. Initial foundation preparation creates no hosting/runtime/knowledge or portal URL. |
 
 Bicep lives alongside Terraform, not over it. Its source availability does not
 authorize deployment over today's live assets; ownership migration requires
 separate review. Private networking, state safeguards, identity, immutable image
 and exact image/platform/transport evidence (or the explicit synthetic-only
 deferral above) and synthetic acceptance still apply.
-The existing **"Deploy the platform"** workflow remains Terraform-based.
+The existing **"Deploy the platform"** workflow remains Terraform-based. A fresh end-to-end Bicep recreation has not been demonstrated; source and offline checks are not live acceptance evidence.
 
 1. Configure the ignored scenario tfvars on the chosen host and review/apply the saved **platform** plan with `provision_hosting`, `deploy_knowledge` and `deploy_runtime` false. Browser identity can remain null for this registry/data/managed-identity stage.
 2. Approve the required processing/billing shared links through their owners; review/apply the saved **knowledge** plan.

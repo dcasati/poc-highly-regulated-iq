@@ -1,7 +1,7 @@
 import { us_region, platform_egress } from '../types.bicep'
 @description('Generic branding.')
 param project_name string
-@description('Explicit US region.')
+@description('Explicit approved supported Azure region permitted by deployment validation rules.')
 param location us_region
 @description('Existing PoC VNet name.')
 param vnet_name string

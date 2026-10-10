@@ -6,7 +6,7 @@ import { us_region } from './types.bicep'
 @maxLength(16)
 param project_name string
 
-@description('Explicit approved US resource region. Processing residency needs separate verification.')
+@description('Explicit approved supported resource region permitted by deployment validation rules. Processing residency needs separate verification.')
 param location us_region
 
 var boundaries = ['connectivity', 'state', 'foundation', 'scenario']

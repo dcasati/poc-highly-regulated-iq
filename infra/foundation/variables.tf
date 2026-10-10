@@ -9,7 +9,7 @@ variable "project_name" {
 }
 
 variable "location" {
-  description = "Explicit approved US region; verify the selected models and private setup are supported there."
+  description = "Explicit approved Azure region permitted by this root's validation rules; verify the selected models and private setup are supported there."
   type        = string
   nullable    = false
   validation {
@@ -73,7 +73,7 @@ variable "capability_preview_approved" {
 }
 
 variable "models" {
-  description = "Approved US Data Zone chat and embedding model deployments; capacity units are model-specific."
+  description = "Approved Data Zone chat and embedding model deployments permitted by this root's validation rules; capacity units are model-specific."
   type = object({
     chat = object({
       name = string, version = string, capacity = number, sku = string

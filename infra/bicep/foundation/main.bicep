@@ -3,7 +3,7 @@ import { us_region, reference, model, platform_egress } from '../types.bicep'
 @minLength(3)
 @maxLength(16)
 param project_name string
-@description('Explicit supported US region; verify US Data Zone inference and both CU processing boundaries.')
+@description('Explicit supported Azure region permitted by deployment validation rules; verify the selected model inference and both CU processing boundaries.')
 param location us_region
 @description('Verified PoC connectivity VNet.')
 param network reference

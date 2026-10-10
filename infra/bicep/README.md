@@ -42,9 +42,10 @@ before any separately authorized operation.
 Names are deterministic but intentionally **not a Terraform import mapping**.
 Bicep uses `uniqueString` rather than Terraform's SHA-256 suffixes. Keep branding
 3-16 lowercase letters/digits/single hyphens. Every regional entry requires an
-explicit approved US region; model version/SKU/quota are configurable, with only
-US regional `Standard` or US `DataZoneStandard`, never Global SKUs.
-Service availability, capacity and US processing boundaries still need verification.
+explicit approved supported Azure region permitted by the deployment's validation
+rules; model version/SKU/quota are configurable, with `Standard` or
+`DataZoneStandard`, never Global SKUs.
+Service availability, capacity and selected processing boundaries still need verification.
 The first foundation/network stage reserves a Container Apps subnet by default;
 select `hosting = 'aks'` there before creating an undelegated AKS reservation.
 Changing it later is a separately reviewed network/runtime migration.
@@ -60,8 +61,8 @@ from another checkout. Retain the `using` path relative to `examples/`.
 
 | Stage | Entry point | Required operator dependency / scope |
 | --- | --- | --- |
-| New solution (preferred) | `main.bicep` | New Bicep-owned boundary only; US region, model pins, caller, SSH public key, administration and exact dependency-egress approval. Creates all initial prerequisites; no backend/state requirement. |
-| Groups | `groups.bicep` | Selected new Bicep-owned boundary, US location; subscription scope. |
+| New solution (preferred) | `main.bicep` | New Bicep-owned boundary only; approved supported region, model pins, caller, SSH public key, administration and exact dependency-egress approval. Creates all initial prerequisites; no backend/state requirement. |
+| Groups | `groups.bicep` | Selected new Bicep-owned boundary, approved supported location; subscription scope. |
 | Connectivity | `connectivity/main.bicep` | `rg-<project>-connectivity`; separately approved synthetic-only VM and exact destination egress. NAT IP is not VM public ingress. Cloud-init package installation needs approved access; an empty example egress list is intentionally not operational. VM enrollment/route/ACL/exact-hostname split DNS remain separate approvals. |
 | Backend | `state-backend/main.bicep` | `rg-<project>-state`; verified connectivity VNet and separate backend approval. Endpoint subnet is created in the network RG. No role grant or state migration is implied. |
 | State access | `state-backend/grant.bicep` | State RG; separate container-scoped identity grant approval after verifying the state account/container. No migration is implied. |
@@ -216,7 +217,7 @@ python3 infra/bicep/tests/validate_parameters.py \
   --expected-tenant-id <separately-verified-directory-guid>
 ```
 
-This rejects examples, broad egress, Global SKUs/non-US regions, invalid GUIDs,
+This rejects examples, broad egress, regions/SKUs outside its validation rules, invalid GUIDs,
 mutable/nonhex digests and missing approval/evidence; values are not printed.
 CIDRs are checked collectively per port as well as individually: splitting all
 IPv4 addresses across two `/1`s or four `/2`s does not evade the no-Internet rule.
@@ -236,7 +237,7 @@ platform/service and transport encryption evidence. The explicit
 `attestation_mode: 'synthetic_poc_attestation_deferred'` typed branch is only for
 user-authorized synthetic PoC use: `approved: false` and all three encryption
 evidence fields exactly `''` are mandatory. Knowledge approval, real identity,
-immutable digest and private/US/human-review controls remain required. Both
+immutable digest, private networking, approved processing boundaries and human-review controls remain required. Both
 runtime entry points output `runtime_attestation_status` as deferred/not certified
 and not production ready. See [the canonical exception](../../docs/highly-regulated-scenario.md#explicit-synthetic-poc-attestation-deferral);
 separate native-plan approval remains mandatory. The compiler and offline tests

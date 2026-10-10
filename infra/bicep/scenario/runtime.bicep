@@ -2,7 +2,7 @@ import { us_region, runtime_approval } from '../types.bicep'
 import { application_config, portal_environment } from './application.bicep'
 @description('Generic PoC branding.')
 param project_name string
-@description('Explicit US region.')
+@description('Explicit approved supported Azure region permitted by deployment validation rules.')
 param location us_region
 @description('Actual previously provisioned private Container Apps environment, registry and application identity.')
 param platform { environment_name: string, registry_name: string, identity_name: string }

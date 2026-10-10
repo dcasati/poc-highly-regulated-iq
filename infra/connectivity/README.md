@@ -1,12 +1,12 @@
-# US-only PoC connectivity
+# Private PoC connectivity
 
-This isolated Terraform root creates a **new US VNet and private Linux VM** for synthetic-only PoC administration. It does not read, import, peer with or modify another project's resources. It is not a FIPS-validated VPN: [Tailscale documents its cryptographic limitations](https://tailscale.com/docs/concepts/tailscale-encryption). The application's platform/image/transport approval gates remain unchanged.
+This isolated Terraform root creates a **new VNet and private Linux VM** for synthetic-only PoC administration. It does not read, import, peer with or modify another project's resources. It is not a FIPS-validated VPN: [Tailscale documents its cryptographic limitations](https://tailscale.com/docs/concepts/tailscale-encryption). The application's platform/image/transport approval gates remain unchanged.
 
 ## Scope and prerequisites
 
 | Setting | Behavior |
 | --- | --- |
-| Region | Explicit US region; recheck SKU restrictions, quota and the exact Ubuntu image before planning. |
+| Region | Explicit approved supported Azure region permitted by this root's validation rules; recheck SKU restrictions, quota and the exact Ubuntu image before planning. |
 | Network | New private `10.x.0.0/16`; verify it does not overlap the client's local or tailnet routes. |
 | Subnets | Only the router's fourth `/24` first `/27` is created. Reserve the third `/24` for future private endpoints; no AI endpoint exists yet. |
 | Internet | New Standard NAT gateway/public IP, outbound only. VM has no public IP. Default NSG outbound access permits package repositories, Tailscale coordination/relays and UDP traversal. This is not a production egress firewall. |
@@ -56,10 +56,10 @@ The tailnet administrator separately approves this node, the advertised **PoC en
 
 After enrollment, obtain the node's Tailscale IPv4 address and separately approve split DNS for verified **exact PoC service hostnames and their exact private-link CNAMEs** through that address. The `split_dns_domains` output lists service suffixes for reference, not approved routes: do not configure those broad suffixes in a shared tailnet. A client may resolve the CNAME independently, so both exact names must reach the private resolver. Do not point the Mac at Azure's `168.63.129.16` directly. Keep DNS restricted to authorized tailnet clients, not the Azure NIC or Internet.
 
-After the separately deployed US foundation links its private zones and creates endpoints, verify normal service names resolve to the reserved private prefix, Mac route selection uses Tailscale, and HTTPS certificate/hostname validation succeeds without public-access exceptions. Container Apps internal hostnames and additional runtime prefixes may need a separately reviewed route/DNS change. Keep all checks synthetic.
+After the separately deployed foundation links its private zones and creates endpoints, verify normal service names resolve to the reserved private prefix, Mac route selection uses Tailscale, and HTTPS certificate/hostname validation succeeds without public-access exceptions. Container Apps internal hostnames and additional runtime prefixes may need a separately reviewed route/DNS change. Keep all checks synthetic.
 
 ## Foundation handoff
 
-The `vnet` and `nat_gateway_id` outputs identify **new PoC-owned US resources** for subsequent reviewed plans. They are not permission to deploy the existing-resource scenario against unrelated infrastructure. The separately approved [`state-backend root`](../state-backend/README.md) owns the reserved private-endpoint subnet and PoC Blob DNS zone as well as private/keyless state storage; consume its outputs without recreating those resources. Create a new US Foundry account/project/prompt agent, approved US model deployments/defaults, Search S1 or higher, application Storage and runtime/build subnets through a separate reviewed foundation. The AI foundation is not implemented by this root.
+The `vnet` and `nat_gateway_id` outputs identify **new PoC-owned resources** for subsequent reviewed plans. They are not permission to deploy the existing-resource scenario against unrelated infrastructure. The separately approved [`state-backend root`](../state-backend/README.md) owns the reserved private-endpoint subnet and PoC Blob DNS zone as well as private/keyless state storage; consume its outputs without recreating those resources. Create a new Foundry account/project/prompt agent, approved model deployments/defaults, Search S1 or higher, application Storage and runtime/build subnets through a separate reviewed foundation. The AI foundation is not implemented by this root.
 
-All regional resources and model processing must remain in the United States. Global Azure control-plane services, Entra ID and Private DNS aren't region-pinned resources. Exclude Global model deployment SKUs; use an approved US Data Zone or supported US regional deployment. Review Content Understanding custom and native-skill processing boundaries independently. A US resource location alone is not a residency or FIPS guarantee.
+Use an explicitly approved supported Azure region and model SKU permitted by the deployment's validation rules. Global Azure control-plane services, Entra ID and Private DNS aren't region-pinned resources. Exclude Global model deployment SKUs; verify the selected regional or Data Zone processing boundary. Review Content Understanding custom and native-skill processing boundaries independently. Resource location alone is not a residency or FIPS guarantee.

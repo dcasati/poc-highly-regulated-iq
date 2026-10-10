@@ -1,5 +1,9 @@
 # Seeded ontologies in Foundry IQ
 
+This guide describes the inherited Fabric sample, which is not connected to the
+private document-review application. Do not apply the legacy infrastructure or
+execute these notebooks as part of the application's [deployment](getting-started.md).
+
 The template includes a Git-owned **Site/Asset ontology**, seeded lakehouse data, and a deployment-plan action that binds them in the target workspace. Terraform can register this and additional DEV ontologies in the **same Foundry IQ knowledge base** as the OneLake documents.
 
 This uses the native [`fabricOntology` knowledge source (preview)](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-fabric-ontology), not document export or a custom MCP proxy. The source queries Fabric at retrieval time; it doesn't create an index, copy table rows to Search, or use the file indexer's five-minute schedule.
@@ -53,7 +57,7 @@ knowledge_ontologies = {
 }
 ```
 
-Run the normal knowledge plan/apply from [getting started](getting-started.md). Terraform looks up each ontology in DEV without owning its definition, creates a native `fabricOntology` source, and includes it alongside the indexed OneLake source in `knowledgeSources`. The description helps the retrieval model select the right source.
+For a separately authorized Fabric deployment, run the knowledge plan/apply from [the upstream template's getting-started guide](https://github.com/dcasati/private-iq-template/blob/main/docs/getting-started.md). Terraform looks up each ontology in DEV without owning its definition, creates a native `fabricOntology` source, and includes it alongside the indexed OneLake source in `knowledgeSources`. The description helps the retrieval model select the right source.
 
 Use a separate stable map key for each additional ontology. Export its real definition to `workspace/`, supply its seed/binding actions and plan dependencies, then add its physical DEV GUID and domain description to `knowledge_ontologies`. Don't duplicate the sample logical ID for a different ontology. The reusable Terraform registration is not limited to the Site/Asset schema.
 

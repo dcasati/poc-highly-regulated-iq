@@ -2,7 +2,7 @@ import { us_region } from '../types.bicep'
 
 @description('New endpoint name; only deploy within its chosen Bicep-owned resource boundary.')
 param name string
-@description('Explicit US region.')
+@description('Explicit approved supported Azure region permitted by deployment validation rules.')
 param location us_region
 @description('Verified PoC endpoint subnet ARM ID; subnet remains owned by the backend boundary.')
 param subnet_id string

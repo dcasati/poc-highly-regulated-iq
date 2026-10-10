@@ -4,7 +4,7 @@ import { us_region, approval, model, egress_rule } from './types.bicep'
 @minLength(3)
 @maxLength(16)
 param project_name string
-@description('Explicit US region. Verify model/CU availability before authorizing deployment.')
+@description('Explicit approved supported Azure region permitted by deployment validation rules. Verify model/CU availability before authorizing deployment.')
 param location us_region
 @description('Canonical nonoverlapping new PoC address space.')
 param vnet_cidr string
@@ -18,7 +18,7 @@ param image_version string
 param administration_egress egress_rule[]
 @description('Exact reviewed ACA and build dependency destinations. NAT provides transport, not permission.')
 param platform_destinations { runtime: egress_rule[], build: egress_rule[], verification: approval }
-@description('Pinned US model versions, SKU and per-model quota.')
+@description('Pinned supported model versions, SKU and per-model quota permitted by deployment validation rules.')
 param models { chat: model, embedding: model }
 @description('Verified deployment caller object GUID; subsequent directory/service actions remain separate.')
 param caller_principal_id string

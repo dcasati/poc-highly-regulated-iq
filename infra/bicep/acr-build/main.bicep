@@ -1,7 +1,7 @@
 import { us_region, reference, approval } from '../types.bicep'
 @description('Generic PoC branding.')
 param project_name string
-@description('Same approved US region as the existing registry/build VNet.')
+@description('Same approved supported region as the existing registry/build VNet.')
 param location us_region
 @description('Existing private Premium registry in this resource group. This file never changes registry/network ownership or settings.')
 param registry_name string

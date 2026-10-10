@@ -9,7 +9,7 @@ variable "project_name" {
 }
 
 variable "location" {
-  description = "Explicit US backend region; must match the verified PoC connectivity VNet."
+  description = "Explicit approved supported backend region permitted by this root's validation rules; must match the verified PoC connectivity VNet."
   type        = string
   nullable    = false
   validation {

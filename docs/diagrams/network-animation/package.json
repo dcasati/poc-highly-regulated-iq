@@ -1,0 +1,19 @@
+{
+  "name": "private-network-explainer",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Offline Remotion network explainer, independently authored using explainer-content's timeline pattern",
+  "type": "module",
+  "scripts": {
+    "test": "node --test src/animation-utils.test.js",
+    "render": "remotion render src/index.jsx PrivateNetwork out/network.mp4 --codec=h264 --concurrency=2 --log=error",
+    "build": "python3 ../generate-private-network.py && npm test && npm run render && python3 encode-gif.py",
+    "check": "python3 ../generate-private-network.py --check && npm test && python3 encode-gif.py --check"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.500",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.500"
+  }
+}

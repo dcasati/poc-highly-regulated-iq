@@ -1,4 +1,4 @@
-# Private US foundation
+# Private AI foundation
 
 This root owns new PoC Foundry, Search S1, separate application/agent Storage,
 serverless Cosmos, three dedicated subnets and baseline private connectivity.
@@ -36,8 +36,9 @@ source for the locked ACR build. NAT/public IP and pool allocation incur costs.
 These controls are not per-FQDN filtering or FIPS/readiness evidence; stricter
 organizational policies require a separately reviewed firewall.
 
-The US Data Zone model SKU allows inference in the US, not only the resource's
-region. Verify model availability/capacity and both Content Understanding
+The Data Zone model SKU permits inference within its selected data zone, not only
+the resource's region. Use a region and SKU permitted by this root's validation
+rules. Verify model availability/capacity and both Content Understanding
 processing boundaries separately. Serverless is supported by the documented
 standard setup; confirm native provisioning accepts its required throughput
 capacity rather than setting a provisioned RU/s budget.
@@ -108,9 +109,10 @@ instructions through the native service, as well as valid reviewed-case
 questions. Policy association or a successful response alone is not proof of
 protection. The classic document-delineation contract documents Chat Completions;
 do not assume equivalent Responses document coverage without runtime evidence.
-Task Adherence is not enabled here: its documented processing can leave the
-US for EU regions, and alignment with user intent alone is not an application
-domain boundary. These controls reduce risk, not a guarantee of zero injections.
+Task Adherence is not enabled here: its processing-residency suitability has not
+been reviewed for the selected boundary, and alignment with user intent alone
+does not enforce an application domain boundary. These controls reduce risk;
+they do not guarantee prevention of every injection.
 
 1. **Dependencies/account/models:** leave all stage flags false. Account creation
    includes private networking but no `capabilitySettings`. Existing scoped caller
@@ -172,7 +174,7 @@ domain boundary. These controls reduce risk, not a guarantee of zero injections.
    error `DefaultsNotSet`; this is not proof of a private-network failure or of
    configured models. Verify DNS/TLS/authentication separately, then configure
    and read back the supported defaults under the bootstrap approval.
-   Check analyzer supported models and US processing behavior. Bootstrap a
+   Check analyzer supported models and the selected processing boundary. Bootstrap a
    prompt agent without unrestricted retrieval tools and verify a synthetic request.
    Content Understanding defaults and prompt-agent inference are independent
    readiness checks; a working agent does not establish extraction readiness.
@@ -192,8 +194,13 @@ domain boundary. These controls reduce risk, not a guarantee of zero injections.
 
 ### Prompt-agent bootstrap and private smoke test
 
-The reviewed [Exempt Agent definition](../../agents/exempt-agent/definition.json)
-uses the foundation's `chat` deployment and no tools. Read back
+The [Exempt Agent baseline definition](../../agents/exempt-agent/definition.json)
+uses the foundation's `chat` deployment and no tools. For a reviewed rollout,
+replace its baseline instructions with the current
+[`review-agent.instructions.txt`](review-agent.instructions.txt) and attach the
+verified full native RAI policy ID as described above; the baseline's diagnostic
+marker exception is not the current restricted-scope policy. Preserve the
+existing agent's metadata/description and prior versions. Read back
 `model_deployments.chat` and verify that deployment before using the definition;
 if another foundation supplies a different name, substitute its actual output.
 Use the selected project's normal private endpoint with trusted TLS and an
@@ -203,16 +210,21 @@ For the New Agent Service `2025-11-15-preview` contract, inspect
 `GET <project-endpoint>/agents?api-version=2025-11-15-preview` first. Preserve an
 existing agent; review its versions/definition rather than silently replacing it.
 Create a missing agent with `POST` to the same path, using
-`{"name":"exempt-agent","definition":<reviewed definition>}`. Read back the version
-from `/agents/exempt-agent/versions?api-version=2025-11-15-preview` and confirm the
-model, instructions and empty tool list. This is a separate approved data-plane
+`{"name":"exempt-agent","definition":<reviewed definition>}`; for an existing agent,
+create a separately reviewed new version only when its definition needs updating.
+Read back the version from
+`/agents/exempt-agent/versions?api-version=2025-11-15-preview` and confirm the
+model, current scope instructions, full native RAI policy association and empty
+tool list. This is a separate approved data-plane
 action, not part of a Terraform apply.
 
 Invoke `POST <project-endpoint>/openai/v1/responses` with the verified name/version
 in `agent_reference`, `tool_choice = "none"`, `store = false` and a synthetic
-input requesting the exact marker `SYNTHETIC_OK_REVIEW_REQUIRED`. Do not supply a
-shared conversation. Verify HTTP success **and** status `completed`, the exact
-output text and absence of tool activity. The response can omit the `store` echo
+input asking an in-scope question about supplied synthetic reviewed-case evidence.
+Do not ask the scope-restricted agent for an unrelated connectivity marker or supply
+a shared conversation. Verify HTTP success **and** status `completed`, an
+evidence-supported answer and absence of tool activity. Also verify a mixed or
+unrelated request receives the whole-request refusal. The response can omit the `store` echo
 field; preserve evidence that the request disabled storage without treating an
 omitted echo as failure or claiming independently verified service retention.
 

@@ -7,7 +7,7 @@ param storage reference
 param content_endpoint string
 @description('Approved existing model names whose supported CU defaults have already been verified.')
 param analyzer_models { completion: string, embedding: string }
-@description('Approved US CU boundary; independent native layout residency review is still required.')
+@description('Selected approved CU processing boundary; independent native layout residency review is still required.')
 @allowed(['geography', 'dataZone'])
 param processing_location string = 'geography'
 @description('Scenario-owned custom analyzer ID; use underscores, not hyphens.')

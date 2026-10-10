@@ -320,7 +320,7 @@ def build():
     text(60, 2548, "Separate inherited Fabric sample — NOT connected to the review app", 26, True)
     text(60, 2591, "Synthetic lakehouse to Site / Asset ontology. Reference only; separate deployment and delegated authorization required.", 22)
     text(40, 2676, [
-        "US-only regional / AI processing • controlled outbound-only NAT public IP, not public ingress or unrestricted Internet.",
+        "Approved processing boundary • controlled outbound-only NAT public IP, not public ingress or unrestricted Internet.",
         "Synthetic PoC: FIPS attestations deferred / NOT certified. Preview limitations and end-to-end readiness remain separate verification gates.",
     ], 21)
     text(40, 2750,

@@ -1,7 +1,7 @@
 import { us_region, approval } from '../types.bicep'
 @description('Generic branding matching the foundation.')
 param project_name string
-@description('Explicit US region.')
+@description('Explicit approved supported Azure region permitted by deployment validation rules.')
 param location us_region
 @description('Existing foundation account name.')
 param account_name string

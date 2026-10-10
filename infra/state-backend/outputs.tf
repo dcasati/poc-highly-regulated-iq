@@ -10,7 +10,7 @@ output "backend_config" {
 }
 
 output "blob_hostname" {
-  description = "Exact PoC Blob hostname for scoped split DNS through the US router; do not override an unrelated project's service domains."
+  description = "Exact PoC Blob hostname for scoped split DNS through the PoC router; do not override an unrelated project's service domains."
   value       = trimsuffix(trimprefix(azurerm_storage_account.state.primary_blob_endpoint, "https://"), "/")
 }
 

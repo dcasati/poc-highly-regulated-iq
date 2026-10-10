@@ -19,7 +19,7 @@ The existing private foundation must satisfy the tutorial's service, identity, m
 
 ## Create local configuration only
 
-On the chosen execution host, create one owner-only ignored `infra/highly-regulated/terraform.tfvars` from its sanitized example only when the file does not already exist. Fill approved nonsecret inputs. A genuinely new deployment starts with `deploy_knowledge = false`, `deploy_runtime = false`, `image_digest = null` and compliance unapproved. Never reset these values on resume.
+On the chosen execution host, create one owner-only ignored `infra/highly-regulated/terraform.tfvars` from its sanitized example only when the file does not already exist. Fill approved nonsecret inputs. A genuinely new deployment starts with `provision_hosting = false`, `deploy_knowledge = false`, `deploy_runtime = false`, `image_digest = null` and compliance unapproved. Never reset these values on resume.
 
 If a new private ACR pool is required, prepare the separate build-root tfvars from its example without adopting another project's pool. Keep preview approval false until the authorized organization accepts it. Keep backend keys separate and credentials outside tfvars; backend provisioning/migration is not initialization.
 
