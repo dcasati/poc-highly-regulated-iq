@@ -1,7 +1,0 @@
-/// An asset is located at a site.
-entityRelationship LocatedAt
-	lineageTag: 8d834f6c-0e07-421a-9f89-03c25b88aae1
-	fromEntity: Asset
-	toEntity: Site
-	backingConfiguration
-		relationship: AssetSite

@@ -1,6 +1,6 @@
 @description('Existing storage account; this module never changes account settings.')
 param account_name string
-@description('Only scenario/state-owned containers may be created; native Agent stores are read-only references.')
+@description('Create application-owned containers only when explicitly requested; otherwise bind existing containers without changing their settings.')
 param create_containers bool = false
 @description('Container-scoped grants. Built-in role GUIDs are policy identifiers, not deployment IDs.')
 param bindings {

@@ -19,20 +19,10 @@
     "source": "Icons/ai + machine learning/10162-icon-service-Cognitive-Services.svg",
     "sha256": "7f1d2831085f00103df5f6fd6305bdbbbe4c4530e98831d7ce6508d236c467c2"
   },
-  "iq": {
-    "file": "038470497-icon-service-Azure-AI-Foundry-IQ.svg",
-    "source": "Icons/ai + machine learning/038470497-icon-service-Azure-AI-Foundry-IQ.svg",
-    "sha256": "245e33416ecc1c745bfff6f72ebf1ffa04cfee1cdd0c1b1b8970d0844409c9c7"
-  },
   "search": {
     "file": "10044-icon-service-Cognitive-Search.svg",
     "source": "Icons/ai + machine learning/10044-icon-service-Cognitive-Search.svg",
     "sha256": "f7af1213ce089236593835cb5564d6d3f01358cba6488fe562aa8bbc8adc3b38"
-  },
-  "agent": {
-    "file": "038470523-icon-service-Foundry-Agent-Service.svg",
-    "source": "Icons/ai + machine learning/038470523-icon-service-Foundry-Agent-Service.svg",
-    "sha256": "aedb65eeb06c1d4f3d57568edd2e8e7205065589ae8ceba4513a2fd21b4053ca"
   },
   "network": {
     "file": "10061-icon-service-Virtual-Networks.svg",

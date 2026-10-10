@@ -6,8 +6,10 @@ trap exit SIGINT SIGTERM
 
 ################################################################################
 # Local developer toolchain check. No sign-in or cloud operations.
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd) || exit 1
 __usage="
-    -x  check-deps  Check installed developer tools (default).
+    -x  check-deps  Check deployment tools (default).
+        check-app   Also check application and diagram authoring tools.
     -h             Show help.
 "
 
@@ -23,32 +25,44 @@ log() {
   printf '[%s] %s\n' "$(date +"%r")" "$*"
 }
 
-do_check_deps() {
+check_tools() {
   local tool
-  for tool in bash az bicep dotnet copilot git gh node npm python3 jq rg curl ssh sshd; do
+  for tool in "$@"; do
     if ! command -v "$tool" >/dev/null 2>&1; then
       log "Required tool is missing: $tool" >&2
       return 1
     fi
   done
-  az version || return $?
+}
+
+do_check_deps() {
+  local bicep_dir="${AZURE_CONFIG_DIR:-${HOME}/.azure}/bin"
+  if ! command -v bicep >/dev/null 2>&1 && [[ -x "$bicep_dir/bicep" ]]; then
+    export PATH="$bicep_dir:$PATH"
+  fi
+  check_tools bash az bicep jq || return $?
+  az version --output none || return $?
   bicep --version || return $?
+  jq --version || return $?
+  log "Deployment tools ready. No sign-in or deployment."
+}
+
+do_check_app() {
+  do_check_deps || return $?
+  check_tools dotnet python3 git || return $?
   dotnet --version || return $?
-  copilot --version || return $?
   git --version || return $?
-  gh --version || return $?
-  node --version || return $?
-  npm --version || return $?
   python3 --version || return $?
   python3 -m venv --help >/dev/null || return $?
-  jq --version || return $?
-  rg --version || return $?
-  log "Toolchain ready. No sign-in or deployment. Start with ./run.sh -h."
+  python3 -c 'import runpy, sys; runpy.run_path(sys.argv[1])["measured_font"](22)' \
+    "$SCRIPT_DIR/../docs/diagrams/generate-private-document-review.py" || return $?
+  log "Application and diagram tools ready. Copilot, gh, rg and SSH tools are optional."
 }
 
 exec_case() {
   case "$1" in
     check-deps) do_check_deps ;;
+    check-app) do_check_app ;;
     *) usage >&2; return 1 ;;
   esac
 }

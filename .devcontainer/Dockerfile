@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/devcontainers/base:3.0.8-ubuntu24.04
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends jq python3 python3-venv ripgrep \
+    && apt-get install -y --no-install-recommends jq python3 python3-venv python3-pil fonts-liberation ripgrep \
     && apt-get clean
 
 ARG COPILOT_VERSION=1.0.92

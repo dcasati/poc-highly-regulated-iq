@@ -26,11 +26,10 @@ Service names, not a similar-looking glyph, define the diagram boundaries:
   application storage, not necessarily different storage accounts.
 - **Content Understanding** uses the *Cognitive Services* family glyph. The
   application custom analyzer and Search native layout skill are distinct calls.
-- **Azure AI Search** uses the official *Cognitive Search* glyph (the filename's
-  legacy service name); **Foundry IQ** uses its supplied official icon.
+- **Azure AI Search / Foundry IQ** uses the official *Cognitive Search* glyph
+  (the filename's legacy service name).
   **Azure OpenAI / AI Services account** uses the supplied Foundry family glyph,
-  not a claim that Managed Agent Service is deployed. The retained historical
-  animation may use the Agent Service icon; it is not the current architecture.
+  not a claim that Managed Agent Service is deployed.
 - **Virtual Networks** and **Container Registries** use their exact service
   glyphs. The build pool is infrastructure supporting image delivery, not a
   document-processing step.

@@ -14,7 +14,6 @@ Read `AGENTS.md` and inspect the current diff before editing. Preserve unrelated
 | Foundry/CU/Search handoffs | Relevant Bicep payload outputs and getting started |
 | Authentication/application flow | `app/`, `docs/highly-regulated-scenario.md` |
 | Developer tools | `.devcontainer/`, `docs/development.md` |
-| Explicit Fabric item work | `fabric-workspace` skill; preserve workspace logical identities |
 
 ## Static checks only
 

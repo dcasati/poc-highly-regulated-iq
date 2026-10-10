@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parent
-WIDTH, HEIGHT = 2400, 2820
+WIDTH, HEIGHT = 1800, 1500
 NAVY, BLUE, GREEN, AMBER, GRAY = "#203747", "#6D9FD1", "#71B381", "#DF9C22", "#9FAABA"
 COLORS = {
     "service": (BLUE, "#FFFFFF"),
@@ -21,6 +21,21 @@ COLORS = {
 }
 FONT = "Helvetica, Arial, sans-serif"
 elements, files, parts, text_bounds, cards = [], {}, [], [], []
+
+
+def measured_font(size, bold=False):
+    from PIL import ImageFont
+    candidates = [
+        ("/System/Library/Fonts/Helvetica.ttc", 1 if bold else 0),
+        ("/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf" if bold
+         else "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf", 0),
+        ("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold
+         else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 0),
+    ]
+    for path, index in candidates:
+        if Path(path).is_file():
+            return ImageFont.truetype(path, size=size, index=index)
+    raise RuntimeError("Diagram font unavailable: use macOS Helvetica or install fonts-liberation on Linux. See docs/diagrams/README.md.")
 
 
 def element(kind, x, y, width, height, **extra):
@@ -52,12 +67,7 @@ def rect(x, y, w, h, stroke=BLUE, fill="transparent", radius=20, dashed=False):
 def text(x, y, lines, size=22, bold=False, max_width=None):
     if isinstance(lines, str):
         lines = [lines]
-    # Conservatively validate actual Helvetica glyph extents, not padded editor bounds.
-    from PIL import ImageFont
-    font = ImageFont.truetype(
-        "/System/Library/Fonts/Helvetica.ttc",
-        size=size, index=1 if bold else 0,
-    )
+    font = measured_font(size, bold)
     width = max(font.getlength(line) for line in lines)
     if max_width is not None:
         assert width <= max_width, (lines, width, max_width)
@@ -92,10 +102,10 @@ def icon(key, x, y, size=82):
 
 
 def lane(y, h, title):
-    rect(25, y, 2350, h, stroke="#AEC7E3", radius=16)
+    rect(25, y, WIDTH - 50, h, stroke="#AEC7E3", radius=16)
     # Header is a leaf, not an opaque container over the cards.
-    rect(26, y + 1, 2348, 64, stroke="#AEC7E3", fill="#EDF4FB", radius=15)
-    text(60, y + 14, title, 28, True, 2260)
+    rect(26, y + 1, WIDTH - 52, 64, stroke="#AEC7E3", fill="#EDF4FB", radius=15)
+    text(60, y + 14, title, 28, True, WIDTH - 140)
 
 
 def card(x, y, title, body, kind="service", glyph=None, w=390, h=330):
@@ -139,8 +149,7 @@ def arrow(points, label=None, label_xy=None, color="#446886", dashed=False):
         lx, ly = label_xy
         if isinstance(label, str):
             label = [label]
-        from PIL import ImageFont
-        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 18)
+        font = measured_font(18)
         width = max(font.getlength(line) for line in label) + 12
         label_height = len(label) * 24.84 + 6
         for a, b in zip(points, points[1:]):
@@ -158,173 +167,65 @@ def arrow(points, label=None, label_xy=None, color="#446886", dashed=False):
 
 
 def build():
-    text(40, 26, "Private document review | Azure service architecture", 44, True)
-    text(40, 104,
-         "Evidence flows through human validation before indexing; answers are scoped to the authenticated owner's selected case.", 25)
-    text(40, 153,
-         "Current solution boundaries • synthetic PoC • architecture, not a readiness or certification claim", 21)
-
-    xs = [70, 535, 1000, 1465, 1930]
-    lane(220, 495, "1  Intake, extraction and human review | left to right")
-    y = 340
-    card(xs[0], y, ["Microsoft Entra ID", "+ browser"], [
-        "SPA authorization code + PKCE",
-        "API JWT, delegated scope, roles",
-        "Caseworker / Reviewer",
-        "Browser uploads; Entra signs in",
-    ], glyph="entra_roles")
-    card(xs[1], y, ["Azure Container", "Apps"], [
-        "Portal API + durable worker",
-        "Managed Environment PE / TLS",
-        "Internal; public network Disabled",
-        "Peer encryption; runtime identity",
-    ], glyph="container_apps")
-    card(xs[2], y, ["Azure Blob", "Storage"], [
-        "Original PDF + original SHA-256",
-        "Durable case state + leases",
-        "Bounded extraction / polling",
-        "Retain full extraction + review",
-    ], "data", "storage")
-    card(xs[3], y, ["Content", "Understanding"], [
-        "Application calls custom analyzer",
-        "Fields, confidence + sources",
-        "Retained PDF is the input",
+    text(45, 25, "Private document review | Application flow", 38, True)
+    text(45, 90, "Synthetic documents only. People make decisions; model answers are suggestions.", 24)
+    xs = [45, 485, 925, 1365]
+    lane(160, 445, "1  Upload, extract and confirm")
+    card(xs[0], 255, ["Case owner"], [
+        "Entra sign-in",
+        "Upload PDF through portal",
+        "No direct data-service access",
+    ], glyph="entra_roles", h=290)
+    card(xs[1], 255, ["Portal / API", "+ worker"], [
+        "Authorize owner and roles",
+        "Retain original and case state",
+        "Call extraction service",
+    ], glyph="container_apps", h=290)
+    card(xs[2], 255, ["Content", "Understanding"], [
+        "Propose fields and sources",
         "Extraction is not approval",
-    ], glyph="content")
-    card(xs[4], y, ["Human validation"], [
-        "Inspect original + field evidence",
+    ], glyph="content", h=290)
+    card(xs[3], 255, ["Owner self-review"], [
+        "Both assigned roles required",
         "Correct and confirm every field",
-        "Reviewer role + owner match",
-        "Confirmation gates publication",
-    ], "human")
-    for i, label in enumerate([
-        "JWT / PDF", "Retain", "Worker", "Fields",
-    ]):
-        arrow([(xs[i] + 390, 490), (xs[i + 1], 490)], label, (xs[i] + 397, 451))
+        "API checks gate publication",
+    ], "human", h=290)
+    for i in range(3):
+        arrow([(xs[i] + 390, 410), (xs[i + 1], 410)])
 
-    lane(775, 480, "2  Publication and knowledge indexing | right to left")
-    text(70, 884, "Private connectivity + authorization boundaries", 27, True, 870)
-    text(70, 954, [
-        "Runtime managed identity calls private Azure services.",
-        "Search managed identity reads ONLY the two published containers.",
-        "Native shared private links: Search to Blob and CU.",
-        "PDF layout skill is not the custom extraction analyzer.",
-        "Private DNS / endpoints; keyless access and scoped RBAC.",
-        "Foundry IQ uses searchIndex — no Fabric source in this app.",
-    ], 22, max_width=870)
-    card(xs[2], 880, ["Foundry IQ"], [
-        "Knowledge base: searchIndex",
-        "Extractive evidence retrieval",
-        "Semantic text / minimal retrieval",
-        "No Fabric source attached",
-    ], glyph="iq", h=320)
-    card(xs[3], 880, ["Azure AI Search"], [
-        "Private / keyless index + skillset",
-        "PDF layout + JSON indexers",
-        "Page chunks + reviewed fields",
-        "case_id + owner_id metadata",
-    ], glyph="search", h=320)
-    card(xs[4], 880, ["Azure Blob", "Storage"], [
-        "Approved, unchanged PDF copy",
-        "Human-validated field JSON",
-        "Only these containers indexed",
-        "Originals / state excluded",
-    ], "data", "storage", h=320)
-    arrow([(2125, 670), (2125, 880)], "Portal publishes only after confirmation", (1780, 736), AMBER)
-    arrow([(1930, 1030), (1855, 1030)], "Indexers", (1858, 993))
-    arrow([(1465, 1030), (1390, 1030)], "Source", (1395, 993))
-
-    lane(1360, 510, "3  Case-scoped question answering | left to right")
-    card(xs[0], 1470, ["Reviewer question"], [
-        "Selected approved case",
-        "Question + untrusted history",
-        "Submitted through portal UI",
-        "Cannot select another owner",
-    ], "logic", h=340)
-    card(xs[1], 1470, ["Portal API"], [
-        "Checks identity + Approved state",
-        "Owner from authenticated token",
-        "Filter: case_id AND owner_id",
-        "Always query; retrieval fail-closed",
-    ], "logic", h=340)
-    card(xs[2], 1470, ["Reference checks"], [
-        "Verify EVERY source reference",
-        "Case + owner metadata match",
-        "Reject missing / partial evidence",
-        "Scoped sourceData content only",
-    ], "logic", h=340)
-    card(xs[3], 1470, ["Azure OpenAI"], [
-        "Direct private chat completions",
-        "Question + untrusted history",
-        "Validated scoped evidence",
-        "No tools; store=false",
-        "JSON answer + citation IDs",
-    ], glyph="foundry", h=340)
-    card(xs[4], 1470, ["Answer + citations"], [
-        "Current reference IDs only",
-        "Returned through portal API / UI",
-        "Human judgment authoritative",
-        "Never approve / deny / decide",
-        "No eligibility determinations",
-    ], "logic", h=340)
-    arrow([(730, 1470), (730, 1320), (1115, 1320), (1115, 1200)],
-          "Case + owner filtered retrieval", (763, 1280))
-    arrow([(1260, 1200), (1260, 1328), (1195, 1328), (1195, 1470)],
-          "Evidence + references", (1280, 1288))
-    for i, label in enumerate([
-        "Question", "Validate", "Evidence", "Answer",
-    ]):
-        arrow([(xs[i] + 390, 1620), (xs[i + 1], 1620)], label, (xs[i] + 396, 1580))
-
-    lane(1920, 255, "Answer controls | app instructions and native model policy, not app safety judges")
-    text(70, 2006, "Task-scoped application instructions", 25, True, 700)
-    text(70, 2050, [
-        "Whole-request refusal for unrelated or mixed tasks.",
-        "Fields / documents / history are data, not instructions.",
-        "Only current evidence; human authority remains final.",
-    ], 21, max_width=710)
-    text(855, 2006, "Chat model • native Prompt Shields", 25, True, 710)
-    text(855, 2050, [
-        "Blocking: Medium harm on Prompt + Completion.",
-        "Binary Jailbreak / Indirect Attack on Prompt.",
-        "Protected material Completion; policy on chat deployment.",
-    ], 21, max_width=710)
-    text(1640, 2006, "Evidence limits — not zero injection risk", 25, True, 675)
-    text(1640, 2050, [
-        "Source identity is not claim entailment.",
-        "Document delimiters for indirect-attack protection.",
-        "Live behavior needs separate acceptance.",
-    ], 21, max_width=665)
-
-    lane(2225, 260, "Supporting platform | infrastructure and image delivery, NOT the document data path")
-    icon("network", 65, 2311, 62)
-    text(145, 2322, "Private VNet / DNS / endpoints", 25, True, 675)
-    text(70, 2400, [
-        "Managed Environment PE, not internal ILB alone.",
-        "No public app / data ingress; private HTTPS.",
-    ], 21, max_width=710)
-    icon("foundry", 855, 2311, 62)
-    text(935, 2322, "Private AI Services account", 25, True, 625)
-    text(855, 2400, [
-        "Private CU + OpenAI; no managed agent stores.",
-        "One shared-process synthetic trust exception.",
-    ], 21, max_width=710)
-    icon("registry", 1640, 2311, 62)
-    text(1720, 2322, "Private ACR + build pool", 25, True, 600)
-    text(1640, 2400, [
-        "Immutable digest images; private registry + MI pulls.",
-        "VNet-connected build pool; no document path.",
-    ], 21, max_width=670)
-
-    rect(25, 2530, 2350, 112, stroke=GRAY, dashed=True)
-    text(60, 2548, "Separate inherited Fabric sample — NOT connected to the review app", 26, True)
-    text(60, 2591, "Synthetic lakehouse to Site / Asset ontology. Reference only; separate deployment and delegated authorization required.", 22)
-    text(40, 2676, [
-        "Approved processing boundary • controlled outbound-only NAT public IP, not public ingress or unrestricted Internet.",
-        "Synthetic PoC: FIPS attestations deferred / NOT certified. Preview limitations and end-to-end readiness remain separate verification gates.",
-    ], 21)
-    text(40, 2750,
-         "Legend: blue = Azure service | green = stored data | amber = human gate | gray = app logic. Official Microsoft icons, embedded offline; see icons/NOTICE.md.", 19)
+    lane(690, 445, "2  Publish evidence and ask case-scoped questions")
+    card(xs[0], 785, ["Published", "evidence"], [
+        "Approved PDF + corrected fields",
+        "Originals / case state not indexed",
+        "Publication can be retried safely",
+    ], "data", "storage", h=290)
+    card(xs[1], 785, ["Search /", "Foundry IQ"], [
+        "Index published evidence",
+        "API enforces case + owner filters",
+        "API validates source records",
+    ], glyph="search", h=290)
+    card(xs[2], 785, ["Azure OpenAI"], [
+        "Direct private inference; no tools",
+        "API supplies validated evidence",
+        "Citation IDs checked by API",
+    ], glyph="foundry", h=290)
+    card(xs[3], 785, ["Answer suggestion"], [
+        "Shown through portal",
+        "Citation IDs do not prove truth",
+        "Human verifies the evidence",
+    ], "logic", h=290)
+    for i in range(3):
+        arrow([(xs[i] + 390, 940), (xs[i + 1], 940)])
+    arrow([(1560, 545), (1560, 640), (15, 640), (15, 900), (45, 900)], color=AMBER)
+    text(550, 650, "Only after explicit confirmation", 21)
+    rect(25, 1180, 1750, 205, stroke=GRAY)
+    text(55, 1200, "Trust boundaries", 27, True)
+    text(55, 1250, [
+        "API and worker share one trusted identity; containers are not privilege isolation.",
+        "Model output cannot authorize publication. Instructions do not guarantee grounded answers.",
+        "All app/data access is private. Network access is shown separately in the connectivity diagram.",
+    ], 24, max_width=1670)
+    text(45, 1420, "Arrows summarize the workflow, not every network request. Infrastructure publication is not proof of live readiness.", 21)
 
 
 def outputs():
@@ -332,11 +233,10 @@ def outputs():
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{WIDTH}" height="{HEIGHT}" '
         f'viewBox="0 0 {WIDTH} {HEIGHT}" role="img" aria-labelledby="diagram-title diagram-description">\n'
         '<title id="diagram-title">Private document review | Current Azure service architecture</title>\n'
-        '<desc id="diagram-description">Three directional lanes: retain original PDFs, custom extraction and explicit human validation; '
-        'publish only approved copies and reviewed JSON to private Search indexers and a searchIndex Foundry IQ knowledge base; '
-        'server-authorized case-and-owner retrieval with validated source data before no-tools direct Azure OpenAI chat inference. '
-        'Actual Container Apps Managed Environment private endpoint, application scope refusal and Prompt Shields, supporting private '
-        'platform and separate disconnected inherited Fabric sample. Synthetic PoC, not readiness or FIPS certification.</desc>\n'
+        '<desc id="diagram-description">Two workflow lanes: private portal upload, Content Understanding extraction and owner self-review; '
+        'publication of approved PDFs and corrected fields, Search and Foundry IQ retrieval, and direct no-tools Azure OpenAI inference. '
+        'The API enforces case-and-owner authorization and validates sources and citation IDs. API and worker share one trusted identity. '
+        'Model suggestions cannot authorize publication and require human verification. Synthetic-only; not a live readiness report.</desc>\n'
         '<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">'
         '<path d="M0 0 L8 4 L0 8 Z" fill="#446886"/></marker>'
         '<marker id="amber-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">'

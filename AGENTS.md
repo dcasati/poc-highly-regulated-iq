@@ -7,14 +7,12 @@ This is a **private document-review proof of concept**, not the reusable upstrea
 - [Getting started](docs/getting-started.md) is the canonical deployment guide.
 - `infra/bicep/` owns modular infrastructure; `run.sh` calls native Azure CLI in Bash.
 - `app/` owns the private portal, API and extraction worker.
-- `workspace/` is a disconnected Fabric sample, not an application prerequisite.
 
 | Task | Repository skill |
 | --- | --- |
 | Deploy or resume the private platform | [deploy-platform](.github/skills/deploy-platform/SKILL.md) |
 | Configure local inputs without deployment | [initialize-project](.github/skills/initialize-project/SKILL.md) |
 | Change source or perform static checks | [template-maintenance](.github/skills/template-maintenance/SKILL.md) |
-| Explicitly requested Fabric item work | [fabric-workspace](.github/skills/fabric-workspace/SKILL.md) |
 
 ## Guardrails
 
@@ -29,7 +27,7 @@ This is a **private document-review proof of concept**, not the reusable upstrea
 - Portal/API/worker share one process and one replica as an explicit synthetic-only trust exception, not a parser/approval privilege boundary. Preserve owner plus Reviewer authorization and stale-version checks; real deployment needs a separately reviewed isolation decision.
 - Keep the private administration VM unless an explicitly approved alternate private execution host and working route/DNS path replace it. Source reduction never deletes existing managed-agent resources; cleanup requires separate inventory, retention review and approval.
 - Never print/commit credentials, tokens, real local parameters, `.env`, state, deployment outputs or debug logs. Verify local files are ignored and owner-only; preserve existing configuration and staging. Native REST tokens remain ephemeral.
-- Do not deploy the inherited Fabric workflow, seed notebooks or create staging/promotion environments for this application. Preserve `.platform` logical IDs, TMDL lineage tags and binding markers if explicitly working on Fabric items; physical IDs must be resolved in the chosen workspace.
+- Do not introduce staging/promotion environments or CI/CD pipelines as part of this PoC.
 
 ## Conventions
 

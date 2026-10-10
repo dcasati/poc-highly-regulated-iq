@@ -13,11 +13,6 @@
     },
     "ghcr.io/devcontainers/features/dotnet:2": {
       "version": "10.0"
-    },
-    "ghcr.io/devcontainers/features/node:2": {
-      "version": "24",
-      "nodeGypDependencies": false,
-      "pnpmVersion": "none"
     }
   },
   "remoteUser": "vscode",
@@ -27,7 +22,7 @@
     "AZURE_BICEP_CHECK_VERSION": "false",
     "AZURE_EXTENSION_USE_DYNAMIC_INSTALL": "no"
   },
-  "postCreateCommand": "bash .devcontainer/check-tools.sh",
+  "postCreateCommand": "bash .devcontainer/check-tools.sh -x check-app",
   "customizations": {
     "vscode": {
       "extensions": [
