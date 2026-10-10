@@ -4,13 +4,11 @@ For deployment commands, use [getting started](getting-started.md). This guide d
 
 ## Architecture and ownership
 
-![Document intake, human review, publication and case-scoped questions.](diagrams/private-document-review.svg)
-
-![Private network connectivity and controlled outbound paths.](diagrams/private-network.svg)
+The [README](../README.md) shows the application and network diagrams.
 
 The application supports human review of manually exported PDF packages, such as Form 3500 exemption applications. Its extraction schema is configurable; it is not a bundled eligibility model. There are no business-system connectors or automated eligibility decisions.
 
-`infra/bicep/` creates the private PoC foundation and application infrastructure. Direct Azure OpenAI inference needs no Managed Agent Service, project, capability host or native agent stores. Source removal does not delete previously deployed resources; cleanup requires separate approval.
+`infra/bicep/` creates the private PoC foundation and application infrastructure. Inference calls Azure OpenAI directly. Source changes never delete deployed resources; cleanup requires separate approval.
 
 ## Application flows
 
@@ -30,7 +28,7 @@ Use a single-tenant Entra SPA and API. The browser uses authorization code with 
 
 API preauthorization of the selected SPA, any organization-required consent and user role assignments are separate administrator decisions. No directory roles or tenant-wide Graph permissions are automatically granted. Users receive no direct Storage, Search or Foundry access.
 
-Prompt instructions reject unrelated or mixed tasks and treat retrieved text as untrusted. The JSON-capable deployment must support system messages, JSON object output and `max_completion_tokens`; its native blocking RAI policy remains enabled. These controls do not remove the need for server-side authorization or human judgment.
+Prompt instructions ask the model to reject unrelated tasks and treat retrieved text as untrusted; they are advisory, not an enforced boundary. The JSON-capable deployment must support system messages, JSON object output and `max_completion_tokens`; its native blocking RAI policy remains enabled. These controls do not remove the need for server-side authorization or human judgment.
 
 **Synthetic trust exception:** portal, API and extraction worker share one process, managed identity and a single replica. Owner plus Reviewer checks, every-field confirmation and stale-version checks gate publication, but a compromised process can cross both parsing and approval authority. This deliberately relaxes privilege separation for synthetic inputs only; it is not an enforced process boundary or a production isolation claim. Real documents require a separately reviewed isolation design.
 

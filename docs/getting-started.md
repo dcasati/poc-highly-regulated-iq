@@ -1,12 +1,12 @@
 # Getting started
 
-Deploy the synthetic document-review PoC with **modular Bicep + Azure CLI in Bash**. `infra/bicep/main.bicep` is the subscription entry point. `run.sh` calls native deployment commands; Content Understanding (CU), Search and Microsoft Graph still need the explicit handoffs below. Answers use direct private Azure OpenAI inference, not Managed Agent Service.
+Deploy the synthetic document-review PoC with modular Bicep and Azure CLI in Bash. `infra/bicep/main.bicep` is the subscription entry point and `run.sh` wraps the native deployment commands. Content Understanding (CU), Search and Microsoft Graph need the explicit handoffs below; ARM deployment does not perform them.
 
-**Source changes are not deployment approval.** Use a new private PoC foundation, not another project's resources. Bicep does not silently adopt existing live resources; stop on name/ownership conflicts. Resuming a verified PoC requires its actual outputs and narrow modules, not rerunning initial network creation. No state migration or resource deletion is part of this guide.
+**Source changes are not deployment approval.** Use a new private PoC foundation, never another project's resources. Stop on name or ownership conflicts: Bicep does not adopt existing resources. To resume, use the recorded outputs and the narrow module, not the initial network deployment. Guardrails live in [`AGENTS.md`](../AGENTS.md); application behaviour and trust limits in [the scenario](highly-regulated-scenario.md).
 
 ## 1. Choose the target and prepare inputs
 
-Confirm one approved private-network-connected execution host/checkout, selected subscription/directory, deployment caller, branding and explicit supported region. A normal Codespace is not automatically connected. Use approved authentication; do not grant yourself Graph permissions or change shared CLI defaults.
+Confirm one approved private-network-connected execution host, the subscription/directory, the deployment caller and an explicit supported region. A normal Codespace is not automatically connected. Do not grant yourself Graph permissions or change shared CLI defaults.
 
 ```bash
 set -euo pipefail
@@ -15,16 +15,17 @@ umask 077
 az account show --query '{subscription:id,tenant:tenantId}' --output json
 SUBSCRIPTION=$(az account show --query id --output tsv)
 ./run.sh -x check-deps
-command -v jq
 mkdir -p .azure/checks
 chmod 700 .azure/checks
 ```
 
-Create ignored, owner-only `infra/bicep/examples/<stage>.local.bicepparam` files from the matching `.example.bicepparam` files **only if absent**. Examples are sanitized fixtures, not executable target configuration: replace all sample IDs, evidence and model/image values with approved inputs. Never save tokens, secrets or real documents in them. Check `git check-ignore` before saving deployment readbacks.
+Create ignored, owner-only `infra/bicep/examples/<stage>.local.bicepparam` files from the matching `.example.bicepparam` files, only if absent. Examples are sanitized fixtures: replace every sample ID, evidence, model and image value with approved inputs. Never store tokens, secrets or real documents in them, and confirm `git check-ignore` before saving readbacks.
 
-Review nonoverlapping address space, pinned administration image and approved package/tailnet/runtime/build destinations. NAT supplies outbound transport, not an allowlist. App/data ingress must use Private Endpoints only, public network access disabled, registry admin disabled and bypass `None`. An approved controlled outbound-only NAT public IP is permitted, not public ingress or unrestricted Internet approval.
+Review these before the first what-if:
 
-Choose supported pinned model versions, quota and regional/Data Zone SKUs allowed by the parameter rules; **no Global SKUs**. The chat deployment must support system messages, `response_format: {type: "json_object"}` and `max_completion_tokens`. Assess direct inference, custom CU and native Search layout processing boundaries separately—resource location alone is insufficient. Global identity/control-plane services and Private DNS are not region-pinned.
+- Nonoverlapping address space, the pinned administration image and the approved package, tailnet, runtime and build destinations. NAT gives outbound transport, not an allowlist.
+- Pinned model versions, quota and regional or Data Zone SKUs; **no Global SKUs**. The chat deployment must support system messages, `response_format: {type: "json_object"}` and `max_completion_tokens`.
+- The processing boundaries of direct inference, the custom CU analyzer and native Search layout skills. Resource location alone does not settle them. Global identity services and Private DNS are not region-pinned.
 
 ## 2. Create the foundation and preserve CU defaults
 
@@ -40,9 +41,9 @@ az deployment sub show --subscription "$SUBSCRIPTION" --name "$DEPLOYMENT_NAME" 
   --query properties.outputs --output json > .azure/checks/foundation.outputs.json
 ```
 
-The default template is `infra/bicep/main.bicep`; default scope is `subscription` and deployment name is `private-review`. Template/parameter paths resolve relative to the repository. `check-deps` requires `az`, `jq` and an existing Bicep executable on PATH or cached under `${AZURE_CONFIG_DIR:-$HOME/.azure}/bin/bicep`; it makes no cloud calls or compiler downloads/upgrades. `build` checks scope and parameter binding without generating JSON files.
+Defaults: template `infra/bicep/main.bicep`, scope `subscription`, deployment name `private-review`. `LOCATION` sets deployment metadata, **not resource regions**; set each resource `location` in the local parameters. What-if lists resource IDs, not properties, so also review the source and parameters. `install` runs its own what-if, requires a visible `yes` and aborts if the inputs changed. `show` prints only the deployment name and state.
 
-`LOCATION` is required for cloud actions and sets subscription deployment metadata, **not resource regions**; select the approved resource `location` explicitly in local parameters. What-if reports resource IDs rather than properties, so review the source/parameters too. `install` performs one internal what-if, requires one visible `yes` approval and aborts if inputs change before creation. `show` prints only deployment name/state; use the explicit native `show --query properties.outputs` commands here for owner-only handoff files. To use a focused group module:
+For a focused group module:
 
 ```bash
 # Set ENTRY, LOCAL_PARAMETERS, TARGET_RG and STAGE for one row below.
@@ -57,19 +58,17 @@ az deployment group show --subscription "$SUBSCRIPTION" \
   --query properties.outputs --output json > ".azure/checks/${STAGE}.outputs.json"
 ```
 
-Use `resource_groups`, `network` and `services` from the foundation output to prepare later local parameters. Never guess physical names or principal IDs. `services.endpoints.openai` is the Azure OpenAI root endpoint; `services.models.chat` is its model deployment name.
+Use `resource_groups`, `network` and `services` from the foundation output for later parameters; never guess names or principal IDs. `services.endpoints.openai` is the Azure OpenAI root endpoint and `services.models.chat` the deployment name. Direct private access is described in [Microsoft Learn](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/network); verify private DNS and scoped managed-identity access on this target before runtime. Tailnet enrollment, routes, ACLs and exact-hostname split DNS are separate administrator approvals. Keep the private administration VM as the access path unless an approved alternative route has been demonstrated.
 
-There is no project, capability host, agent subnet, agent Blob/Cosmos store, connection or runtime binding stage. [Microsoft Learn](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/network) documents direct Azure OpenAI Private Endpoints with public access disabled. Verify normal private DNS and scoped managed-identity access before runtime; documentation does not establish this target's readiness. Tailnet enrollment/routes/ACLs and exact-PoC-hostname split DNS remain separate administrator approvals. The private administration VM remains the access path unless a specifically approved alternate private execution host and route/DNS path have been demonstrated; do not silently omit it.
+### Rights granted
 
-### Explicit operator and application rights
+The deployment caller gets account-scoped **Cognitive Services User** (manual CU handoff) and Search-scoped **Search Service Contributor** and **Search Index Data Contributor** (manual object registration and readbacks). These are operator rights, not application permissions or Graph consent. Review their continued need after setup; removing a grant needs separate approval.
 
-The selected caller receives only account-scoped **Cognitive Services User** for the manual CU defaults/analyzer handoff and Search-scoped **Search Service Contributor** / **Search Index Data Contributor** for manual object registration and synthetic readiness reads. These are explicit operator prerequisites, not application permissions or automatic Graph consent. No caller Blob/Cosmos bootstrap grants are created. Review their continued need after setup; any grant cleanup requires separate approval.
+The application identity gets container-scoped Blob access, Search Index Data Reader, Cognitive Services User (CU), Cognitive Services OpenAI User (inference) and registry-scoped AcrPull. Search reads only the approved-evidence containers and uses the AI account for native processing.
 
-The application identity receives container-scoped Blob access, Search Index Data Reader, Cognitive Services User for CU usage, Cognitive Services OpenAI User for inference and registry-scoped AcrPull. Search has access only to approved/evidence containers and the AI account for its native processing. The AI account's identity retains scoped OpenAI User for CU model execution; this is not a managed agent identity.
+### CU defaults
 
-### CU defaults only
-
-Read CU defaults and supported analyzer models first. Preserve unrelated mappings; only the specific new-account `ModelDeploymentsNotConfigured` error is an expected unconfigured state. Deploy `bootstrap-payloads.bicep` with reviewed supported mappings. Its outputs are requests, **not** applied configuration.
+Read the defaults and supported analyzer models first and preserve unrelated mappings. Only the new-account `ModelDeploymentsNotConfigured` error is an expected unconfigured state. Deploy `bootstrap-payloads.bicep` with reviewed supported mappings; its outputs are requests, **not** applied configuration.
 
 ```bash
 az rest --method get \
@@ -82,7 +81,7 @@ az rest --method get \
   --output json > .azure/checks/supported-analyzer.json
 ```
 
-For single emitted requests, use this Bash helper. `OUTPUTS` is a saved `properties.outputs` object; `KEY` is the selected output key, not an entire deployment response. Inspect the method/path/body privately and approve before calling it. Use a new body filename; do not overwrite existing readbacks.
+To send one emitted request, use this helper. `OUTPUTS` is a saved `properties.outputs` object and `KEY` an output key. Inspect the method, path and body privately and approve before calling; use a new body filename.
 
 ```bash
 send_request() {
@@ -103,28 +102,28 @@ ENDPOINT="$CONTENT_ENDPOINT" AUDIENCE=https://cognitiveservices.azure.com/
 send_request > .azure/checks/defaults.result.json
 ```
 
-GET defaults again and compare declared mappings. This payload preserves unrelated CU defaults and emits no prompt-agent objects. Keep the chat deployment's blocking native RAI policy attached; application prompts and reference checks supplement it, not a claim of complete injection protection.
+GET the defaults again and compare the declared mappings. Keep the chat deployment's blocking RAI policy attached; it supplements, not replaces, the application's prompt and citation checks.
 
 ## 3. Platform, private links and knowledge
 
-Deploy `scenario/platform.bicep` in the scenario group using this PoC's actual service/network outputs. Capture registry and runtime managed-identity IDs. Search reads only approved PDFs and corrected-field evidence, not originals/review state.
+Deploy `scenario/platform.bicep` in the scenario group from this PoC's service and network outputs, and record the registry and runtime managed-identity IDs. Search reads only approved PDFs and corrected fields, never originals or review state.
 
-Deploy `scenario/private-links.bicep` in **Search's group**, after inspecting existing exact target/group pairs to avoid duplicate links. Target owners separately approve intended connections:
+Deploy `scenario/private-links.bicep` in **Search's group** after checking existing target/group pairs for duplicates. Target owners approve each intended connection:
 
 ```bash
 az network private-endpoint-connection approve --id "$VERIFIED_CONNECTION_ID" \
   --description "Approved private PoC dependency"
 ```
 
-Require target-side `Approved` and Search-side `Succeeded` for Blob, `foundry_account` processing and `cognitiveservices_account` billing links. Stop on terminal failure or 30-minute timeout; never enable public access/bypass to recover.
+Require target-side `Approved` and Search-side `Succeeded` for the Blob, `foundry_account` and `cognitiveservices_account` links. Stop on terminal failure or after 30 minutes; never enable public access or bypass to recover.
 
-Deploy output-only `knowledge/payloads.bicep` with the supported models, reviewed extraction fields, selected `geography`/`dataZone` processing location and verified private dependencies. Keep `application.field_names` aligned with the schema.
+Deploy output-only `knowledge/payloads.bicep` with the supported models, reviewed extraction fields, `geography`/`dataZone` and verified private dependencies. Keep `application.field_names` aligned with the schema.
 
-Use `send_request` with `OUTPUTS=.azure/checks/knowledge.outputs.json`, `KEY=analyzer_request`, a new `BODY_FILE`, CU endpoint and Cognitive Services audience. First GET the exact analyzer path: create if missing, skip if matching, and stop for separately approved replacement if an existing analyzer differs. After PUT, poll that analyzer's native status/readback until ready, within 30 minutes; stop on failure before Search writes.
+Use `send_request` with `OUTPUTS=.azure/checks/knowledge.outputs.json`, `KEY=analyzer_request`, a new `BODY_FILE`, the CU endpoint and the Cognitive Services audience. GET the analyzer first: create if missing, skip if matching, and stop for a separately approved replacement if it differs. After the PUT, poll its status for up to 30 minutes and stop on failure before any Search write.
 
-The emitted Search requests are ordered: index → PDF/JSON data sources → layout skillset → PDF/JSON indexers → knowledge source → knowledge base. For each object, GET first; skip matching objects, stop on conflicting ownership/drift, approve any required PUT and compare the declared fields afterward. Preserve unrelated/server-added properties; use ETag `If-Match` where supported. A 404 means missing only when distinguished from auth/network failure.
+Search requests are ordered: index → PDF/JSON data sources → layout skillset → PDF/JSON indexers → knowledge source → knowledge base. For each object, GET first; skip matches, stop on drift or unknown ownership, approve any PUT and compare afterward. Preserve server-added properties and use `If-Match` with the ETag where supported. Treat 404 as missing only when it is distinguishable from an auth or network failure.
 
-The following is the native **write step for one already reviewed array entry** (`N=0` through `7`), not an unconditional bulk reconciler. For an existing object with an ETag, add `--headers "If-Match=$VERIFIED_ETAG"` to the PUT; stop and reread if that conditional update fails.
+This writes **one reviewed array entry** (`N=0` through `7`); it is not a bulk reconciler. For an existing object add `--headers "If-Match=$VERIFIED_ETAG"`, and reread if the conditional update fails.
 
 ```bash
 OUTPUTS=.azure/checks/knowledge.outputs.json
@@ -145,7 +144,7 @@ az rest --method get \
   > ".azure/checks/search-${N}.readback.json"
 ```
 
-After a synthetic case is explicitly reviewed/published, run both indexers and read their statuses:
+After a synthetic case is reviewed and published, run both indexers and read their status:
 
 ```bash
 az rest --method post \
@@ -156,11 +155,11 @@ az rest --method get \
   --resource https://search.azure.com/ --output json
 ```
 
-Require successful, nonempty synthetic approved-PDF and corrected-JSON indexing with no failed items, then authorized retrieval with case/owner filters and valid page references. Registration alone is not indexing readiness; unfiltered knowledge/MCP access is not authorization.
+Require nonempty, successful indexing of both approved PDFs and corrected JSON with no failed items, then case/owner-filtered retrieval with valid page references. Registration is not indexing readiness, and unfiltered knowledge access is not authorization.
 
 ## 4. Private image, hosting and browser identity
 
-Deploy `acr-build/main.bicep` for a new dedicated VNet-connected pool in the registry group, unless an approved private path already supplied the image. Wait for `Succeeded` and at least one instance, then:
+Unless an approved private path already supplied the image, deploy `acr-build/main.bicep` (a dedicated VNet-connected pool) in the registry group. Wait for `Succeeded` and at least one instance, then build:
 
 ```bash
 az acr build --registry "$REGISTRY_NAME" --agent-pool "$AGENT_POOL_NAME" \
@@ -170,17 +169,17 @@ az acr repository show --name "$REGISTRY_NAME" \
   --image review-portal:reviewed-build --query digest --output tsv
 ```
 
-`RUNTIME_IMAGE` must be a compatible .NET 10 runtime image pinned by immutable digest; no vendor-specific image layout is required. Use the built application's actual immutable digest for runtime, not the tag. No public build workers, registry keys, admin user or public-access exception.
+`RUNTIME_IMAGE` must be a .NET 10 runtime image pinned by digest. Deploy the built image by its immutable digest, not the tag. Use no public build workers, registry keys or admin user.
 
-Deploy `scenario/hosting.bicep` for Container Apps. Require an internal environment, disabled public networking, `managedEnvironments` Private Endpoint, peer encryption and private app-domain DNS pointing to the actual endpoint NIC. The returned default domain lets you prepare a private HTTPS SPA redirect; confirm the actual runtime URL afterward. Private endpoints/build resources incur costs; previews, quota and destination changes require review.
+Deploy `scenario/hosting.bicep`. Require an internal environment, disabled public networking, a `managedEnvironments` Private Endpoint, peer encryption and private app-domain DNS pointing to the endpoint NIC. Use the returned default domain to prepare the private HTTPS SPA redirect, and confirm the runtime URL afterward. Review cost, preview and quota before deploying.
 
-Use native Microsoft Graph only with separately approved directory authority. The identity Bicep modules emit bodies; ARM deployment does not create registrations:
+Use native Microsoft Graph only with separately approved directory authority; ARM deployment creates no registrations. The identity modules emit request bodies:
 
-1. `identity/api-payload.bicep`: single-tenant API, v2 delegated scope and user-only Caseworker/Reviewer roles.
-2. `identity/spa-payload.bicep`: actual API `appId`, exact private redirect and authorization code/PKCE, no implicit flow or client secret.
-3. `identity/finalize-payloads.bicep`: reviewed API PATCH/preauthorization and API/SPA service-principal requests.
+1. `identity/api-payload.bicep`: single-tenant API, v2 delegated scope, user-only Caseworker and Reviewer roles.
+2. `identity/spa-payload.bicep`: the API `appId`, exact private redirect, authorization code + PKCE, no implicit flow or client secret.
+3. `identity/finalize-payloads.bicep`: API PATCH/preauthorization and API/SPA service-principal requests.
 
-Before Graph calls, compare the selected tenant with emitted `expected_tenant_id`. Search exact display names first; on resume GET actual object IDs and compare, do not repeat POST blindly.
+Compare the selected tenant with the emitted `expected_tenant_id` before any Graph call. Search exact display names first; on resume GET the actual object IDs and compare instead of repeating a POST.
 
 ```bash
 test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
@@ -190,26 +189,20 @@ az rest --method post --url https://graph.microsoft.com/v1.0/applications \
   --output json > .azure/checks/api.created.json
 ```
 
-Save **object `id` and client `appId` separately**. Execute the emitted SPA request and each `graph_requests` entry individually, using its method/path/body with Graph endpoint/audience. API preauthorization and any organization-required consent are administrator decisions; no automatic Graph privilege grants.
+Save the object `id` and client `appId` separately, then execute the SPA request and each `graph_requests` entry individually. API preauthorization and any organization-required consent are administrator decisions.
 
-An administrator separately assigns approved users through `POST /v1.0/servicePrincipals/<api-SP-object-id>/appRoleAssignments` with `{principalId: <user-object-id>, resourceId: <api-SP-object-id>, appRoleId: <emitted-role-id>}`. Reviewers require **both** application roles. These are not directory roles. Users get no direct Storage/Search/Foundry permissions.
+An administrator assigns approved users with `POST /v1.0/servicePrincipals/<api-SP-object-id>/appRoleAssignments` and `{principalId, resourceId: <api-SP-object-id>, appRoleId}`. These are application roles, not directory roles, and users get no direct Storage, Search or Foundry rights. Reviewers need **both** roles.
 
 ## 5. Runtime and synthetic use
 
-Prepare `scenario/runtime.bicep` parameters with real identities, verified private model inference, knowledge readiness, matching fields and the immutable image. Set `application.openai_endpoint` to the verified HTTPS Azure OpenAI root and `application.chat_deployment` to the actual JSON-capable deployment name. These become `Portal__OpenAIEndpoint` and `Portal__ChatDeployment`. The API sends `POST /openai/v1/chat/completions` with that deployment as `model` and requests `https://ai.azure.com/.default` for inference; CU remains on `https://cognitiveservices.azure.com/.default`. It sends no tools and creates no agent/thread/run. Verify the selected endpoint accepts this inference audience: current lifecycle guidance and the v1 REST reference differ on audience, and static checks cannot settle that live handoff. This user-approved PoC uses these exact `runtime` fields:
+Prepare `scenario/runtime.bicep` with real identities, verified private inference, knowledge readiness, matching fields and the immutable image. Set `application.openai_endpoint` to the verified Azure OpenAI root and `application.chat_deployment` to the JSON-capable deployment; they become `Portal__OpenAIEndpoint` and `Portal__ChatDeployment`.
 
-```bicep
-attestation_mode: 'synthetic_poc_attestation_deferred'
-approved: false
-platform_evidence: ''
-image_evidence: ''
-transport_evidence: ''
-```
+The API calls `POST /openai/v1/chat/completions` with the deployment as `model`, requests `https://ai.azure.com/.default` and sends no tools. CU stays on `https://cognitiveservices.azure.com/.default`. Current guidance and the v1 REST reference differ on the inference audience, so confirm the endpoint accepts it as a live handoff; never weaken authentication to recover.
 
-The sanitized runtime example already selects this mode. Replace its remaining example identities, knowledge evidence and image hash with actual approved values; keep the three encryption evidence strings empty. Preserve the remaining runtime contract, including encryption controls, real identity and knowledge approval. The optional `evidence_gated` mode is not this PoC's chosen mode. **Synthetic documents only; no certification claim.** FIPS 140-3 encryption at rest/in transit is a requirement to assess for any future real deployment.
+The sanitized runtime example selects the user-approved synthetic attestation-deferred mode. Keep its three encryption evidence strings empty, `approved` false and the rest of the runtime contract; replace only the example identities, knowledge evidence and image hash. The full contract is in [Synthetic-only PoC](highly-regulated-scenario.md#synthetic-only-poc).
 
-Review what-if and obtain separate runtime install approval. Read the actual `portal_url`; confirm private HTTPS, private managed-identity image/data access, a continuously running worker and denied public app/data access. Observe upload → extraction → every-field human confirmation → reviewer-only publication → both evidence paths indexed → case-authorized answers. Foreign cases/owners and invalid identity tokens must be rejected. See [application flows and authorization](highly-regulated-scenario.md).
+Review what-if and get separate approval, then read the actual `portal_url`. Confirm private HTTPS, managed-identity image and data access, a running worker and denied public access. Observe the full synthetic flow: upload → extraction → every-field confirmation → reviewer-only publication → both evidence paths indexed → case-authorized answers. Foreign cases/owners and invalid tokens must be rejected.
 
-Report infrastructure deployment and application readiness separately, with any blocked preview, quota, DNS, identity, processing-boundary or indexing handoff. Do not handle real documents, lock/delete evidence, broaden IAM or migrate existing ownership to overcome a blocker.
+Report infrastructure deployment and application readiness separately, with any blocked preview, quota, DNS, identity, processing-boundary or indexing handoff. Do not use real documents, lock or delete evidence, broaden IAM or migrate ownership to get past a blocker.
 
-**Existing managed resources:** removing source definitions does not delete cloud capability hosts, projects, stores, subnets, connections or grants. Inventory only this PoC's owned resources during a separately approved cleanup, review dependencies/retention and approve each deletion independently. Never use complete-mode deployment or rerun the initial VNet to clear old children. Preserve ignored local state/configuration; this source reduction performs no migration or cleanup.
+**Cleanup:** source changes never delete cloud resources. Inventory only this PoC's resources under a separate approval, review dependencies and retention, and approve each deletion independently. Never use complete-mode deployment or rerun the initial VNet to clear old children.

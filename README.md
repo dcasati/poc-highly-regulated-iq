@@ -17,7 +17,7 @@ For case-scoped questions, the API supplies case-authorized evidence and validat
 | Blob Storage | Dedicated containers for originals, review state, approved PDFs and corrected field evidence. |
 | Content Understanding | Configurable extraction schema, confidence and source references. |
 | Azure AI Search / Foundry IQ | Private indexing and retrieval of human-approved evidence. |
-| Azure OpenAI | Direct private chat completion with API-supplied case evidence and validated citation IDs; no tools or managed agent. |
+| Azure OpenAI | Direct private chat completion with API-supplied case evidence and validated citation IDs; no tools. |
 | Azure Container Registry | Private builds and immutable-digest runtime images. |
 | Bicep + Azure CLI | Modular infrastructure and explicit native service/identity handoffs. |
 
@@ -39,9 +39,7 @@ Use a **new private PoC foundation**, an explicitly approved supported region an
 
 This PoC uses the approved synthetic-only attestation-deferred runtime mode. See the [scenario constraints](docs/highly-regulated-scenario.md#synthetic-only-poc) for its parameter contract and required controls.
 
-The portal/API/worker share one process, managed identity and replica. API checks gate publication, but the shared process and identity remain trusted with all case data; dedicated containers are not privilege isolation or immutable storage. Both approved PDFs and corrected fields remain indexed. See the [trust-boundary limitations](docs/highly-regulated-scenario.md#authentication).
-
-FIPS 140-3 is a requirement to assess for any future real deployment; this PoC makes no certification claim.
+The portal, API and worker share one process, identity and replica, so they are not privilege-separated. See the [trust-boundary limitations](docs/highly-regulated-scenario.md#authentication).
 
 ## Repository
 

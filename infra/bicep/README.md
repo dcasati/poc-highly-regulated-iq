@@ -1,7 +1,7 @@
 # Bicep module reference
 
 `infra/bicep/` is the canonical infrastructure source. Use Bicep and Azure CLI
-from Bash; no Terraform, cluster, pipeline or staging environment is required.
+from Bash.
 The operator procedure is in [getting started](../../docs/getting-started.md).
 
 ## Default template and inputs
@@ -62,8 +62,8 @@ public IP is attached to controlled outbound NAT, never the VM, application or
 ingress gateway. Exact reviewed egress rules do not authorize Internet-wide access.
 
 **Existing-resource safety:** source cleanup is not a migration. Preserve local
-state/configuration and cloud resources. Do not deploy over Terraform-owned
-resources without an explicit reviewed ownership change; matching names do not
+state/configuration and cloud resources. Do not deploy over resources this PoC
+does not own without an explicit reviewed ownership change; matching names do not
 establish ownership or make Bicep an import mechanism.
 
 Direct inference uses `application.openai_endpoint` / `chat_deployment`
