@@ -1,517 +1,65 @@
-# Private document review for highly regulated environments
+# Private document review
 
-This scenario adds a containerized review application and a **separate Terraform root** to an existing private Microsoft Foundry deployment. It is not the Fabric bootstrap in the [upstream template's base guide](https://github.com/dcasati/private-iq-template/blob/main/docs/getting-started.md). Do not run the base initializer or apply `infra/` to complete this scenario.
-
-For this derived PoC, "existing" must mean a **new, separately provisioned private PoC foundation**, not another project's infrastructure. Do not reuse, import, modify or peer with unrelated resources. In the Terraform path, the [`connectivity root`](../infra/connectivity/README.md) provisions only a new VNet and private synthetic-only administration VM; the [`foundation root`](../infra/foundation/README.md) separately provisions private Foundry/Search/Storage, tenant-owned agent stores and dedicated subnets. Its staged private verification, native project/runtime bindings, supported Content Understanding defaults and prompt-agent bootstrap must finish before scenario provisioning. Use an explicitly approved supported Azure region and regional/Data Zone model SKU permitted by the deployment's validation rules, rather than Global deployments, and verify the selected processing boundary. Global Azure control-plane services, Entra ID and Private DNS are not region-pinned.
-
-The application accepts a manually exported PDF package, retains the original, extracts structured fields and confidence with a custom Azure AI Content Understanding analyzer, requires human validation, and answers questions using case-scoped Foundry IQ evidence and an **existing prompt agent**. It does not connect to business systems or make eligibility decisions.
-
-**Status:** implementation and local checks are not a deployment, service-readiness demonstration or FIPS certification. Production use requires the approvals and live acceptance checks below. Foundry IQ and the project MCP connection use preview APIs; preview terms and service limitations must be accepted by the organization.
-
-| Infrastructure choice | Ownership and staging |
-| --- | --- |
-| Terraform (current live owner) | The saved-plan procedure and secured backend safeguards in this tutorial remain authoritative for the live PoC. |
-| [Standalone Bicep](bicep-deployment.md) | Terraform-independent new-solution composition under `infra/bicep/`, followed by ordered ARM, Graph and Search/CU operator stages for Container Apps. Bootstrap-grant revocation needs a separately approved deletion/readback. Sanitized examples and offline checks do not demonstrate a fresh live recreation. |
-
-These are alternatives for a resource boundary, not co-owners. Bicep source does
-not authorize deploying over Terraform-owned assets or migrating state. Initial
-Bicep platform preparation defers hosting, knowledge and runtime, permits absent
-browser identity only before runtime, and emits no phantom portal URL.
-The same private-link target-owner approvals, keyless/scoped identities, human
-review and case/owner filters, tools-disabled existing agent, immutable image,
-retention and image/platform/transport evidence gates apply to either choice.
+For deployment commands, use [getting started](getting-started.md). This guide describes the application rather than duplicating infrastructure instructions.
 
 ## Architecture and ownership
 
-![Target Azure architecture for private document review: retain original PDFs, explicitly validate custom Content Understanding extraction, privately index approved evidence, and retrieve case-and-owner-scoped citations for a tools-disabled prompt agent.](diagrams/private-document-review.svg)
+![Document intake, human review, publication and case-scoped questions.](diagrams/private-document-review.svg)
 
-[Open the full-size diagram](diagrams/private-document-review.svg) | [Editable Excalidraw source](diagrams/private-document-review.excalidraw). Edit locally or with the approved [Microsoft Excalidraw instance](https://aka.ms/excalidraw); the SVG is rendered offline without uploading repository content.
+![Private network connectivity and controlled outbound paths.](diagrams/private-network.svg)
 
-This is a **target/designed architecture**, illustrated for human review of Form 3500 exemption applications, not a deployment-status dashboard. The application's analyzer schema is configurable; the diagram does not imply a bundled Form 3500-specific schema or an eligibility engine. Read each numbered lane in its marked direction. The portal worker reads retained PDFs and calls the custom analyzer; explicit human confirmation is required before it publishes unchanged PDF copies and corrected field JSON into the two Search-readable containers. The portal, not the prompt or an unrestricted agent tool, enforces the case-and-owner retrieval boundary.
+The application supports human review of manually exported PDF packages, such as Form 3500 exemption applications. Its extraction schema is configurable; it is not a bundled eligibility model. There are no business-system connectors or automated eligibility decisions.
 
-Dedicated native agent Blob/Cosmos stores are separate from application document and review-state containers. The existing Foundry foundation and its native Agents capability host retain their owner; the scenario does not manage service-generated containers or databases. Approved model deployments and selected processing boundaries are target constraints: select and verify the applicable region, CU `geography`/`dataZone`, native layout processing and agent-model boundaries separately. Private endpoints do not by themselves establish processing residency.
+`infra/bicep/` creates the private PoC foundation and application infrastructure. Direct Azure OpenAI inference needs no Managed Agent Service, project, capability host or native agent stores. Source removal does not delete previously deployed resources; cleanup requires separate approval.
 
-**Readiness and cryptography:** provisioned foundation resources do not establish end-to-end readiness. Synthetic agent invocation, CU defaults/custom analysis/native layout, indexing/knowledge retrieval, private ACR build and deployed portal access must pass the acceptance checks below. This diagram neither asserts runtime-permission completion nor FIPS certification; the exact image, platform and TLS boundary require accepted evidence.
+## Application flows
 
-| Component | Ownership |
-| --- | --- |
-| New private account/models, Search S1, application Storage, separate agent Blob/Cosmos and dedicated subnets/DNS | `infra/foundation/`; separate secured backend. Terraform owns explicit AAD project connections/capability host; generated agent data remains native service-owned. |
-| Existing Foundry account/project, prompt agent, model deployments, Search, Storage, VNet/subnets and baseline private connectivity | Existing deployment remains authoritative. This root reads resources, not imports or replacements. |
-| New ACR and its private endpoint, application identity/RBAC, runtime, dedicated containers | `infra/highly-regulated/`; use its own secured backend key. |
-| Optional dedicated ACR build pool on an existing private Premium registry | `infra/acr-build/`; use a separate secured backend key. Registry, subnet, DNS and firewall ownership remain unchanged. |
-| Optional new single-tenant browser registrations | `infra/browser-identity/`; use a separate secured backend key. No existing applications, directory roles, credentials or Graph permissions are adopted/granted. |
-| Custom analyzer, Search index/data sources/skillset/indexers/source/base, project connection | Scenario Terraform data-plane CRUD with drift detection and dependency-ordered deletion. Never edit generated service-owned ingestion objects. |
-| Application code, browser UI and tests | `app/ReviewPortal/` and `app/ReviewPortal.Tests/`. |
-| Identity app registration, user role assignments, private-link approvals, approved certificates, immutable retention and cryptographic approval | Organization administrators. No automatic tenant consent, certificate material in state, or compliance self-certification. |
+1. **Intake:** an authenticated Caseworker uploads a PDF. The API derives owner identity from the authenticated tenant object ID, not a browser-supplied owner. Originals and durable review state are retained separately.
+2. **Extraction:** the continuously running worker invokes the custom Content Understanding analyzer privately. Fields, confidence, missing values and source evidence remain proposals.
+3. **Human review:** a Reviewer corrects and explicitly confirms every field. Missing/unknown/low confidence is visible; stale or partial review cannot publish. Reviewers require both Caseworker and Reviewer roles.
+4. **Publication:** only after approval are a PDF copy and corrected field JSON published to the two Search-readable containers. Original/review-state containers are not Search sources.
+5. **Questions:** the API enforces both case and owner filters on Foundry IQ knowledgebase/source retrieval, validates structured `sourceData` records and their content, and sends only that scoped evidence to direct private Azure OpenAI chat completions. It supplies the deployment name as `model`, requests `https://ai.azure.com/.default` for inference and sends no tools (CU keeps the Cognitive Services scope). Answers use bounded JSON `{answer, citations:[ids]}`; unknown citation IDs or tool/function output are rejected. Valid source identity is not proof that a statement is entailed by that source. Another user's evidence must never be retrieved or cited.
 
-The native Search Content Understanding skill exposes layout/chunking, **not a custom `analyzerId` parameter**. The application calls the custom analyzer asynchronously and indexes human-confirmed outputs through the second indexer. This is deliberate: a custom Web API skill hosted directly on AKS is not a supported Search shared-private-link target. Neither an inbound private endpoint nor an internal Kubernetes Service fixes that restriction.
+The approved PDF path retains native document layout/chunk/page indexing, alongside corrected-field JSON. Extraction of selected fields does not demonstrate full-page text coverage, so it cannot replace full-document indexing.
 
-The shared index contains two evidence types: original page-aware chunks and human-validated fields. Chat always supplies the complete reviewed fields alongside retrieved evidence so corrections are not dependent on ranking. A page value of zero identifies the field summary, not a physical PDF page.
+The worker records a durable extraction lifecycle and failure code; unknown submission outcomes do not automatically resubmit and risk duplicate billable work. The owner must explicitly acknowledge that risk when retrying `SubmissionOutcomeUnknown`. Retry uses the current case version; stale requests fail closed. The case list returns `{items, continuationToken}` with fixed 50-item pages and a `continuationToken` query; failure on one listed case must not hide the remaining page. Reviewer-only `/api/worker/status` supports operational visibility, not extraction or indexing acceptance.
 
-## 1. Resolve hosting and FIPS requirements first
+## Authentication
 
-### Explicit synthetic PoC attestation deferral
+Use a single-tenant Entra SPA and API. The browser uses authorization code with PKCE, not a client secret or implicit flow. The API requires v2 delegated `access_as_user` tokens and assigned application roles; reject wrong-tenant/audience, unsigned or expired tokens.
 
-The default `runtime_attestation_mode = "evidence_gated"` remains fail-closed:
-runtime requires accepted platform/service, exact-image TLS and transport
-FIPS 140-3 evidence. An explicit user-authorized synthetic PoC may instead set
-`runtime_attestation_mode = "synthetic_poc_attestation_deferred"`, while keeping
-`compliance.approved = false`, `compliance.encryption_standard = "FIPS140-3"`
-and `platform_evidence`, `image_evidence`, `transport_evidence` exactly `""`.
-Approval plus deferral, or any evidence reference in deferred mode, is rejected.
-This is an evidence deferral, not satisfaction or removal of the encryption
-requirement. Never fabricate references or use real/regulated documents.
+API preauthorization of the selected SPA, any organization-required consent and user role assignments are separate administrator decisions. No directory roles or tenant-wide Graph permissions are automatically granted. Users receive no direct Storage, Search or Foundry access.
 
-Bicep's equivalent typed `runtime.attestation_mode` selects `evidence_gated`
-or `synthetic_poc_attestation_deferred`; the latter requires `approved: false`
-and the same empty encryption evidence. Independently verified
-`runtime.knowledge` approval is still required. The sanitized runtime and AKS
-examples demonstrate the normal evidence-gated branch; to defer, change only
-the mode, encryption approval and three encryption evidence fields.
+Prompt instructions reject unrelated or mixed tasks and treat retrieved text as untrusted. The JSON-capable deployment must support system messages, JSON object output and `max_completion_tokens`; its native blocking RAI policy remains enabled. These controls do not remove the need for server-side authorization or human judgment.
 
-Both implementations emit `runtime_attestation_status` with
-`deferred_not_certified`, `synthetic_only = true` and
-`production_readiness = "not_established"` in deferred mode. This does not
-disable encryption controls, private endpoints/no public app/data ingress, dependency
-authorization, approved processing/residency boundaries, hosting/knowledge setup, immutable image
-digest, real SPA/API identities/roles/consent, retention or explicit human review.
-It does not authorize builds or native deployments: review and explicitly approve
-each exact saved deployment plan separately. Synthetic functional checks may
-proceed, but mark encryption attestations deferred, not passed; do not claim
-regulated/production readiness or certification. Return to `evidence_gated`
-only after genuine evidence is accepted, with a new reviewed runtime plan.
+**Synthetic trust exception:** portal, API and extraction worker share one process, managed identity and a single replica. Owner plus Reviewer checks, every-field confirmation and stale-version checks gate publication, but a compromised process can cross both parsing and approval authority. This deliberately relaxes privilege separation for synthetic inputs only; it is not an enforced process boundary or a production isolation claim. Real documents require a separately reviewed isolation design.
 
-Start with `hosting = "container_apps"`. Private VNet connectivity, internal ingress, managed identity, ACR pulls and a continuously running worker are supported by this deployment. `min_replicas = 1` prevents the durable processing worker from being scaled to zero.
+Publication verifies hashes and uses `If-None-Match` to avoid silently overwriting an existing revision. Approved-PDF metadata includes `original_sha256`, deterministic reviewed-revision fingerprint `review_sha256`, `reviewed_at`, `reviewer_id`, and owner/case/source identifiers. These application checks are **not IAM-level immutability**: the runtime's Blob Contributor rights can modify originals, approved evidence and state. Mismatched revisions are detected and rejected against the recorded hashes, not silently overwritten; a compromised identity that rewrites both content and trusted state remains outside this protection. Retention locks and IAM/process privilege separation require separately approved work.
 
-### Literal Container Apps Private Endpoint ingress
+## Private networking
 
-The hosting stage creates an environment Private Endpoint in the existing approved
-endpoint subnet, targeting the owned workload-profile environment's
-`managedEnvironments` group with an automatic connection and DNS zone group.
-It retains the internal environment, Consumption profile and
-`publicNetworkAccess = Disabled`; internal load-balancer ingress alone is **not**
-a Private Endpoint. The regional `privatelink.<region>.azurecontainerapps.io`
-zone is linked to the selected PoC VNet. Crucially, the existing environment
-default-domain wildcard A record points to the **actual PE NIC private address**,
-not the environment ILB `staticIp`: retaining the ILB record would bypass the PE.
-The private portal URL and SPA redirect stay unchanged. Bicep reads the PE-owned
-NIC after creation rather than relying on possibly empty `customDnsConfigs`.
+App/data ingress uses Private Endpoints only. Container Apps has an internal environment, public network access disabled and a `managedEnvironments` Private Endpoint. The application's domain resolves to that endpoint's NIC address, not the environment ILB. Supporting stores and registry retain private access, keyless identity, registry admin disabled and bypass `None`.
 
-Review the exact hosting plan before any apply, including the new PE, regional
-zone/VNet link, DNS zone group and wildcard record update. This source change is
-preparation only: publishing source or preparing full native plans does not
-authorize an apply.
+An explicitly approved controlled outbound-only NAT public IP is acceptable: it supports required outbound dependencies and does not expose unsolicited inbound access. NAT alone does not restrict destinations. Preserve destination-scoped controls; do not broaden them to unrestricted Internet egress. Entra sign-in is identity HTTPS, not a customer Private Endpoint.
 
-Budget for **both** [Azure Private Link endpoint-hour and inbound/outbound
-data-processing charges](https://azure.microsoft.com/en-us/pricing/details/private-link/)
-and the Container Apps environment's dedicated private-endpoint infrastructure.
-[Microsoft Learn's billing guidance](https://learn.microsoft.com/en-us/azure/container-apps/private-endpoints-with-dns#billing)
-identifies the latter as a separate **Dedicated Plan Management** charge that
-applies to **Consumption as well as Dedicated plans**. Keeping only a Consumption
-workload profile does not avoid this private-endpoint management fee.
-The [Container Apps pricing page](https://azure.microsoft.com/en-us/pricing/details/container-apps/)
-lists the Management (hour) meter and notes that charges for applicable features
-are additive. Private DNS and ordinary workload charges also remain separate;
-this is not a DNS-only or cost-free ingress switch. Confirm current rates for the
-selected region, currency and agreement in the official pricing tables/calculator
-before approval; no numerical rate or fixed total is asserted here.
-After the approved apply, verify connection approval, app-hostname DNS resolution
-to the PE NIC from the approved client path, TLS/authenticated portal access and
-public-access denial. Static tests do not establish any of those live outcomes.
+## Synthetic-only PoC
 
-Private ingress requires **no public inbound app/data endpoint** and no
-`publicIPAddress` assigned to the app or its ingress gateway. Explicitly approved
-controlled **outbound-only NAT is acceptable** and does not expose unsolicited
-inbound access. Its public IP resources are not blockers to private-ingress
-deployment or readiness when the operator has accepted them. This distinction
-does not approve unrestricted Internet egress, IAM/permission broadening or public
-access: retain approved destination/routing controls, Private Endpoints/DNS,
-`publicNetworkAccess = Disabled`, registry admin disabled and bypass `None`.
-Identity/end-user authorization, human review, approved processing boundaries and encryption
-controls remain mandatory, as do exact native/saved-plan approvals.
+The user explicitly approved deferred attestation for synthetic documents:
 
-A **literal zero-public-IP inventory** remains a separate optional stricter
-architecture, not the accepted private-ingress requirement. Removing/replacing
-outbound NAT for that optional architecture needs a separately chosen and
-approved egress design; do not remove NAT, add public exceptions or claim a
-zero-IP inventory as part of this source change. NAT acceptance does not imply
-an AKS migration or change the selected hosting runtime.
-
-The hard FIPS requirement is **FIPS 140-3 encryption at rest and in transit**, not certification of the entire application, operating system, hashing or JWT-validation code. Before selecting hosting, obtain accepted evidence for the actual service-encryption and TLS paths, including managed ingress and the workload's outbound TLS. An external HTTPS endpoint alone does not establish protection of an internal ingress-to-workload HTTP hop. Select AKS only if Container Apps cannot meet this encryption requirement or another actual runtime constraint; a missing node-level FIPS switch alone does not rule it out.
-
-Container Apps hosting declares
-[`peerTrafficConfiguration.encryption.enabled = true`](https://learn.microsoft.com/en-us/azure/container-apps/ingress-environment-configuration)
-to encrypt ingress-proxy and app-to-app traffic within the environment. Pinned
-AzureRM does not expose this setting, so Terraform owns only this property through
-a native `azapi_update_resource` on its existing environment, with drift detection;
-the application depends on that update. Bicep declares the same property directly.
-This setting is separate from client-certificate authentication and is not, by
-itself, FIPS 140-3 module attestation. Review/apply this change explicitly on an
-existing environment and verify the live setting before claiming encrypted hops.
-
-For either hosting option, review the cryptographic boundary with your compliance team:
-
-| Boundary | Required evidence |
-| --- | --- |
-| Application image (`image_evidence`) | Exact image digest and TLS-encryption module/version, FIPS 140-3 CMVP certificate/Security Policy, applicable operating environment and approved-mode evidence. Native probe results alone do not trace the actual managed TLS path. |
-| Managed services/platform (`platform_evidence`) | Applicable attestations for encryption at rest and hosting-managed encryption. A whole-app or whole-node certification is not independently required. |
-| Transport (`transport_evidence`) | Client, managed ingress or proxy, ingress-to-workload, mesh and workload-to-Azure encryption paths; applicable FIPS 140-3 modules, approved TLS/key-establishment configuration and certificate lifecycle. |
-| Data controls | Selected processing/residency boundaries, authorized access, retention and key-management requirements remain separate readiness controls, not broader application FIPS-certification gates. |
-
-**FIPS validates modules, not this application as a whole.** AES-256, TLS 1.2, a FIPS 140-2 certificate or a node flag alone does not establish the required FIPS 140-3 encryption. AKS explicitly excludes container-image assessment from its FIPS-node guarantee. Set `compliance.encryption_standard = "FIPS140-3"` and keep `compliance.approved = false` until the approving authority accepts the encryption boundaries and records the three evidence references. JWT/signature and hashing correctness still require normal security tests, but not independent application FIPS certification. Key establishment and other operations supporting encryption must still meet the accepted module's Security Policy.
-
-The Dockerfile intentionally has **no default runtime image**. Supply an approved .NET 10 runtime image by immutable digest. Changing its crypto packages, configuration, base image or operating environment can invalidate evidence. The build SDK is not claimed to be a validated runtime. Maintain approved OS/.NET versions and evaluate library updates before rebuilding.
-
-Azure Linux 3 [includes the SymCrypt OpenSSL provider](https://github.com/microsoft/SymCrypt-OpenSSL/tree/main/SymCryptProvider), but package presence or default enablement is not approved-mode evidence. In an OpenSSL property query, `?provider=symcryptprovider` is an [optional preference](https://docs.openssl.org/3.3/man7/property/#queries), not an exclusive requirement: another loaded provider can satisfy a fetch. Inspect the exact image's effective configuration and the encryption provider/parameters actually used by workload TLS against the applicable FIPS 140-3 certificate and Security Policy. This does not impose a separate JWT/hashing certification requirement. Do not infer compliance from a package version, certificate number or `fips=yes` property alone.
-
-[CMVP certificate 5313](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5313)
-validates SymCrypt 103.8.0 for specified operating environments, including Azure
-Linux 3. Its [Security Policy](https://csrc.nist.gov/CSRC/media/projects/cryptographic-module-validation-program/documents/security-policies/140sp5313.pdf)
-places HKDF outside approved mode and lists P-256/P-384/P-521 for approved ECDH.
-For this selected module, outbound clients restrict TLS to 1.2 and ECDHE AES-GCM.
-The runtime image's `openssl-tls.cnf` includes the vendor configuration unchanged
-and restricts ECDHE groups to P-256/P-384; the Docker build rejects incompatible
-vendor configuration instead of silently omitting the profile. Azure SDK and
-JWT-metadata HTTPS transports use the shared client policy. These controls do not
-prove native provider selection or certify the managed ingress/service boundary;
-they require a new ACR image and actual runtime checks. This is certificate-specific,
-not a claim that every TLS 1.3 implementation is noncompliant.
-
-The separate [.NET/Linux diagnostic harness](../app/ReviewPortal.CryptoChecks/README.md)
-collects provider observations, managed cryptographic test results and optional
-certificate-validated TLS evidence without changing the image's OpenSSL defaults.
-Native provider observations do not establish which provider every managed .NET
-operation uses. Completed diagnostics remain explicitly unqualified; a successful
-build or test run cannot authorize the runtime.
-
-Container Apps is listed in [Azure Commercial FedRAMP High audit scope](https://learn.microsoft.com/en-us/azure/azure-government/compliance/azure-services-in-fedramp-auditscope),
-but that listing does not identify the managed-ingress cryptographic module.
-If public documentation does not resolve this boundary, have an authorized
-administrator obtain the applicable SSP/customer-responsibility evidence through
-the [Microsoft Service Trust Portal](https://servicetrust.microsoft.com/) and
-request Microsoft Support attestation. Request the encryption module/version, current
-FIPS 140-3 CMVP certificate/status, operating environment, approved-mode configuration and
-applicable region/workload profile. Keep the runtime gate closed until the
-approving authority accepts that evidence; FIPS AKS nodes do not automatically
-validate a replacement ingress proxy or application image.
-
-For a private build without arbitrary package-CDN egress, stage only the locked
-NuGet packages in an ignored `nuget-offline/` folder inside the inspected ACR
-build context and pass `--build-arg NUGET_SOURCE=/src/nuget-offline`. Verify the
-feed with native `dotnet restore --locked-mode --source <offline-feed>
---packages <new-empty-cache>` before uploading. NuGet validates its locked
-content hashes; signed archive hashes are not interchangeable with these.
-Candidate-image
-builds may gather evidence, but do not authorize production deployment; keep
-runtime cryptographic approval false until the full boundary is accepted.
-
-Budget for Premium ACR, private endpoints, the runtime environment and retained storage before deploying an application revision. AKS provisions both node pools in the separately reviewed hosting stage; Container Apps keeps at least one application replica once runtime is enabled. Search capacity, Content Understanding/layout processing and agent inference have separate charges. Retention, repeated indexing and explicit analysis retries can increase costs.
-
-The AKS fallback uses a private control plane, Azure CNI Overlay, FIPS-enabled system/application pools, workload identity, internal Istio ingress and STRICT mesh mTLS. It does not copy the reference repository's region or version pins. Choose versions available together in your region. Do not automatically enable preview Istio CNI or assume its compatibility/cryptography has been approved. Changing from Container Apps to AKS after an apply is a migration requiring a separately reviewed plan, not a toggle to try casually.
-
-## 2. Establish the target, execution host and prerequisites
-
-Follow the [foundation stages](../infra/foundation/README.md) first. The initial
-account plan creates no project or application. After private verification, create
-the project, discover its provisioning identity, review AAD connections/scoped
-bootstrap grants, then separately provision its native capability host. Discover
-real service-owned runtime identities and data scopes before reviewing runtime
-role grants, including removal of the temporary account-wide Blob data grant. Never change
-store settings by deleting/recreating a project automatically. Its outputs are
-handoff references, not proof of Content Understanding, indexing or FIPS readiness.
-Review runtime/build dependency egress before creating the scenario environment
-or ACR pool; the foundation's restrictive subnet reservations are not operational
-runtime/build networks by themselves.
-
-The optional `infra/browser-identity/` root creates new single-tenant SPA/API
-registrations, service principals, API v2 tokens, the `access_as_user` delegated
-scope and user-only Caseworker/Reviewer roles. It preauthorizes only that SPA for
-that custom scope, not Microsoft Graph. `assign_operator_roles` is false by
-default; explicit approval grants these two application roles to the current
-deployment user only, never a directory/admin role. Use a distinct secured
-backend and verify the selected CLI directory/authority first. API Identifier URI
-ownership is narrowly delegated to its native child resource; no blanket drift
-exclusion is used. Add exact HTTPS SPA redirect URLs only after discovering the
-actual private host. An empty redirect set permits registration, not working
-browser authentication; no secret, implicit-flow or authorization bypass is used.
-
-Use this derived repository, one approved VNet-connected deployment host and one existing Azure identity throughout. For Terraform, retain one secured remote backend with distinct keys for each root; never duplicate an existing state owner in an App worktree or copy tfvars/state between checkouts. The private ACR pool is the separate build executor. No live deployment is authorized by reading this guide.
-
-Only the separately approved synthetic-only connectivity VM/network and [`private state-backend`](../infra/state-backend/README.md) bootstraps may use owner-only local state on the encrypted authoritative host while the private backend is unavailable. Tailscale is not FIPS-validated; these exceptions do not approve regulated-data transport or bypass runtime compliance gates. VM apply/enrollment, route/ACL/exact-hostname split-DNS changes, backend apply/scoped access grant and each existing-state migration require approval. Foundation, scenario and ACR build-pool roots require secured remote state.
-
-The existing deployment must provide:
-
-- Private Foundry, Search and Blob endpoints reachable from the runtime, deployment runner and reviewer network. Private DNS must resolve the normal service hostnames to private addresses. The existing `privatelink.azurecr.io` zone must already be linked to that VNet.
-- Search **S1 or higher**, with private skillset support and an appropriate service creation/upgrade date. The base template's Basic tier is insufficient for private Content Understanding skillsets. This root refuses it rather than upgrading an existing service.
-- An approved Search-to-Blob shared private link for the selected Storage account and an existing Search system-assigned identity. Terraform grants that identity `Storage Blob Data Reader` on only the new approved PDF/evidence containers; it does not grant access to originals or review state.
-- Search identity `Cognitive Services User` on the selected Foundry account. Content Understanding processing and billing need `foundry_account` and `cognitiveservices_account` shared links. Supply their existing names in `existing_content_links`; otherwise Terraform creates **only these missing links**. Inspect existing links first to avoid duplicate resource/subresource pairs.
-- Existing Content Understanding defaults mapping `analyzer_models` to supported, approved model deployments. Availability of a prompt agent or a GPT deployment alone does not establish Content Understanding readiness. The custom analyzer uses `2025-11-01` and an explicitly selected `geography` or `dataZone` processing location. The native Search layout skill's processing/data-boundary behavior must also be approved; the app's setting does not configure the native skill.
-- An existing **prompt** agent accessible to the runtime project identity. The portal invokes its Responses endpoint without tools or conversation reuse. Managed agent instructions own the restricted review scope, whole-request refusal and evidence rules; use the foundation's reviewed [`review-agent.instructions.txt`](../infra/foundation/review-agent.instructions.txt) and verified native Prompt Shields policy in a new agent version. The portal retains its typed evidence/human-decision context alongside `agent_reference`, not the unsupported top-level `instructions` override. It performs no separate intent classification or publication judging. Agent-policy updates are separately reviewed native version deployments, not side effects of a chat request.
-- A project identity with Search retrieval permissions if operators use the optional MCP project connection. The application itself uses its own Search reader identity.
-- Deployment identity ARM/RBAC rights and Search Service Contributor, Cognitive Services User, plus required Blob data-plane access. Provider data sources can return resource keys into Terraform state even though runtime and data-plane management are keyless. Encrypt and restrict state, saved plans and logs; never enable HTTP/debug body logging.
-- Required resource providers registered by an administrator: ContainerRegistry, Network, ManagedIdentity, Storage, Search, CognitiveServices and App or ContainerService. This root deliberately does not register providers or modify tenant settings.
-
-For Container Apps, supply a **dedicated, correctly sized/delegated workload-profile subnet** with the approved NSG/UDR/firewall controls. For AKS, supply a dedicated node subnet with working UDR-controlled outbound connectivity, nonoverlapping pod/service ranges, supported Kubernetes/FIPS OS/VM/Istio versions and `kubelogin` on the deployment host. The Kubernetes provider uses Azure CLI authentication, not a cluster-admin password.
-
-### Browser/API identity
-
-Have the administrator approve a SPA registration and an API registration in the same tenant:
-
-1. Configure the API to issue v2 access tokens, expose `access_as_user`, and define user app roles `Caseworker` and `Reviewer`.
-2. Authorize the SPA for that delegated API scope and complete the organization's consent procedure.
-3. Assign reviewers **both** roles. API endpoints require the correct tenant, audience, lifetime, signature, object ID, delegated scope and role; publishing additionally requires `Reviewer`.
-4. Register the exact portal root URL ending in `/` as a **SPA** redirect URI once the internal hostname is known. For approved localhost development, register that exact HTTPS origin separately. Do not use wildcard redirects.
-
-Authorization-code PKCE uses browser cryptography. Bearer tokens remain in memory; only the short-lived PKCE verifier/state is temporarily in session storage. Refreshing the page requires sign-in again. No client secret, cloud key, document or bearer token is persisted in browser storage. The portal uses same-origin APIs and no third-party JavaScript CDN.
-
-Cases are isolated to the uploading user's tenant object ID. Reviewers cannot browse another user's cases. Shared assignment/delegation is not implemented; do not bypass this with a client-supplied owner ID. Users must not receive direct service-wide Search access or access to the unfiltered MCP connection. The model's prompt is **not** an access-control boundary.
-
-The portal uses neutral public-service branding, blue actions, gold accents and
-light informational panels. Styles, scripts and typography are served locally:
-do not add external browser assets, tracking, official agency names or logos.
-Field values and source evidence have separate widths; small screens stack
-the review fields without changing the required human confirmation workflow.
-Answers are displayed as evidence reports with safe text-based emphasis,
-headings, lists and tables. Citations open the matching supporting source;
-reviewed field records do not pretend to have PDF page numbers. Model text is
-never inserted as raw HTML, and model-provided links are not activated.
-
-## 3. Configure and provision the scenario platform
-
-Copy `infra/highly-regulated/terraform.tfvars.example` to one ignored `terraform.tfvars` in that directory without overwriting another deployment's configuration. Fill verified existing-resource names and endpoints; choose generic branding and an explicit region. Keep `provision_hosting`, `deploy_knowledge` and `deploy_runtime` false initially.
-
-Configure the approved encrypted remote backend in the derived repository using native Terraform. Use a distinct scenario key. Then, on the selected private execution host:
-
-The scenario and ACR build roots declare an `azurerm` backend; supply each root's
-own ignored backend configuration and verify the distinct agreed key before
-initialization. The scenario uses Entra authentication for keyless Blob management
-and neither root registers providers automatically.
-
-Browser registration approval does not block platform or knowledge preparation:
-omit `identity` or set it to `null` while `deploy_runtime = false`. This creates no
-browser registrations, consent or unauthenticated application. Supply the approved
-real registrations before enabling runtime; Terraform rejects a missing identity,
-wrong directory or mismatched API scope. AKS control-plane authentication uses the
-selected deployment directory even before browser registrations exist.
-
-The initial platform stage creates the private registry/endpoint, application
-identity, dedicated data containers and scoped grants without creating a hosting
-environment or cluster. Set `provision_hosting = true` only in a separately reviewed
-plan after the selected runtime's dependency egress is ready. This lets private
-knowledge and build prerequisites progress without choosing an unverified
-cryptographic hosting boundary or prematurely provisioning billable nodes.
-Container Apps remains the first choice. Runtime additionally requires the real
-browser registrations, knowledge, reviewed image digest and compliance evidence
-or the explicitly authorized synthetic-only attestation deferral above.
-Do not reset any applied stage flags on resume.
-
-Search serializes shared-private-link updates at the service level. The native
-AzAPI lock uses the selected Search service ID so processing and billing requests
-are not written concurrently. If an apply partially succeeds, preserve its state
-and inspect a fresh recovery plan; never reuse the consumed original plan or
-delete successful resources to retry.
-
-```sh
-cd infra/highly-regulated
-# Authentication/subscription follows standard ARM_* or Azure CLI conventions.
-set +x
-export TF_VAR_search_access_token="$(az account get-access-token \
-  --scope https://search.azure.com/.default --query accessToken -o tsv)"
-export TF_VAR_content_access_token="$(az account get-access-token \
-  --scope https://cognitiveservices.azure.com/.default --query accessToken -o tsv)"
-terraform init
-terraform validate
-terraform plan -out=platform.tfplan
-# Obtain approval for this exact saved plan, then:
-terraform apply platform.tfplan
+```bicep
+attestation_mode: 'synthetic_poc_attestation_deferred'
+approved: false
+platform_evidence: ''
+image_evidence: ''
+transport_evidence: ''
 ```
 
-Acquire fresh tokens in **each** plan/apply shell; they are ephemeral provider inputs, not saved plans/state/configuration values. Do not print them. Never use `-auto-approve`, targeted applies, AZD hooks, or a custom deployment wrapper.
+These are fields inside `runtime`; other runtime fields still need real supported service references, SPA/API identities, knowledge readiness and an immutable image digest. Deferral does not waive private networking, encryption controls, approved processing boundaries, authorization, retained originals or human confirmation.
 
-The first stage creates the private ACR, its endpoint, application identity/permissions and dedicated containers, but **no hosting environment, cluster or application container**. Hosting is a later, separately approved stage. Newly requested Content Understanding private links remain pending until target owners approve them. Existing infrastructure and the agent are not recreated. Confirm the actual provisioning/link states before proceeding.
+Use synthetic documents only. FIPS 140-3 encryption at rest/in transit is a requirement to assess before any future real deployment; this PoC makes no certification claim. The optional `evidence_gated` contract remains available for separately reviewed evidence, but is not this PoC's selected mode.
 
-All four containers have `prevent_destroy`. Originals are uploaded with `If-None-Match: *`, their SHA-256 digest is recorded in case state, and the application provides no deletion route. This is **not** an immutable-retention policy: the scoped runtime Blob Contributor can still delete through the service API. Before real documents, administrators must apply and verify an approved locked immutable-retention/legal-hold policy for originals and durable extraction/audit evidence, plus protected state/versioning/backup and an approved deletion schedule. Retention settings are organization-owned and are not silently locked by this example. Do not remove `prevent_destroy` to make a cleanup plan pass.
+## Before calling the application ready
 
-## 4. Complete analyzer and knowledge registration
+Observe the complete synthetic browser workflow: upload, extraction, correction, every-field confirmation, reviewer-only publication, both evidence paths indexed, authorized answers with page/source references, and rejection of foreign cases/owners. Confirm a continuously running worker, private image pulls, normal private DNS and denied public app/data access. Record failures and preview/cost/quota limitations; successful infrastructure deployment or isolated service calls are not complete application readiness.
 
-Custom Content Understanding analyzer IDs must not contain hyphens. The shared
-default is `application_review`; keep Terraform, Bicep payloads and portal
-configuration aligned. Native prebuilt analyzer names are service-owned and
-are not renamed.
-
-Search redacts data-source connection strings on reads, including keyless
-`ResourceId` values. Terraform sends only the `credentials` object through the
-provider's native write-only `ephemeral_body`, whose changes are hash-tracked.
-The older `write_only_attrs` option handles omitted fields, not returned
-redaction placeholders. All other data-source fields retain drift detection;
-authentication target changes still require a reviewed configuration update
-rather than a blanket body exclusion.
-
-Approve pending private-link requests on the target Foundry resource through the authorized owner process. Both Content Understanding links and the existing Blob shared link must report `Approved`; Terraform checks group IDs and target resource identity, not merely names.
-
-Set `deploy_knowledge = true`, leave `deploy_runtime = false`, acquire fresh tokens, and create/review/apply a separate saved `knowledge.tfplan`. This registers:
-
-- A scenario-owned custom analyzer with explicit source/confidence estimation and a generic scalar field schema.
-- A semantic Search index with filterable `case_id`/`owner_id`, page references and evidence type.
-- A native Content Understanding layout skillset and private PDF indexer, reading **only human-approved PDFs**.
-- A private JSON indexer for the reviewed field summaries.
-- A `searchIndex` knowledge source referencing that controlled index, a minimal/extractive knowledge base, and a nonshared project MCP connection.
-
-The index is intentionally semantic/text-based: embeddings are not required for minimal Search-index retrieval. The custom Content Understanding analyzer may still need the approved embedding model in its model/default configuration. Unlike the Learn tutorial's `azureBlob` source, this source does not create an ingestion pipeline that Terraform would subsequently overwrite.
-
-Do not add the project MCP connection as an unrestricted runtime tool for user case queries. The portal performs retrieval itself with a server-built `filterAddOn` on **both case and owner**, checks every returned reference's source metadata, refuses partial retrieval, and calls the existing agent with `tool_choice = "none"`. It starts no shared conversation and asks Foundry not to retain the response (`store = false`); this is not a replacement for the service's own retention policies.
-
-The private Learn tutorial documents an ingestion-time embedding trusted-service bypass for its blob-generated pipeline. Do not disable existing settings based on this scenario or treat an approved `openai_account` link as proof of Content Understanding reachability. This scenario adds the separate processing/billing links and requires live native-skill validation.
-
-## 5. Build and publish the approved application image
-
-### Build in ACR without a local Docker daemon
-
-Use ACR Tasks with a **dedicated VNet-connected agent pool** for a registry whose public network access is disabled. Microsoft's [private endpoint guidance](https://learn.microsoft.com/azure/container-registry/container-registry-private-endpoints#use-az-acr-build-with-private-endpoint-and-private-registry) states that ordinary `az acr build` workers cannot build against that private registry. The trusted-services bypass is not a substitute for a connected pool. Do not open the registry firewall or enable public access to make a build pass.
-
-If an approved pool already exists, use its name without importing or recreating it. Otherwise, the optional [`infra/acr-build/`](../infra/acr-build/) root creates **only a new agent pool** against the existing registry. It reads the existing registry and network; it does not adopt them, change public access, create network rules or grant itself permissions. It can target the scenario's registry after the platform stage, or a separately approved existing registry.
-
-ACR agent pools are a **Linux-only preview** with limited region availability and per-registry vCPU quotas. Confirm the current [supported regions, tiers and limitations](https://learn.microsoft.com/azure/container-registry/tasks-agent-pools) before provisioning. This root requires an explicit region matching the registry and build VNet, a Premium registry, disabled public access, an approved existing private endpoint and authorized preview/network approvals. Preconditions do not prove the endpoint is reachable from the chosen subnet.
-
-Have the network owner approve a dedicated existing build subnet with usable address space, private registry/data-endpoint DNS and routing. Do not reuse a delegated Container Apps subnet or change another workload's subnet to fit the pool. The pool needs approved egress to Azure Key Vault, Storage, Event Hub, Entra ID and Azure Monitor on TCP 443, plus Azure Monitor's documented TCP 12000 dependency. The Dockerfile also needs permitted access to Microsoft Container Registry and NuGet, or approved mirrors. Custom DNS must not conflict with Docker's `172.17.0.0/16` range. These DNS/NSG/UDR/firewall controls remain under their existing owner's state.
-
-In the derived deployment checkout, copy the sanitized build-root example to its ignored `terraform.tfvars`, fill verified names and the explicit region, and record a nonsensitive network approval. Set `preview_approved = true` only after the authorized organization accepts the preview terms. Configure a **distinct encrypted remote backend key** for this root; do not reuse scenario/platform state. Subscription/authentication use the selected CLI account or standard `ARM_*` conventions. The operator needs approved rights to read the existing network, create the registry's agent pool and join the build subnet; this root creates no RBAC assignments or provider registrations.
-
-```sh
-cd infra/acr-build
-export ARM_SUBSCRIPTION_ID="<approved-subscription-id>"
-terraform init
-terraform validate
-terraform plan -out=build-pool.tfplan
-# Obtain approval for this exact saved plan, then:
-terraform apply build-pool.tfplan
-terraform output agent_pool_name
-```
-
-Use no `-auto-approve`, targeted apply, AZD hook or deployment wrapper. An S2 pool allocates four vCPUs per instance; the example keeps **one billable instance** allocated, even while idle. Check quota across all pools in the registry. A separately approved plan may set `instance_count = 0` after all builds finish; zero-capacity pools cannot run builds. Do not automatically delete or scale someone else's pool.
-
-The pinned [AzureRM 5.8.0 pool update implementation](https://github.com/hashicorp/terraform-provider-azurerm/blob/v5.8.0/internal/services/containers/container_registry_agent_pool_resource.go) sends only instance count, omitting tags even on tag-only updates. This root therefore delegates only pool tags to the native `Microsoft.Resources/tags@2021-04-01` extension resource. AzureRM ignores only that child-owned field; the ARM tags resource retains drift detection and correction. After scaling, refresh and review a full plan to restore any service-cleared tags; never hide all pool drift or repeat ineffective AzureRM tag updates.
-The tags extension exists automatically at the owned pool's scope, so `azapi_update_resource` manages its declared tag set without importing/recreating it. Removing that Terraform metadata owner alone does not delete cloud tags.
-
-After pool provisioning and live network checks, verify the approved runtime image/module evidence and submit only the application build context:
-
-```sh
-cd <derived-repository-root>
-dotnet restore app/ReviewPortal/ReviewPortal.csproj --locked-mode
-dotnet test app/ReviewPortal.Tests/ReviewPortal.Tests.csproj
-az acr build \
-  --subscription "<approved-subscription>" \
-  --registry "<existing-private-registry>" \
-  --agent-pool "<approved-pool-name>" \
-  --platform linux/amd64 \
-  --file Dockerfile \
-  --image "review-portal:{{.Run.ID}}" \
-  --build-arg RUNTIME_IMAGE="<approved-dotnet-10-runtime-repository>@sha256:<reviewed-digest>" \
-  --timeout 1800 \
-  app/ReviewPortal
-az acr task show-run \
-  --subscription "<approved-subscription>" \
-  --registry "<existing-private-registry>" \
-  --run-id "<returned-run-id>" \
-  --query "{status:status,outputImages:outputImages}" --output json
-```
-
-This uploads current working-tree application sources, including uncommitted changes, rather than an old Git branch. The `.dockerignore` excludes local configuration, credentials and build output; inspect the context before upload. Never pass credentials through `--build-arg`. The CLI submission host needs access to the ARM/task and source-upload services; the pool needs access to the private registry and build dependencies. No local Docker daemon, registry admin password or `az acr login` is needed for this quick-build path.
-
-Require run status **Succeeded** and an output image digest before calling the image built. Record that digest, source/build identity, scan/SBOM/provenance, patch baseline and module evidence. Terraform deploys `review-portal@sha256:...`, never the run tag. The runtime root expects the image in **its own ACR**: if a different build registry was selected, use an explicitly approved transfer into the runtime registry and verify the destination digest before setting `image_digest`. Do not assume two registries contain identical artifacts.
-
-Private connectivity does **not** make an ACR agent pool FIPS validated. If the build system is inside the organization's required cryptographic boundary, obtain its specific evidence or use an approved connected build host instead. No production runtime image is supplied by this repository. Neither an ACR build nor a local .NET build demonstrates approved container cryptography.
-
-## 6. Deploy the runtime
-
-Set `image_digest`, complete the three approval references (or the explicit synthetic-only attestation deferral above) and real browser identity, and set `deploy_runtime = true` after the reviewed `provision_hosting = true` stage. Review/apply a new saved runtime plan with fresh tokens. For Container Apps, the application is reachable only through the private environment path; `external_enabled = true` on the app means reachable outside the individual app within that private network, **not** a public environment endpoint. The hosting stage creates the environment Private Endpoint and its private DNS zones/VNet links; the environment-domain wildcard targets the actual PE NIC, not the internal load balancer.
-
-For AKS, the hosting stage must already exist before the Kubernetes provider can discover Istio CRDs. From the private runner, verify the actual ingress namespace/selector. Provision the approved certificate as a Kubernetes TLS Secret in the **ingress gateway workload namespace**, using the organization's external secret/certificate procedure; never commit a key or place it in tfvars. Supply the existing secret name. Terraform configures HTTPS Gateway/VirtualService, static internal ingress IP annotation, sidecar injection, strict mTLS, application FIPS-pool scheduling, resource limits, nonroot/read-only containers and network policy.
-
-The organization's internal DNS must map the approved AKS hostname to the reserved private ingress IP. Certificates, DNS and browser redirect registration must agree before enabling access. The network policy permits HTTPS egress for Azure dependencies; **existing UDR/firewall controls** must restrict approved destinations. A TCP 443 rule alone is not a private-only/allowlisted egress policy.
-
-Updating mesh revisions creates new gateway/sidecar versions. Reassess their cryptographic evidence and rollout; do not assume the prior revision's approval applies.
-
-## 7. Demonstrate readiness using synthetic documents first
-
-Run these acceptance checks only in the explicitly chosen derived deployment. A successful Terraform apply, HTTP 200, `Approved` application state or health endpoint is insufficient.
-
-| Check | Required result |
-| --- | --- |
-| Network and identity | Foundry, Search, Blob and ACR resolve privately from runner/runtime; TCP 443 works; public/unapproved client paths fail. All shared private links are approved with correct targets. Unsigned, expired, wrong-audience/tenant/scope/role tokens fail. |
-| Intake and extraction | Valid synthetic PDF retained unchanged; non-PDF/oversize/password-protected or analyzer-failed content is explicitly rejected/failed. Custom analyzer produces the expected named fields, source positions and confidence. Full analysis result is retained separately. |
-| Human gate | Missing/unknown/low confidence is highlighted; every field needs confirmation; a Caseworker without Reviewer cannot publish; stale ETag/partial field reviews fail. No content is searchable before approval. |
-| Publication/indexing | Both indexer status URLs report successful executions with zero failed items. Verify actual original chunks/page ranges and reviewed JSON records, including correct case/owner metadata. Test documents over the native skill's five-minute processing limit fail visibly. |
-| Isolation and agent | Another uploader cannot list/read/download/review/chat with the case. Retrieval references all match the authenticated owner and selected case. Test hostile question/document instructions; no agent tools or unrelated cases are accessible. Answer contains evidence citations and exposes missing/conflicting facts. |
-| Recovery | Restart replicas during analysis and publication; blob leases prevent concurrent processing. An ambiguous submission becomes `SubmissionOutcomeUnknown` rather than being silently repeated. Explicit retry warns about possible duplicate costs. |
-| Encryption evidence | Verify actual at-rest/service, workload TLS and ingress/proxy encryption modules, relevant approved-mode behavior and key-establishment parameters against the accepted FIPS 140-3 certificates/Security Policies. Do not substitute independent whole-app/hash/JWT certification. |
-| Retention/audit | Verify immutable retention, approved access, case/reviewer timestamps, preserved original values/corrections, backup and no document/token content in telemetry. |
-
-Use `terraform output indexer_status_urls` for status locations. `Pending -> Submitting -> Analyzing -> NeedsReview -> Publishing -> Approved` is application workflow, **not indexing readiness**. The worker persists operation URLs, polls with bounded steps and a 30-minute analysis deadline, and resumes publication after a restart. Cloud errors are surfaced with sanitized failure codes/request IDs; original documents are not automatically deleted on failure.
-
-`/health/live` checks process health. `/health/ready` checks state-storage access and explicitly says retrieval is not verified. No endpoint claims model, binding, indexing or compliance readiness.
-
-## Local development and static checks
-
-Use .NET 10 and the repository's Terraform toolchain. Keep configuration outside Git: copy `appsettings.example.json` to ignored `appsettings.Development.json`, set approved test endpoints/identity and use a **synthetic-only** development tenant. Development uses the existing Azure CLI identity; production selects AKS workload identity or the Container Apps user-assigned identity, without a credential fallback to a developer login.
-
-```sh
-dotnet restore app/ReviewPortal/ReviewPortal.csproj --locked-mode
-dotnet test app/ReviewPortal.Tests/ReviewPortal.Tests.csproj
-node --check app/ReviewPortal/wwwroot/portal.js
-node --check app/ReviewPortal/wwwroot/report.js
-terraform -chdir=infra/highly-regulated init -backend=false -input=false -lockfile=readonly
-terraform -chdir=infra/highly-regulated fmt -check
-terraform -chdir=infra/highly-regulated validate
-# If the optional private ACR build-pool root changed:
-terraform -chdir=infra/acr-build init -backend=false -input=false -lockfile=readonly
-terraform -chdir=infra/acr-build fmt -check
-terraform -chdir=infra/acr-build validate
-```
-
-For isolated report-presentation browser checks, use an installed Python
-Playwright/Chromium environment, serve `app/ReviewPortal/wwwroot` on
-`127.0.0.1:5297`, and run `python3 app/ReviewPortal.Tests/report_browser_tests.py`.
-The fixtures intercept all API calls; they do not sign in, retrieve live cases
-or execute cloud services. Stop the local server after checking.
-
-Use `dotnet run --project app/ReviewPortal` with `ASPNETCORE_ENVIRONMENT=Development` and an approved HTTPS launch configuration/certificate. An Entra SPA redirect must match the actual origin. Do not run live extraction/indexing just to maintain the template. If local deployment configuration/state exists, use an isolated static-check copy containing only current Terraform sources and the lock file, per the maintenance skill.
-
-The scenario deliberately adds the Kubernetes provider to its own lock file; base provider versions and the base lock file are unchanged. Static checks cannot validate quota, private-link approval, DNS, image evidence, service preview availability, Content Understanding defaults, native-skill data residency or a live agent response.
-
-### Case-scoped conversation
-
-Reviewed applications open a chat workspace with a scrollable transcript,
-message bubbles, a bottom composer and expandable evidence for each reply.
-Enter sends a message; Shift+Enter inserts a newline. Stop cancels the browser's
-wait (it does not guarantee cancellation or billing reversal in cloud services).
-Failed replies can be retried explicitly. Human validation remains available
-on its separate tab and remains required before any question.
-
-Conversation stays in the current tab's memory only. New chat, selecting another
-application, or reloading clears it. Each request sends at most six completed
-user/assistant pairs, totaling at most 48,000 characters. Questions/user messages
-are limited to 4,000 characters; historical assistant replies to 12,000. Older
-pairs are omitted as needed; an oversized previous answer displays a warning
-requiring an explicit question without follow-up context.
-
-The server validates this optional stateless history and treats it as untrusted
-context, not evidence. Every turn retrieves fresh evidence for the authenticated
-owner and selected application; prior assistant answers/citation identifiers
-cannot authorize retrieval or establish facts. Foundry conversation reuse,
-agent tools and response storage remain disabled.
-
-Run `node --check app/ReviewPortal/wwwroot/chat.js` alongside the other script
-checks. With the same local static server and installed Playwright/Chromium, run
-`python3 app/ReviewPortal.Tests/chat_browser_tests.py` for isolated interaction,
-history, retry/cancellation and case-isolation checks. These are browser fixtures,
-not authenticated cloud acceptance checks.
-
-## Sources and design references
-
-- [Private Foundry IQ tutorial overview](https://learn.microsoft.com/azure/foundry/agents/how-to/foundry-iq-tutorial-private-overview) and [retrieval validation](https://learn.microsoft.com/azure/foundry/agents/how-to/foundry-iq-tutorial-private-retrieval).
-- [Native Content Understanding skill](https://learn.microsoft.com/azure/search/cognitive-search-skill-content-understanding), [keyless skillset billing](https://learn.microsoft.com/azure/search/cognitive-search-attach-cognitive-services), [custom analyzer](https://learn.microsoft.com/azure/ai-services/content-understanding/tutorial/create-custom-analyzer).
-- [Search shared private link supported targets](https://learn.microsoft.com/azure/search/search-indexer-howto-access-private), [Search index knowledge sources](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-search-index), [retrieval filters](https://learn.microsoft.com/azure/search/agentic-retrieval-how-to-retrieve).
-- [Container Apps networking](https://learn.microsoft.com/azure/container-apps/networking), [AKS FIPS limitations](https://learn.microsoft.com/azure/aks/enable-fips-nodes), [Istio internal ingress](https://learn.microsoft.com/azure/aks/istio-deploy-ingress).
-- [Private ACR build restrictions](https://learn.microsoft.com/azure/container-registry/container-registry-private-endpoints#use-az-acr-build-with-private-endpoint-and-private-registry) and [dedicated ACR task agent pools](https://learn.microsoft.com/azure/container-registry/tasks-agent-pools).
-- [Private retrieval/AKS reference](https://github.com/dcasati/private-foundry-iq-agentic-retrieval-aks/tree/b94310ec7ea8b301392d8da26ff716d2ab8467d8) and [FIPS/Istio execution reference](https://github.com/dcasati/aks-fips-istio/tree/bad5c2003565db5fa5737277c4349a738ba2d8a6). Only architecture informed this implementation; their provisioning hooks/commands, region defaults, unbounded polling and deletion scripts are not used.
+Retention locking, deletion and recovery actions require separate approval. Do not process real documents or silently change existing ownership to finish the PoC.

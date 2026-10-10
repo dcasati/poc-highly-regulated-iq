@@ -66,13 +66,9 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
                             raise ValueError("zero")
                     except (ValueError, TypeError, AttributeError):
                         reject(child, "supply an actual nonzero principal/application/directory GUID")
-                if key.endswith("_endpoint") or key in ("target", "blob", "cosmos", "search") and path == "endpoints":
+                if key.endswith("_endpoint") or key in ("target", "blob", "search") and path == "endpoints":
                     if isinstance(item, str) and not item.startswith("https://"):
                         reject(child, "use a verified private HTTPS endpoint")
-                if key == "chat_rai_policy_id" and not re.fullmatch(
-                    r"/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\.CognitiveServices/accounts/[^/]+/raiPolicies/[^/]+", item, re.IGNORECASE
-                ):
-                    reject(child, "supply the full native RAI policy ARM ID from the selected foundation")
                 walk(item, child)
         elif isinstance(value, list):
             for i, item in enumerate(value):
@@ -116,6 +112,19 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
             reject("application.processing_location", "Global processing is forbidden")
         if not app.get("field_names") or len(app["field_names"]) != len(set(app["field_names"])):
             reject("application.field_names", "provide distinct fields matching the reviewed analyzer")
+        try:
+            endpoint = urlparse(app.get("openai_endpoint", ""))
+            endpoint_valid = (endpoint.scheme == "https" and endpoint.hostname
+                              and endpoint.hostname.endswith(".openai.azure.com")
+                              and endpoint.path in ("", "/") and not endpoint.username
+                              and not endpoint.password and endpoint.port in (None, 443)
+                              and not endpoint.query and not endpoint.fragment)
+        except (ValueError, TypeError, AttributeError):
+            endpoint_valid = False
+        if not endpoint_valid:
+            reject("application.openai_endpoint", "use the verified Azure OpenAI HTTPS root endpoint")
+        if not isinstance(app.get("chat_deployment"), str) or not app["chat_deployment"].strip():
+            reject("application.chat_deployment", "use the actual JSON-capable chat model deployment name")
     egress_sets = {
         "approved_egress": values.get("approved_egress", []),
         "administration_egress": values.get("administration_egress", []),
@@ -145,19 +154,6 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
     check_egress_union(https_networks, "approved_https_cidrs", reject)
     if "vnet_cidr" in values:
         check_cidr(values["vnet_cidr"], "vnet_cidr", reject, private_only=True)
-    discovered = values.get("discovered", {})
-    if discovered and discovered["files_container"] == discovered["intermediate_container"]:
-        reject("discovered", "native file/intermediate containers must be distinct and discovered")
-    extras = values.get("extra_principal_ids", [])
-    if len(extras) != len(set(p.lower() for p in extras)):
-        reject("extra_principal_ids", "duplicate principals would create colliding role assignments")
-    for i, principal in enumerate(extras):
-        try:
-            if uuid.UUID(principal).int == 0:
-                raise ValueError("zero")
-        except (ValueError, TypeError, AttributeError):
-            reject(f"extra_principal_ids[{i}]", "supply a verified nonzero runtime principal GUID")
-    hosting = values.get("hosting", {})
     if "hosting_dependencies" in values:
         network = values.get("network", {})
         runtime_subnet = network.get("runtime_subnet_id", "")
@@ -170,14 +166,6 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
             or endpoint_subnet.lower() == runtime_subnet.lower()
         ):
             reject("network.endpoint_subnet_id", "use a separate endpoint subnet in the selected runtime VNet")
-    if hosting.get("kind") == "aks":
-        try:
-            pod = ipaddress.ip_network(hosting["pod_cidr"], strict=True)
-            service = ipaddress.ip_network(hosting["service_cidr"], strict=True)
-            if pod.overlaps(service) or ipaddress.ip_address(hosting["dns_service_ip"]) not in service:
-                raise ValueError("overlap")
-        except (ValueError, KeyError):
-            reject("hosting", "use nonoverlapping pod/service ranges with DNS inside the service range")
     return errors
 
 

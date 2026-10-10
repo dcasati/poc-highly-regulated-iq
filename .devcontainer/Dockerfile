@@ -11,8 +11,8 @@ RUN set -eu; \
         aarch64) arch=arm64 ;; \
         *) echo "Unsupported Copilot CLI architecture" >&2; exit 1 ;; \
     esac; \
-    mkdir /tmp/copilot-cli-install; \
-    cd /tmp/copilot-cli-install; \
+    mkdir /opt/copilot-cli-install; \
+    cd /opt/copilot-cli-install; \
     curl -fsSL --retry 3 -O "https://github.com/github/copilot-cli/releases/download/v${COPILOT_VERSION}/copilot-linux-${arch}.tar.gz"; \
     curl -fsSL --retry 3 -O "https://github.com/github/copilot-cli/releases/download/v${COPILOT_VERSION}/SHA256SUMS.txt"; \
     sha256sum --check --ignore-missing SHA256SUMS.txt; \
@@ -21,4 +21,4 @@ RUN set -eu; \
     copilot --version; \
     rm -- "copilot-linux-${arch}.tar.gz" SHA256SUMS.txt; \
     cd /; \
-    rmdir /tmp/copilot-cli-install
+    rmdir /opt/copilot-cli-install

@@ -1,18 +1,18 @@
 {
-  "name": "Fabric and Foundry development",
+  "name": "Private review Bicep development",
   "build": {
     "dockerfile": "Dockerfile"
   },
   "features": {
-    "ghcr.io/devcontainers/features/azure-cli:1": {},
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "installBicep": true
+    },
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/sshd:1": {
       "gatewayPorts": "no"
     },
-    "ghcr.io/devcontainers/features/terraform:1": {
-      "version": "1.16.5",
-      "tflint": "none",
-      "terragrunt": "none"
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "10.0"
     },
     "ghcr.io/devcontainers/features/node:2": {
       "version": "24",
@@ -21,13 +21,20 @@
     }
   },
   "remoteUser": "vscode",
+  "containerEnv": {
+    "SHELL": "/bin/bash",
+    "AZURE_BICEP_USE_BINARY_FROM_PATH": "true",
+    "AZURE_BICEP_CHECK_VERSION": "false",
+    "AZURE_EXTENSION_USE_DYNAMIC_INSTALL": "no"
+  },
   "postCreateCommand": "bash .devcontainer/check-tools.sh",
   "customizations": {
     "vscode": {
       "extensions": [
         "GitHub.copilot",
         "GitHub.copilot-chat",
-        "ms-python.python",
+        "ms-azuretools.vscode-bicep",
+        "ms-dotnettools.csharp",
         "redhat.vscode-yaml"
       ],
       "settings": {

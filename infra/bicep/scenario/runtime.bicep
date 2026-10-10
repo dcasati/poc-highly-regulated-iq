@@ -8,7 +8,7 @@ param location us_region
 param platform { environment_name: string, registry_name: string, identity_name: string }
 @description('Accepted FIPS140-3 encryption evidence or explicitly user-authorized synthetic-only attestation deferral, with mandatory knowledge readiness and approved browser registrations. Deferral is not certification or production readiness.')
 param runtime runtime_approval
-@description('Verified private endpoints and existing tools-disabled prompt agent. Fields match the separately reviewed custom analyzer.')
+@description('Verified private endpoints and JSON-capable Azure OpenAI chat deployment. Fields match the separately reviewed custom analyzer.')
 param application application_config
 resource environment 'Microsoft.App/managedEnvironments@2025-07-01' existing = { name: platform.environment_name }
 resource registry 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = { name: platform.registry_name }
@@ -27,7 +27,7 @@ resource app 'Microsoft.App/containerApps@2025-01-01' = {
       ingress: { external: true, allowInsecure: false, targetPort: 8080, transport: 'http', traffic: [{ latestRevision: true, weight: 100 }] }
     }
     template: {
-      scale: { minReplicas: 1, maxReplicas: 3 }
+      scale: { minReplicas: 1, maxReplicas: 1 }
       containers: [{
         name: 'review'
         image: '${registry.properties.loginServer}/review-portal@${runtime.image_algorithm}:${runtime.image_hash}'

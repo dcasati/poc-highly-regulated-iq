@@ -1,60 +1,27 @@
-# Developer setup and Copilot
+# Development and Copilot
 
-The [scenario tutorial](highly-regulated-scenario.md) is the canonical private deployment guide. This derived project's **"Deploy the platform"** workflow targets the staged `infra/foundation/`, `infra/highly-regulated/` and optional `infra/acr-build/` and `infra/browser-identity/` roots, not the inherited Fabric baseline.
+[Getting started](getting-started.md) is the canonical deployment guide. Use Bicep and native Azure CLI commands in Bash; no staging or CI/CD setup is required.
 
-## Select one execution host
+## One execution host
 
-The included devcontainer supplies Azure CLI, Terraform, Git/GitHub CLI, Copilot CLI, Python and Node. Install an approved .NET 10 SDK on the development host before running the application tests; the ACR build uses the Dockerfile's SDK stage and requires no local Docker daemon.
+Use one approved checkout for configuration, authentication and deployment. Azure CLI, an existing local Bicep executable, Bash and `jq` are needed for the deployment guide. The runner accepts Bicep on PATH or already cached under `${AZURE_CONFIG_DIR:-$HOME/.azure}/bin/bicep`; it does not download or upgrade Bicep. Application development also needs the .NET 10 SDK. The private ACR build does not require a local Docker daemon.
 
-A normal Codespace is **not automatically connected to the private Azure VNet**. Use an organization-approved connected deployment host, or a Codespace with explicitly verified private connectivity. The runner needs the appropriate private service/DNS access for Terraform data-plane registration. The ACR agent pool separately needs private registry access and approved dependency egress.
+A normal Codespace is **not automatically connected to the Azure VNet**. Choose an approved private-network-connected host, or verify the selected Codespace's connectivity first. In Copilot App, route commands and file edits to that same checkout. Use authenticated `gh codespace ssh`; do not publish SSH ports or bypass host verification.
 
-For App-driven Codespaces work, select the exact Codespace using `gh codespace list --repo OWNER/REPO`, then use authenticated `gh codespace ssh` for all configuration edits, credentials, Terraform and checks in that checkout. Do not mix remote state with a local App worktree. Do not publish an SSH port, disable host verification or copy credentials into SSH arguments.
+Use the organization's existing approved Azure identity and explicit subscription/directory. If an isolated CLI profile is selected, use its confirmed `AZURE_CONFIG_DIR` in every shell; do not copy tokens or change shared CLI defaults. Do not sign in, grant permissions or change another project's network automatically.
 
-For local deployment, explicitly select the authoritative existing checkout and secured backend. Establish a new state owner only when the user intentionally starts a new deployment. Do not infer this from absent ignored files.
+Private service names must resolve normally to their Private Endpoint addresses on that host. For shared-tailnet split DNS, use only separately approved exact PoC hostnames and preserve unrelated resolvers. Enrollment, routes and ACL changes are administrator actions, not initialization.
 
-The PoC connectivity and private state-backend roots have separately approved owner-only local bootstrap exceptions on the encrypted authoritative Mac. Preserve their current state owners and follow [`infra/state-backend/`](../infra/state-backend/README.md) for private/keyless backend readiness and separately approved migrations. Foundation/scenario/build roots need distinct secured remote keys. Use exact PoC hostnames for shared-tailnet split DNS; do not change unrelated projects' networking or DNS.
+## Configuration and commands
 
-### Exact-hostname DNS on macOS
+Tell Copilot **"Initialize the project"** to prepare owner-only ignored `*.local.bicepparam` files from `infra/bicep/examples/`, without cloud operations. Tell it **"Deploy the platform"** to follow the canonical guide with separate approval gates.
 
-Discover the current private endpoint NIC addresses, service FQDNs and private-link
-CNAME aliases from Azure before preparing resolver configuration. Scope approval
-to those exact names and the existing approved DNS relay; do not add Azure-wide
-suffix overrides or replace backend/unrelated resolvers.
+```bash
+bash -n run.sh
+./run.sh -x check-deps
+./run.sh -x build
+```
 
-Files under `/etc/resolver/<exact-fqdn>` require administrator access. A prepared
-helper must refuse symlinks or different existing content and preserve unrelated
-files. If noninteractive elevation is unavailable, the operator runs the reviewed
-helper and authenticates in their own terminal; never request a password in chat.
+These source checks do not establish cloud permissions, service availability, quota, DNS, indexing or application readiness. `what-if`, `install` and service REST calls are live operations, not static checks.
 
-Verify normal OS resolution for every service name and alias, then private
-trusted-certificate HTTPS and the appropriate keyless reads without `--resolve`
-or other request-specific overrides. A direct query to the relay or a diagnostic
-IP override is useful evidence but does not prove normal client DNS works.
-Recheck the existing state-backend hostnames before proceeding.
-
-## Authenticate separately
-
-Use the organization's approved Azure user/service identity and selected subscription through standard CLI/provider conventions. Resolve any `ARM_*` overrides before provisioning without printing secrets. Do not sign in, grant consent, create app registrations or assign access automatically.
-
-Search and Content Understanding data-plane provider tokens are ephemeral inputs acquired inside each plan/apply shell, as documented in the tutorial. Never persist them in tfvars, state, profiles or logs. The application runtime uses managed/workload identity, not the deployment user's credential.
-
-With multiple cached CLI identities, subscription-scoped CLI commands and the native Terraform backend can select different principals. Use the separately approved owner-only project CLI profile when needed, and set `AZURE_CONFIG_DIR` to its absolute path in **every deployment shell**, alongside the confirmed `ARM_SUBSCRIPTION_ID`. The ignored `.azure/poc-cli` profile selects only the approved subscription and references the existing protected sign-in cache without copying tokens. Do not change shared CLI defaults or grant a different identity state access to work around a mismatch. Verify the effective Storage-token principal against the container grant before migration.
-
-No Fabric PAT or Fabric capacity administrator is needed for this application workflow. Do not run the inherited Fabric configuration helpers to create scenario configuration.
-
-## Configure and deploy
-
-Tell Copilot **"Deploy the platform."** It loads the project-specific [deployment skill](../.github/skills/deploy-platform/SKILL.md), confirms the source/host/backend, inventories the existing private foundation and coordinates approved platform, knowledge, optional build-pool and runtime stages. Missing prerequisites are blockers, not permission to replace existing infrastructure.
-
-Follow the [foundation README](../infra/foundation/README.md) for its private
-account, project, provisioning-role/connection, capability-host and discovered runtime-binding stages. Its source-only mock tests
-do not use Azure credentials or prove private connectivity. Runtime/build subnet
-reservations need separate reviewed platform/dependency egress before use.
-
-The configuration-only [initialization skill](../.github/skills/initialize-project/SKILL.md) prepares local scenario inputs without cloud mutations. Use [template maintenance](../.github/skills/template-maintenance/SKILL.md) for static checks only.
-
-## Local checks
-
-Use the [tutorial's synthetic checks](highly-regulated-scenario.md#local-development-and-static-checks). Application tests mock cloud responses; Terraform static checks are `init -backend=false`, `fmt -check` and `validate` in each separate root. Use an isolated source-only copy if deployment files/state are present. Do not run a live plan, apply, indexer, analyzer or notebook as a maintenance check.
-
-Keep original documents, real development configuration, credentials, build output, saved plans and state outside Git. Preserve stable inherited workspace logical IDs; their reference files are not part of this deployment.
+Keep real parameters, original documents, credentials, deployment outputs and logs out of Git. Preserve existing live resources, local configuration and unrelated user changes. Source simplification does not authorize deployment or state migration.

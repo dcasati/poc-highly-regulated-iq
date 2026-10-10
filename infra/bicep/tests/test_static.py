@@ -1,4 +1,4 @@
-"""Compile all parallel sources/examples and test their emitted ARM contracts offline."""
+"""Compile modular Bicep sources/examples and test emitted ARM contracts offline."""
 
 import copy
 import json
@@ -63,11 +63,10 @@ class StaticContracts(unittest.TestCase):
         required = {
             "main.bicep", "foundation/bootstrap-payloads.bicep",
             "identity/api-payload.bicep", "identity/spa-payload.bicep", "identity/finalize-payloads.bicep",
-            "groups.bicep", "connectivity/main.bicep", "state-backend/main.bicep", "state-backend/grant.bicep",
-            "foundation/main.bicep", "foundation/project.bicep", "foundation/provisioning.bicep",
-            "foundation/capability.bicep", "foundation/runtime-bindings.bicep",
+            "connectivity/main.bicep",
+            "foundation/main.bicep",
             "scenario/platform.bicep", "scenario/private-links.bicep", "scenario/hosting.bicep",
-            "scenario/runtime.bicep", "scenario/aks-manifests.bicep", "knowledge/payloads.bicep",
+            "scenario/runtime.bicep", "knowledge/payloads.bicep",
             "acr-build/main.bicep",
         }
         covered = set()
@@ -89,9 +88,10 @@ class StaticContracts(unittest.TestCase):
         for kind in ("Microsoft.Network/virtualNetworks", "Microsoft.Network/natGateways",
                      "Microsoft.Network/virtualNetworks/subnets", "Microsoft.Network/privateDnsZones",
                      "Microsoft.CognitiveServices/accounts", "Microsoft.Search/searchServices",
-                     "Microsoft.DocumentDB/databaseAccounts", "Microsoft.Storage/storageAccounts"):
+                     "Microsoft.Storage/storageAccounts"):
             self.assertIn(kind, types)
-        self.assertEqual(modules["foundation"]["properties"]["parameters"]["hosting"]["value"], "container_apps")
+        self.assertNotIn("hosting", modules["foundation"]["properties"]["parameters"])
+        self.assertIn("Microsoft.App/environments", json.dumps(modules["foundation"]))
         for key in ("network", "services", "resource_groups"):
             self.assertIn(key, template["outputs"])
         self.assertFalse(any("state" in key.lower() for key in template["parameters"]))
@@ -102,12 +102,15 @@ class StaticContracts(unittest.TestCase):
             for reference in re.findall(r"(?:from|module\s+\w+|loadTextContent\(|loadJsonContent\()\s*'([^']+)'", path.read_text()):
                 self.assertTrue((path.parent / reference).resolve().is_relative_to(ROOT), f"{path}: {reference}")
 
-    def test_runtime_build_nat_and_exact_egress_are_wired_without_agent_nat(self):
+    def test_runtime_build_nat_and_exact_egress_are_wired_without_agent_subnet(self):
         network = self.templates["foundation/network.bicep"]["resources"]
         subnet = network["reservations"]["properties"]
         serialized = json.dumps(subnet)
         self.assertIn("nat_gateway_id", serialized)
-        self.assertIn("'agent'", serialized)
+        self.assertNotIn("'agent'", serialized)
+        self.assertEqual(self.templates["foundation/network.bicep"]["variables"]["subnets"],
+                         [{"name": "runtime", "number": 1, "delegated": True},
+                          {"name": "build", "number": 4, "delegated": False}])
         rules = json.dumps(network["nsgs"]["properties"]["securityRules"])
         self.assertIn("deny-other-egress", rules)
         self.assertIn("outbound", rules)
@@ -138,31 +141,18 @@ class StaticContracts(unittest.TestCase):
         self.assertIn("chat_prompt_shields", association)
         self.assertIn("NoAutoUpgrade", association)
 
-    def test_agent_and_cu_bootstrap_are_owned_native_payloads_not_terraform_assets(self):
+    def test_cu_bootstrap_only_preserves_defaults_without_prompt_agent_objects(self):
         template = self.templates["foundation/bootstrap-payloads.bicep"]
         self.assertEqual(template.get("resources", {}), {})
         outputs = template["outputs"]
-        for name in ("agent_request", "new_agent_request"):
-            self.assertEqual(outputs[name]["value"]["method"], "POST")
+        self.assertEqual(set(outputs), {"content_defaults_request", "verification_reference"})
         self.assertNotIn("DELETE", json.dumps(outputs))
-        self.assertEqual(outputs["agent_request"]["value"]["path"],
-                         "[format('/agents/{0}/versions?api-version=2025-11-15-preview', parameters('agent_name'))]")
-        definition_text = json.dumps(template["variables"]["definition"])
-        self.assertIn("rai_policy_name", definition_text)
-        self.assertIn("chat_rai_policy_id", definition_text)
-        self.assertIn("'tools', createArray()", definition_text)
-        self.assertIn("refuse the ENTIRE", json.dumps(template["variables"]))
-        self.assertIn("CURRENT retrieved evidence", json.dumps(template["variables"]))
-        self.assertIn("preserved_agent", definition_text)
+        self.assertNotIn("/agents", json.dumps(template))
         self.assertEqual(outputs["content_defaults_request"]["value"]["method"], "PATCH")
         mappings = outputs["content_defaults_request"]["value"]["body"]["modelDeployments"]
         for alias in ("prebuilt-analyzer-completion", "prebuilt-analyzer-completion-mini", "prebuilt-analyzer-embedding"):
             self.assertIn(alias, mappings)
         self.assertIn("existing_model_deployments", mappings)
-        reconciler = (ROOT / "native/reconcile_knowledge.py").read_text()
-        self.assertNotIn("/agents", reconciler)
-        self.assertNotIn("terraform", reconciler.lower())
-        self.assertNotIn("tfstate", reconciler.lower())
 
     def test_entra_native_payloads_are_single_tenant_delegated_user_roles_not_consent(self):
         api = self.templates["identity/api-payload.bicep"]
@@ -191,9 +181,6 @@ class StaticContracts(unittest.TestCase):
             targets = values.get("platform_destinations", values.get("outbound"))
             targets["runtime"] = [{"destination_cidr": cidr, "port": 443} for cidr in ("0.0.0.0/1", "128.0.0.0/1")]
             self.assertTrue(any("combined" in error for error in validate(values, allow_examples=True)))
-        values = copy.deepcopy(self.examples["bootstrap.example.bicepparam"])
-        values["chat_rai_policy_id"] = "chat-prompt-shields"
-        self.assertTrue(validate(values, allow_examples=True))
         values = copy.deepcopy(self.examples["identity-spa.example.bicepparam"])
         for uri in ("http://localhost/", "https://*.example/", "https://user:password@internal.example/"):
             values["redirect_uris"] = [uri]
@@ -207,48 +194,86 @@ class StaticContracts(unittest.TestCase):
         self.assertNotIn("portal_url", self.templates["scenario/platform.bicep"].get("outputs", {}))
         self.assertNotIn("identity", self.templates["scenario/platform.bicep"]["parameters"])
 
-    def test_foundation_stages_are_separate_and_native_stores_never_created(self):
-        initial = list(resources(self.templates["foundation/main.bicep"]))
-        self.assertFalse(any("/projects" in r["type"] for r in initial))
-        project = self.templates["foundation/project.bicep"]["resources"]["project"]
-        self.assertEqual(project["apiVersion"], "2025-06-01")
-        self.assertEqual(project["identity"]["type"], "SystemAssigned")
-        connections = self.templates["foundation/provisioning.bicep"]["resources"]["connections"]
-        self.assertEqual(connections["apiVersion"], "2025-06-01")
-        self.assertEqual(connections["properties"]["authType"], "AAD")
-        self.assertFalse(connections["properties"]["isSharedToAll"])
-        host = self.templates["foundation/capability.bicep"]["resources"]["host"]
-        self.assertEqual(host["apiVersion"], "2025-04-01-preview")
-        self.assertEqual(host["properties"]["capabilityHostKind"], "Agents")
-        for r in resources(self.templates["foundation/runtime-bindings.bicep"]):
-            if r["type"].endswith("/sqlDatabases"):
-                self.assertTrue(r.get("existing"))
-            if r["type"].endswith("/containers") and not r.get("existing"):
-                self.assertEqual(r["condition"], "[parameters('create_containers')]")
-        modules = self.templates["foundation/runtime-bindings.bicep"]["resources"]
-        self.assertFalse(modules["blob_roles"]["properties"]["parameters"]["create_containers"]["value"])
-        self.assertTrue(self.templates["foundation/runtime-bindings.bicep"]["outputs"]["bootstrap_revocation_required"]["value"])
+    def test_direct_inference_has_no_managed_agent_resources_or_bootstrap_store_grants(self):
+        for template in self.templates.values():
+            for resource in resources(template):
+                self.assertFalse(resource["type"].startswith("Microsoft.DocumentDB/"))
+                self.assertNotIn("/projects", resource["type"])
+                self.assertNotIn("/capabilityHosts", resource["type"])
+                self.assertNotIn("/connections", resource["type"])
+        foundation = self.templates["foundation/main.bicep"]
+        self.assertNotIn("networkInjections", foundation["resources"]["account"]["properties"])
+        self.assertNotIn("allowProjectManagement", foundation["resources"]["account"]["properties"])
+        self.assertNotIn("caller_blob", foundation["resources"])
+        self.assertNotIn("caller_cosmos", foundation["resources"])
+        self.assertNotIn("agent_storage_name", foundation["outputs"])
+        self.assertIn("openai.azure.com", foundation["outputs"]["service_endpoints"]["value"]["openai"])
+        platform = self.templates["scenario/platform.bicep"]
+        self.assertNotIn("project_role", platform["resources"])
+        self.assertIn("5e0bd9bd-7b93-4f28-af87-19fc36ad61bd", json.dumps(platform["variables"]["grants"]))
 
-    def test_hosting_choices_are_mutually_exclusive_and_deferred(self):
+    def test_application_direct_inference_configuration_has_no_agent_binding(self):
+        application = self.templates["scenario/runtime.bicep"]
+        schema = definition(application, application["parameters"]["application"])
+        self.assertIn("openai_endpoint", schema["properties"])
+        self.assertIn("chat_deployment", schema["properties"])
+        self.assertNotIn("project_endpoint", schema["properties"])
+        self.assertNotIn("agent_name", schema["properties"])
+        declared = (ROOT / "scenario/application.bicep").read_text()
+        self.assertIn("Portal__OpenAIEndpoint", declared)
+        self.assertIn("Portal__ChatDeployment", declared)
+        self.assertNotIn("Portal__AgentName", declared)
+        self.assertNotIn("Portal__ProjectEndpoint", declared)
+
+    def test_direct_inference_parameters_reject_nonroot_untrusted_or_missing_endpoint(self):
+        base = self.examples["runtime.example.bicepparam"]
+        for endpoint in (None, "", "http://account.openai.azure.com",
+                         "https://account.openai.azure.com/openai/v1",
+                         "https://account.openai.azure.com.foreign.example",
+                         "https://user@account.openai.azure.com", "https://account.openai.azure.com?key=x",
+                         "https://account.openai.azure.com:bad"):
+            values = copy.deepcopy(base)
+            values["application"]["openai_endpoint"] = endpoint
+            self.assertTrue(any("openai_endpoint" in error for error in validate(values, allow_examples=True)))
+        for deployment in (None, "", " "):
+            values = copy.deepcopy(base)
+            values["application"]["chat_deployment"] = deployment
+            self.assertTrue(any("chat_deployment" in error for error in validate(values, allow_examples=True)))
+
+    def test_hosting_is_only_private_container_apps_and_runtime_is_separate(self):
         template = self.templates["scenario/hosting.bicep"]
-        self.assertEqual(template["parameters"]["hosting"]["defaultValue"], {"kind": "container_apps"})
+        self.assertNotIn("hosting", template["parameters"])
+        self.assertNotIn("platform", template["parameters"])
         emitted = template["resources"]
-        self.assertEqual(emitted["environment"]["condition"], "[equals(parameters('hosting').kind, 'container_apps')]")
+        self.assertNotIn("condition", emitted["environment"])
         self.assertTrue(emitted["environment"]["properties"]["peerTrafficConfiguration"]["encryption"]["enabled"])
-        self.assertEqual(emitted["aks"]["condition"], "[equals(parameters('hosting').kind, 'aks')]")
-        for kind in ("container_apps", "aks"):
-            self.assertEqual(sum(kind == selected for selected in ("container_apps", "aks")), 1)
         self.assertNotIn("portal_url", template.get("outputs", {}))
         self.assertFalse(any(r["type"] == "Microsoft.App/containerApps" for r in resources(template)))
-        cluster = self.templates["scenario/hosting-aks.bicep"]["resources"]["cluster"]
-        self.assertTrue(cluster["properties"]["disableLocalAccounts"])
-        self.assertTrue(cluster["properties"]["apiServerAccessProfile"]["enablePrivateCluster"])
-        self.assertEqual(cluster["properties"]["networkProfile"]["outboundType"], "userDefinedRouting")
-        self.assertTrue(all(pool["enableFIPS"] for pool in cluster["properties"]["agentPoolProfiles"]))
-        self.assertEqual(cluster["properties"]["serviceMeshProfile"]["istio"]["components"]["ingressGateways"], [{"mode": "Internal", "enabled": True}])
+        self.assertFalse(any(r["type"].startswith("Microsoft.ContainerService/") for t in self.templates.values() for r in resources(t)))
+        self.assertEqual(set(template["outputs"]), {"container_apps_environment_name", "container_apps_default_domain"})
+
+    def test_public_ip_is_used_only_by_controlled_outbound_nat(self):
+        connectivity = self.templates["connectivity/main.bicep"]["resources"]
+        self.assertEqual(connectivity["ip"]["type"], "Microsoft.Network/publicIPAddresses")
+        self.assertIn("publicIPAddresses", connectivity["nat"]["properties"]["publicIpAddresses"][0]["id"])
+        self.assertNotIn("publicIPAddress", json.dumps(connectivity["nic"]))
+        self.assertNotIn("publicIPAddress", json.dumps(connectivity["vm"]))
+        for path, template in self.templates.items():
+            if path not in ("main.bicep", "connectivity/main.bicep"):
+                self.assertFalse(any(r["type"] == "Microsoft.Network/publicIPAddresses" for r in resources(template)), path)
+        self.assertIn("deny-other-egress", json.dumps(connectivity["nsg"]))
+        self.assertTrue(connectivity["router"]["properties"]["defaultOutboundAccess"] is False)
+
+    def test_runtime_example_is_authorized_synthetic_deferral_not_acceptance(self):
+        runtime = self.examples["runtime.example.bicepparam"]["runtime"]
+        self.assertEqual(runtime["attestation_mode"], "synthetic_poc_attestation_deferred")
+        self.assertIs(runtime["approved"], False)
+        for evidence in ("platform_evidence", "image_evidence", "transport_evidence"):
+            self.assertEqual(runtime[evidence], "")
+        self.assertIs(runtime["knowledge"]["approved"], True)
 
     def test_runtime_gates_are_required_typed_and_no_mutable_image(self):
-        for path in ("scenario/runtime.bicep", "scenario/aks-manifests.bicep"):
+        for path in ("scenario/runtime.bicep",):
             template = self.templates[path]
             self.assertNotIn("defaultValue", template["parameters"]["runtime"])
             runtime = definition(template, template["parameters"]["runtime"])
@@ -275,12 +300,12 @@ class StaticContracts(unittest.TestCase):
         self.assertIn("image_algorithm", image)
         self.assertFalse(app["properties"]["configuration"]["ingress"]["allowInsecure"])
         self.assertEqual(app["properties"]["template"]["scale"]["minReplicas"], 1)
+        self.assertEqual(app["properties"]["template"]["scale"]["maxReplicas"], 1)
 
     def test_container_apps_ingress_uses_private_endpoint_not_ilb(self):
         hosting = self.templates["scenario/hosting.bicep"]["resources"]
-        condition = "[equals(parameters('hosting').kind, 'container_apps')]"
         for name in ("endpoint", "dns", "private_link_zone", "private_link_vnet"):
-            self.assertEqual(hosting[name]["condition"], condition)
+            self.assertNotIn("condition", hosting[name])
         env = hosting["environment"]["properties"]
         self.assertTrue(env["vnetConfiguration"]["internal"])
         self.assertEqual(env["publicNetworkAccess"], "Disabled")
@@ -311,7 +336,7 @@ class StaticContracts(unittest.TestCase):
         self.assertNotIn("customDnsConfigs", json.dumps(runtime_dns))
 
     def test_hosting_endpoint_subnet_contract(self):
-        for example in ("hosting.example.bicepparam", "hosting-aks.example.bicepparam"):
+        for example in ("hosting.example.bicepparam",):
             values = copy.deepcopy(self.examples[example])
             self.assertEqual(validate(values, allow_examples=True), [])
             del values["network"]["endpoint_subnet_id"]
@@ -331,11 +356,10 @@ class StaticContracts(unittest.TestCase):
         account = foundation["account"]
         self.assertTrue(account["properties"]["disableLocalAuth"])
         self.assertEqual(account["apiVersion"], "2025-06-01")
-        self.assertFalse(account["properties"]["networkInjections"][0]["useMicrosoftManagedNetwork"])
+        self.assertNotIn("networkInjections", account["properties"])
         self.assertNotIn("capabilitySettings", json.dumps(foundation))
         self.assertTrue(foundation["search"]["properties"]["disableLocalAuth"])
         self.assertEqual(foundation["search"]["properties"]["networkRuleSet"]["bypass"], "None")
-        self.assertTrue(foundation["cosmos"]["properties"]["disableLocalAuth"])
         registry = self.templates["scenario/platform.bicep"]["resources"]["registry"]["properties"]
         self.assertFalse(registry["adminUserEnabled"])
         self.assertEqual(registry["publicNetworkAccess"], "Disabled")
@@ -355,7 +379,7 @@ class StaticContracts(unittest.TestCase):
         self.assertEqual(requests["copy"]["mode"], "serial")
         self.assertEqual(requests["copy"]["batchSize"], 1)
 
-    def test_roles_are_scoped_deterministic_and_native_data_remains_read_only(self):
+    def test_roles_are_scoped_deterministic_and_unused_resource_grants_removed(self):
         roles = self.templates["modules/service-roles.bicep"]
         allowed = roles["parameters"]["role_id"]["allowedValues"]
         self.assertNotIn("8e3af657-a8ff-443c-a75c-2fe8c4bcb635", allowed)
@@ -369,10 +393,12 @@ class StaticContracts(unittest.TestCase):
         containers = self.templates["modules/storage-bindings.bicep"]["resources"]
         self.assertIn("/containers", containers["roles"]["scope"])
         self.assertFalse(self.templates["modules/storage-bindings.bicep"]["parameters"]["create_containers"]["defaultValue"])
-        cosmos = list(resources(self.templates["modules/cosmos-data-role.bicep"]))
-        self.assertEqual([r["type"] for r in cosmos if not r.get("existing")], ["Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments"])
-        self.assertIn("/dbs/", cosmos[0]["properties"]["scope"])
-        self.assertIn("reference(", cosmos[0]["properties"]["scope"])
+        self.assertNotIn("cluster", roles["parameters"]["kind"]["allowedValues"])
+        self.assertNotIn("cosmos", roles["parameters"]["kind"]["allowedValues"])
+        for role in ("230815da-be43-4aae-9cb4-875f7bd000aa", "17d1049b-9a84-46fb-8f53-869881c3d3ab",
+                     "b1ff04bb-8a4e-4dc4-8eb5-8693973ce19b", "4d97b98b-1d4f-4787-a291-c67834d212e7",
+                     "ba92f5b4-2d11-453d-a403-e96b0029c9fe"):
+            self.assertNotIn(role, allowed)
 
     def test_no_fake_arm_data_plane_resources_or_deployment_scripts(self):
         for template in self.templates.values():
@@ -380,7 +406,6 @@ class StaticContracts(unittest.TestCase):
                 self.assertNotIn("deploymentScripts", resource["type"])
                 self.assertFalse(resource["type"].startswith(("Microsoft.Search/searchServices/indexes", "Microsoft.Search/searchServices/knowledge", "Microsoft.KubernetesConfiguration/")))
         self.assertEqual(self.templates["knowledge/payloads.bicep"].get("resources", {}), {})
-        self.assertEqual(self.templates["scenario/aks-manifests.bicep"].get("resources", {}), {})
 
     def test_two_indexers_human_review_and_case_owner_evidence_contract(self):
         template = self.templates["knowledge/payloads.bicep"]
@@ -416,14 +441,10 @@ class StaticContracts(unittest.TestCase):
                 self.assertNotRegex(name.lower(), r"password|access_token|auth_key|client_secret")
             serialized = json.dumps(template.get("outputs", {})).lower()
             self.assertNotRegex(serialized, r"listkeys|listcredentials|access_token|adminpassword|client_secret")
-        manifests = self.templates["scenario/aks-manifests.bicep"]["variables"]
-        self.assertEqual(manifests["peer"]["spec"]["mtls"]["mode"], "STRICT")
-        self.assertTrue(manifests["deployment"]["spec"]["template"]["spec"]["containers"][0]["securityContext"]["readOnlyRootFilesystem"])
-        self.assertNotIn("0.0.0.0/0", json.dumps(manifests))
 
     def test_semantic_rejections(self):
         base = self.examples["runtime.example.bicepparam"]
-        for field, value in (("encryption_standard", "FIPS140-2"), ("encryption_standard", None), ("image_hash", "g" * 64), ("identity", None), ("knowledge", {"approved": False}), ("image_evidence", "")):
+        for field, value in (("encryption_standard", "FIPS140-2"), ("encryption_standard", None), ("image_hash", "g" * 64), ("identity", None), ("knowledge", {"approved": False}), ("image_evidence", "claimed")):
             candidate = copy.deepcopy(base)
             candidate["runtime"][field] = value
             self.assertTrue(validate(candidate, allow_examples=True), field)
@@ -438,16 +459,23 @@ class StaticContracts(unittest.TestCase):
     def test_compiler_rejects_unsafe_stage_parameter_shapes(self):
         source = (ROOT / "examples/runtime.example.bicepparam").read_text()
         source = source.replace("using '../scenario/runtime.bicep'", f"using '{os.path.relpath(ROOT / 'scenario/runtime.bicep', self.temp.name)}'")
+        source = source.replace("attestation_mode: 'synthetic_poc_attestation_deferred'", "attestation_mode: 'evidence_gated'")
+        source = source.replace("  approved: false", "  approved: true", 1)
+        source = re.sub(r"(  (?:platform|image|transport)_evidence:) ''", r"\1 'EXAMPLE-ACCEPTANCE'", source)
+        accepted = Path(self.temp.name) / "accepted.bicepparam"
+        accepted.write_text(source)
+        self.compile("build-params", accepted, accepted.with_suffix(".json"))
         cases = {
             "unknown-mode": source.replace("attestation_mode: 'evidence_gated'", "attestation_mode: 'production_ready'"),
             "missing-mode": source.replace("  attestation_mode: 'evidence_gated'\n", ""),
             "contradictory-deferral": source.replace("attestation_mode: 'evidence_gated'", "attestation_mode: 'synthetic_poc_attestation_deferred'"),
             "wrong-encryption-standard": source.replace("encryption_standard: 'FIPS140-3'", "encryption_standard: 'FIPS140-2'"),
             "unapproved": source.replace("approved: true", "approved: false", 1),
-            "missing-evidence": source.replace("  transport_evidence: 'EXAMPLE-NOT-TRANSPORT-ACCEPTANCE'\n", ""),
+            "missing-evidence": source.replace("  transport_evidence: 'EXAMPLE-ACCEPTANCE'\n", ""),
             "null-browser": re.sub(r"  identity: \{.*?\n  \}", "  identity: null", source, flags=re.S),
             "mutable-image": source.replace("image_algorithm: 'sha256'", "image_algorithm: 'tag'"),
             "non-us": source.replace("location = 'eastus2'", "location = 'westeurope'"),
+            "obsolete-agent-binding": source.replace("openai_endpoint:", "project_endpoint:").replace("chat_deployment:", "agent_name:"),
         }
         for name, text in cases.items():
             path = Path(self.temp.name) / f"{name}.bicepparam"
@@ -456,7 +484,7 @@ class StaticContracts(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0, f"{name} unexpectedly compiled")
 
     def test_deferred_attestations_preserve_all_other_runtime_gates(self):
-        for example in ("runtime.example.bicepparam", "aks-manifests.example.bicepparam"):
+        for example in ("runtime.example.bicepparam",):
             candidate = copy.deepcopy(self.examples[example])
             runtime = candidate["runtime"]
             runtime.update(attestation_mode="synthetic_poc_attestation_deferred", approved=False,
@@ -469,7 +497,7 @@ class StaticContracts(unittest.TestCase):
                 invalid["runtime"][field] = value
                 self.assertTrue(validate(invalid, allow_examples=True), field)
             source = (ROOT / "examples" / example).read_text()
-            entry = "aks-manifests.bicep" if example.startswith("aks") else "runtime.bicep"
+            entry = "runtime.bicep"
             source = source.replace(f"using '../scenario/{entry}'", f"using '{os.path.relpath(ROOT / 'scenario' / entry, self.temp.name)}'")
             source = source.replace("attestation_mode: 'evidence_gated'", "attestation_mode: 'synthetic_poc_attestation_deferred'")
             source = source.replace("  approved: true", "  approved: false", 1)
@@ -487,13 +515,6 @@ class StaticContracts(unittest.TestCase):
                 path.write_text(text)
                 result = subprocess.run([self.compiler, "build-params", str(path), "--outfile", str(path.with_suffix(".json"))], capture_output=True, text=True, check=False)
                 self.assertNotEqual(result.returncode, 0, f"deferred {entry} {name} unexpectedly compiled")
-
-    def test_extra_runtime_principals_are_verified_guid_shapes(self):
-        for principal in ("-" * 36, "not-a-guid", "00000000-0000-0000-0000-000000000000"):
-            self.assertTrue(validate({"extra_principal_ids": [principal]}, allow_examples=True))
-        valid = "11111111-1111-4111-8111-111111111111"
-        self.assertEqual(validate({"extra_principal_ids": [valid]}, allow_examples=True), [])
-        self.assertTrue(validate({"extra_principal_ids": [valid, valid.upper()]}, allow_examples=True))
 
     def test_custom_analyzer_ids_reject_hyphens(self):
         for analyzer in ("application-review", "", "a" * 65):

@@ -11,8 +11,8 @@ public sealed record PortalOptions
     public required string BlobEndpoint { get; init; }
     public required string ContentEndpoint { get; init; }
     public required string SearchEndpoint { get; init; }
-    public required string ProjectEndpoint { get; init; }
-    public required string AgentName { get; init; }
+    public required string OpenAIEndpoint { get; init; }
+    public required string ChatDeployment { get; init; }
     public required string AnalyzerId { get; init; }
     public required string KnowledgeBase { get; init; }
     public required string KnowledgeSource { get; init; }
@@ -35,13 +35,19 @@ public sealed record PortalOptions
             ConfidenceThreshold is < 0 or > 1 || MaxUploadBytes is < 1024 or > 200 * 1024 * 1024 ||
             !new[] { "geography", "dataZone" }.Contains(ProcessingLocation))
             throw new InvalidOperationException("Invalid portal identity, extraction or upload configuration.");
-        foreach (var endpoint in new[] { BlobEndpoint, ContentEndpoint, SearchEndpoint, ProjectEndpoint })
+        foreach (var endpoint in new[] { BlobEndpoint, ContentEndpoint, SearchEndpoint, OpenAIEndpoint })
             if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) || uri.Scheme != "https" ||
-                !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query))
+                !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment))
                 throw new InvalidOperationException("Service endpoints must be HTTPS URLs without credentials or query strings.");
-        foreach (var name in new[] { AgentName, AnalyzerId, KnowledgeBase, KnowledgeSource })
+        var inferenceEndpoint = new Uri(OpenAIEndpoint);
+        if (!inferenceEndpoint.Host.EndsWith(".openai.azure.com", StringComparison.OrdinalIgnoreCase) ||
+            inferenceEndpoint.AbsolutePath != "/" || inferenceEndpoint.Port != 443)
+            throw new InvalidOperationException("OpenAIEndpoint must be an Azure OpenAI account HTTPS root endpoint.");
+        foreach (var name in new[] { ChatDeployment, AnalyzerId, KnowledgeBase, KnowledgeSource })
             if (string.IsNullOrWhiteSpace(name) || name.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not '-' and not '_' and not '.'))
                 throw new InvalidOperationException("Invalid service object name.");
+        if (ChatDeployment.Length > 64)
+            throw new InvalidOperationException("Chat deployment names must be at most 64 characters.");
         if (AnalyzerId.Length > 64 || AnalyzerId.Contains('-'))
             throw new InvalidOperationException("Custom Content Understanding analyzer IDs must be at most 64 characters without hyphens.");
     }

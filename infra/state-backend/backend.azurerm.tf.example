@@ -1,4 +1,0 @@
-# Activate only after backend readiness and approval of the exact state migration.
-terraform {
-  backend "azurerm" {}
-}

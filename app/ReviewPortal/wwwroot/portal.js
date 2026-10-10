@@ -1,7 +1,7 @@
 "use strict";
 const $ = id => document.getElementById(id);
 let config, token, selected, version, poll;
-let loadSequence = 0, selectedStatus;
+let loadSequence = 0, selectedStatus, selectedFailureCode, continuationToken;
 const notice = (text, error = false) => {
   $("notice").textContent = text;
   $("notice").classList.toggle("error", error);
@@ -85,10 +85,11 @@ async function callback() {
   await list();
   poll = setInterval(safe(async () => { if (selected && token) await load(selected); }), 10000);
 }
-async function list() {
-  const cases = await api("/api/cases/");
-  $("cases").replaceChildren();
-  for (const item of cases) {
+async function list(append = false) {
+  const query = append && continuationToken ? `?continuationToken=${encodeURIComponent(continuationToken)}` : "";
+  const page = await api(`/api/cases/${query}`);
+  if (!append) $("cases").replaceChildren();
+  for (const item of page.items) {
     const li = document.createElement("li"), button = document.createElement("button");
     button.dataset.caseId = item.id;
     if (item.id === selected) button.setAttribute("aria-current", "true");
@@ -96,6 +97,8 @@ async function list() {
     button.addEventListener("click", safe(() => load(item.id)));
     li.append(button); $("cases").append(li);
   }
+  continuationToken = page.continuationToken;
+  $("more-cases").hidden = !continuationToken;
 }
 async function load(id) {
   const sequence = ++loadSequence;
@@ -105,6 +108,7 @@ async function load(id) {
   selected = id;
   const previousStatus = selectedStatus;
   selectedStatus = snapshot.case.status;
+  selectedFailureCode = snapshot.case.failureCode;
   chatUI.selectCase(id, snapshot.case.status);
   if (previous !== id || previousStatus !== snapshot.case.status)
     workspace(snapshot.case.status === "Approved" ? "assistant" : "validation");
@@ -150,7 +154,11 @@ async function load(id) {
   $("approve").disabled = snapshot.case.status !== "NeedsReview";
 }
 $("signin").addEventListener("click", safe(signin));
-$("refresh").addEventListener("click", safe(list));
+$("refresh").addEventListener("click", safe(() => list()));
+$("more-cases").addEventListener("click", safe(async () => {
+  $("more-cases").disabled = true;
+  try { await list(true); } finally { $("more-cases").disabled = false; }
+}));
 $("upload").addEventListener("submit", safe(async () => {
   const file = $("pdf").files[0];
   if (!file || file.size > config.maxUploadBytes) throw new Error("Choose a PDF within the displayed size limit.");
@@ -166,8 +174,15 @@ $("review").addEventListener("submit", safe(async () => {
   await load(selected); await list();
 }));
 $("retry").addEventListener("click", safe(async () => {
-  if (!confirm("Retry processing? An uncertain previous submission may incur duplicate analysis charges.")) return;
-  await api(`/api/cases/${selected}/retry`, { method: "POST" });
+  const unknownSubmission = selectedFailureCode === "SubmissionOutcomeUnknown";
+  const message = unknownSubmission ?
+    "The previous analysis outcome is unknown. Retrying may duplicate analysis and charges. Acknowledge this and retry?" :
+    "Retry failed processing for this case?";
+  if (!confirm(message)) return;
+  await api(`/api/cases/${selected}/retry`, {
+    method: "POST",
+    body: JSON.stringify({ version, acknowledgeUnknownSubmission: unknownSubmission })
+  });
   await load(selected);
 }));
 $("original").addEventListener("click", safe(async () => {

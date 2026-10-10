@@ -140,7 +140,7 @@ output search_requests array = [
 ]
 output search_api_version string = '2026-08-01-preview'
 output dependency_verification string = private_dependencies.evidence_reference
-@description('Declared object ownership for the focused native reconciler; not proof of live authorization.')
+@description('Declared object ownership for separately reviewed az rest operator requests; not proof of live authorization.')
 output ownership object = {
   project_name: project_name
   analyzer_id: analyzer_id

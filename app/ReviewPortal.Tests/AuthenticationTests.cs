@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
@@ -85,8 +86,8 @@ public sealed class PortalFactory : WebApplicationFactory<Program>
             ["Portal:BlobEndpoint"] = ReviewTests.Options.BlobEndpoint,
             ["Portal:ContentEndpoint"] = ReviewTests.Options.ContentEndpoint,
             ["Portal:SearchEndpoint"] = ReviewTests.Options.SearchEndpoint,
-            ["Portal:ProjectEndpoint"] = ReviewTests.Options.ProjectEndpoint,
-            ["Portal:AgentName"] = "existing-agent", ["Portal:AnalyzerId"] = "review",
+            ["Portal:OpenAIEndpoint"] = ReviewTests.Options.OpenAIEndpoint,
+            ["Portal:ChatDeployment"] = "review-chat", ["Portal:AnalyzerId"] = "review",
             ["Portal:KnowledgeBase"] = "review-kb", ["Portal:KnowledgeSource"] = "review-source",
             ["Portal:FieldNames:0"] = "ApplicantName", ["Portal:FieldNames:1"] = "SignaturePresent"
         }));
@@ -101,6 +102,7 @@ public sealed class PortalFactory : WebApplicationFactory<Program>
             {
                 options.Authority = null;
                 options.Configuration = new OpenIdConnectConfiguration { Issuer = "https://test.example" };
+                options.ConfigurationManager = new StaticConfigurationManager<OpenIdConnectConfiguration>(options.Configuration);
                 options.TokenValidationParameters.ValidIssuer = "https://test.example";
                 options.TokenValidationParameters.IssuerSigningKey = Key;
             });

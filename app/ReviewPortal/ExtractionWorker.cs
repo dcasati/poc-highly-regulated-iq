@@ -4,8 +4,38 @@ using System.Net;
 
 namespace ReviewPortal;
 
+public sealed class WorkerActivity
+{
+    private readonly object sync = new();
+    private DateTimeOffset? heartbeat, lastSuccessfulScan, lastErrorAt;
+    private string? lastErrorType;
+    private bool scanFailed;
+
+    public object Snapshot()
+    {
+        lock (sync) return new { heartbeat, lastSuccessfulScan, lastErrorAt, lastErrorType,
+            status = heartbeat is null ? "starting" :
+                DateTimeOffset.UtcNow - heartbeat > TimeSpan.FromMinutes(2) ? "stale" :
+                lastErrorType is not null ? "degraded" : "active" };
+    }
+    public void Begin() { lock (sync) { heartbeat = DateTimeOffset.UtcNow; scanFailed = false; } }
+    public void Touch() { lock (sync) heartbeat = DateTimeOffset.UtcNow; }
+    public void Error(Exception ex)
+    {
+        lock (sync) { scanFailed = true; lastErrorAt = DateTimeOffset.UtcNow; lastErrorType = ex.GetType().Name; }
+    }
+    public void Complete()
+    {
+        lock (sync)
+        {
+            heartbeat = DateTimeOffset.UtcNow;
+            if (!scanFailed) { lastSuccessfulScan = heartbeat; lastErrorType = null; }
+        }
+    }
+}
+
 public sealed class ExtractionWorker(CaseStore store, CloudServices cloud, PortalOptions options,
-    ILogger<ExtractionWorker> logger) : BackgroundService
+    ILogger<ExtractionWorker> logger, WorkerActivity activity) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -14,30 +44,54 @@ public sealed class ExtractionWorker(CaseStore store, CloudServices cloud, Porta
         {
             try
             {
-                await foreach (var blob in store.State.GetBlobsAsync(cancellationToken: stoppingToken))
-                {
-                    var parts = blob.Name.Split('/');
-                    if (parts.Length != 2 || !Guid.TryParse(parts[0], out _) ||
-                        !Guid.TryParse(Path.GetFileNameWithoutExtension(parts[1]), out var id)) continue;
-                    var snapshot = await store.Load(parts[0], id, stoppingToken);
-                    if (snapshot.Case.Status is not ("Pending" or "Submitting" or "Analyzing" or "Publishing")) continue;
-                    await Process(snapshot, blob.Name, stoppingToken);
-                }
+                await ScanOnce(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
-            catch (Exception ex) when (ex is RequestFailedException or HttpRequestException or InvalidOperationException
-                or System.Text.Json.JsonException or Azure.Identity.AuthenticationFailedException)
+            catch (Exception ex) when (Recoverable(ex) || ex is OperationCanceledException)
             {
+                activity.Error(ex);
                 logger.LogError("Extraction scan failed: {ErrorType}. It will retry on the next scan.", ex.GetType().Name);
             }
         }
     }
 
+    public async Task ScanOnce(CancellationToken ct)
+    {
+        activity.Begin();
+        await foreach (var blob in store.State.GetBlobsAsync(cancellationToken: ct))
+        {
+            var parts = blob.Name.Split('/');
+            if (parts.Length != 2 || !Guid.TryParse(parts[0], out var owner) || owner.ToString("D") != parts[0] ||
+                !parts[1].EndsWith(".json", StringComparison.Ordinal) ||
+                !Guid.TryParse(Path.GetFileNameWithoutExtension(parts[1]), out var id)) continue;
+            activity.Touch();
+            try
+            {
+                var snapshot = await store.Load(parts[0], id, ct);
+                if (snapshot.Case.Status is not ("Pending" or "Submitting" or "Analyzing" or "Publishing")) continue;
+                await Process(snapshot, blob.Name, ct);
+            }
+            catch (Exception ex) when (Recoverable(ex) || ex is OperationCanceledException && !ct.IsCancellationRequested)
+            {
+                activity.Error(ex);
+                logger.LogError("Extraction record {CaseId} failed: {ErrorType}. Later records will still be scanned.",
+                    id, ex.GetType().Name);
+            }
+        }
+        activity.Complete();
+    }
+
+    private static bool Recoverable(Exception ex) =>
+        ex is RequestFailedException or HttpRequestException or InvalidOperationException or IOException
+            or System.Text.Json.JsonException or Azure.Identity.AuthenticationFailedException;
+
     private async Task Process(CaseSnapshot snapshot, string blobName, CancellationToken ct)
     {
         var lease = store.State.GetBlobClient(blobName).GetBlobLeaseClient();
         string leaseId;
-        try { leaseId = (await lease.AcquireAsync(TimeSpan.FromSeconds(60), cancellationToken: ct)).Value.LeaseId; }
+        using var acquireDeadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        acquireDeadline.CancelAfter(TimeSpan.FromSeconds(5));
+        try { leaseId = (await lease.AcquireAsync(TimeSpan.FromSeconds(60), cancellationToken: acquireDeadline.Token)).Value.LeaseId; }
         catch (RequestFailedException ex) when (ex.Status == 409) { return; }
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
         deadline.CancelAfter(TimeSpan.FromSeconds(40));
@@ -83,23 +137,33 @@ public sealed class ExtractionWorker(CaseStore store, CloudServices cloud, Porta
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            logger.LogWarning("Extraction step exceeded its deadline; durable state will be inspected on the next scan.");
+            activity.Error(new TimeoutException());
+            logger.LogWarning("Extraction record {CaseId} exceeded its deadline; durable state will be inspected on the next scan.",
+                snapshot.Case.Id);
         }
-        catch (Exception ex) when (ex is HttpRequestException or RequestFailedException or InvalidOperationException
-            or System.Text.Json.JsonException or Azure.Identity.AuthenticationFailedException)
+        catch (Exception ex) when (Recoverable(ex))
         {
-            logger.LogError("Extraction step failed: {ErrorType}. No content or cloud response is logged.", ex.GetType().Name);
+            activity.Error(ex);
+            logger.LogError("Extraction record {CaseId} failed: {ErrorType}. No content or cloud response is logged.",
+                snapshot.Case.Id, ex.GetType().Name);
             if (ex is HttpRequestException { StatusCode: HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable } ||
                 ex is RequestFailedException { Status: 409 or 412 or 429 or 503 }) return;
             var current = await store.Load(snapshot.Case.OwnerId, snapshot.Case.Id, ct);
+            // A submission can succeed remotely even when its response is lost.
+            if (current.Case.Status == "Submitting") return;
             await store.Save(current.Case with { Status = "Failed", FailureCode = "ExtractionOrPublicationFailed" },
                 current.Version, ct, leaseId);
         }
         finally
         {
-            try { await lease.ReleaseAsync(cancellationToken: CancellationToken.None); }
-            catch (RequestFailedException ex) when (ex.Status is 409 or 412)
-            { logger.LogWarning("Extraction lease expired before release."); }
+            using var releaseDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            try { await lease.ReleaseAsync(cancellationToken: releaseDeadline.Token); }
+            catch (Exception ex) when (Recoverable(ex) || ex is OperationCanceledException)
+            {
+                activity.Error(ex);
+                logger.LogWarning("Extraction record {CaseId} lease release failed: {ErrorType}. The bounded lease will expire.",
+                    snapshot.Case.Id, ex.GetType().Name);
+            }
         }
     }
 }

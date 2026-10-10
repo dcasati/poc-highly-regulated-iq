@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the separate offline network view and Remotion's self-contained scene."""
+"""Build the canonical static offline network view."""
 
 import argparse
 import importlib.util
@@ -73,12 +73,12 @@ def build():
         "Peer traffic encrypted • app managed identity",
         "PDF intake / human review / case questions",
     ], "container_apps")
-    box(65, 960, 510, 230, "BYO agent • 10.20.0.0/24", [
-        "Foundry private outbound network injection",
-        "Dedicated delegated subnet • NO platform NAT",
-        "Capability host + AAD project connections",
-        "Private agent Blob / Cosmos / Search access",
-    ], "agent")
+    box(65, 960, 510, 230, "Direct private inference", [
+        "Runtime -> OpenAI account Private Endpoint",
+        "No managed agent / project / native stores",
+        "JSON chat deployment; no tools",
+        "Shared process; synthetic trust exception",
+    ], "foundry")
     box(65, 1230, 510, 120, "Platform NAT • runtime + build", [
         "Scoped NSG destinations; deny other egress",
     ], color=AMBER)
@@ -96,7 +96,6 @@ def build():
         ("blob", 800, ["Application Blob", "blob"]),
         ("foundry", 970, ["Foundry account", "account"]),
         ("search", 1140, ["Search service", "searchService"]),
-        ("agent-data", 1310, ["Agent data PEs", "Blob + Cosmos Sql"]),
         ("acr", 1480, ["ACR registry", "registry / data"]),
     ]
     for key, y, labels in pe_names:
@@ -110,15 +109,12 @@ def build():
     box(1140, 800, 590, 135, "Application storage • keyless", [
         "Originals + state / reviewed JSON / approved PDFs",
     ], "storage", GREEN)
-    box(1140, 970, 590, 135, "Foundry + Content Understanding", [
+    box(1140, 970, 590, 135, "Azure OpenAI + CU", [
         "Private inbound: services.ai / cognitive / OpenAI",
     ], "foundry")
     box(1140, 1140, 590, 135, "AI Search • private / keyless", [
         "Scoped searchIndex knowledge; approved sources only",
     ], "search")
-    box(1140, 1310, 590, 135, "Agent Blob + Cosmos DB", [
-        "Native thread / agent state; not app evidence storage",
-    ], "storage", GREEN)
     box(1140, 1480, 590, 135, "Private ACR • Premium", [
         "Admin Disabled / public Disabled / bypass None",
     ], "registry", AMBER)
@@ -128,8 +124,6 @@ def build():
     route("app-blob", [[575, 830], [620, 830], [620, 840], [765, 840]], GREEN)
     route("app-foundry", [[575, 770], [645, 770], [645, 1010], [765, 1010]])
     route("app-search", [[575, 850], [610, 850], [610, 1170], [765, 1170]])
-    route("agent-search", [[575, 1050], [700, 1050], [700, 1200], [765, 1200]])
-    route("agent-stores", [[575, 1100], [675, 1100], [675, 1350], [765, 1350]])
     route("build-push", [[575, 1490], [665, 1490], [665, 1520], [765, 1520]], AMBER)
     route("runtime-pull", [[575, 805], [635, 805], [635, 1540], [765, 1540]], AMBER)
     route("runtime-nat", [[65, 805], [50, 805], [50, 1270], [65, 1270]], AMBER)
@@ -148,7 +142,7 @@ def build():
     d.text(65, 1654, "Private DNS • links to this VNet; not a document route", 25, True)
     d.text(65, 1700, [
         "Exact app/service names + exact private-link aliases -> router -> 168.63.129.16",
-        "Zones: Blob / Search / Cosmos / ACR / cognitive / OpenAI / services.ai",
+        "Zones: Blob / Search / ACR / cognitive / OpenAI / services.ai",
         "ACA: environment defaultDomain wildcard -> PE; privatelink.<region>.azurecontainerapps.io",
     ], 21, max_width=940)
     route("azure-dns", [[65, 520], [35, 520], [35, 1745], [65, 1745]], GRAY, True)
@@ -157,11 +151,11 @@ def build():
     d.text(55, 1865, "Read the flow | solid = HTTPS / transport • dashed = DNS • amber = supporting outbound", 25, True)
     d.text(55, 1908, [
         "1 Private ingress -> 2 PDF + extraction -> 3 reviewed publication / private indexing",
-        "4 Scoped retrieval + agent response -> 5 separate private image delivery / controlled outbound",
+        "4 Scoped retrieval + direct model response -> 5 private image delivery / controlled outbound",
     ], 24)
     d.text(40, 1990, [
         "Synthetic PoC • FIPS attestations deferred / NOT certified • NSG service tags are NOT firewall / FQDN allowlisting.",
-        "Blocking Prompt Shields + managed agent task scope live in Foundry; not zero injection risk or proof of end-to-end readiness.",
+        "Blocking Prompt Shields + application task scope; not zero injection risk or proof of end-to-end readiness.",
     ], 22)
 
 
@@ -174,9 +168,9 @@ def outputs():
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{d.WIDTH}" height="{d.HEIGHT}" '
         f'viewBox="0 0 {d.WIDTH} {d.HEIGHT}" role="img" aria-labelledby="title desc">'
         '<title id="title">Private document review network connectivity</title>'
-        '<desc id="desc">One PoC VNet with separate admin, runtime, agent, build and reserved private endpoint subnets. '
+        '<desc id="desc">One PoC VNet with separate admin, runtime, build and reserved private endpoint subnets. '
         'Entra identity is public and separate from private application ingress. DNS is dashed. Search shared private links '
-        'are service-owned. Two outbound-only NAT paths, no runtime/build NAT on the agent subnet. Synthetic, not certified.</desc>'
+        'are service-owned. Controlled outbound-only NAT supports admin, runtime and build. Direct private model inference, no managed agent stores. Synthetic, not certified.</desc>'
         f'<defs>{markers}</defs><rect width="{d.WIDTH}" height="{d.HEIGHT}" fill="#FFFFFF"/>'
         + "\n".join(d.parts) + "</svg>\n"
     )
@@ -185,11 +179,9 @@ def outputs():
         "elements": d.elements, "files": d.files,
         "appState": {"viewBackgroundColor": "#FFFFFF", "gridSize": None},
     }
-    scene = {"width": d.WIDTH, "height": d.HEIGHT, "svg": svg, "routes": routes}
     return {
         ROOT / "private-network.svg": svg,
         ROOT / "private-network.excalidraw": json.dumps(drawing, indent=2) + "\n",
-        ROOT / "network-animation/src/scene.json": json.dumps(scene, indent=2) + "\n",
     }
 
 
@@ -210,4 +202,4 @@ if __name__ == "__main__":
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content)
-    print(f"{'Checked' if args.check else 'Generated'} network SVG / Excalidraw / Remotion scene; icons + geometry validated.")
+    print(f"{'Checked' if args.check else 'Generated'} network SVG / Excalidraw; icons + geometry validated.")

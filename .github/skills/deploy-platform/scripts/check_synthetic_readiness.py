@@ -2,9 +2,10 @@
 """Read-only synthetic indexing gate, NOT portal/retrieval or human-review acceptance.
 
 Run only for an authorized synthetic case after explicit human review/publication.
-Requires the ReviewPortal schema in infra/highly-regulated/knowledge.tf and the
+Requires the ReviewPortal schema in infra/bicep/knowledge/payloads.bicep and the
 publication contract in app/ReviewPortal/CaseStore.cs. Reads metadata only: it
-cannot prove document contents, review provenance, retention or grounded answers.
+cannot prove document contents, review provenance, retention, private Azure OpenAI
+chat inference, source entailment or grounded answers. No managed agent is used.
 Exit 0 means this indexing gate passed; 1 means not ready; 2 means check failed.
 No retry, indexer trigger, extraction, upload, review or publication is performed.
 """

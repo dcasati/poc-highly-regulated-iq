@@ -7,6 +7,8 @@ description: Edit and review Fabric Git items, notebooks, Site/Asset ontology bi
 
 Read `AGENTS.md`, `cicd/README.md` and `docs/ontology-knowledge.md`. Separate repository edits/static checks from live operations. Never deploy or execute notebooks to validate template maintenance.
 
+This skill applies only to explicitly requested work on the disconnected inherited Fabric sample, not the private application's Bicep deployment.
+
 ## Review or customize definitions
 
 1. Inspect `.platform` metadata, deployment-plan group/action references, notebook parameter cells and TMDL together. Preserve logical IDs across environments; do not confuse them with physical workspace/item/SQL endpoint GUIDs.
@@ -22,7 +24,7 @@ Parse changed Python and JSON locally, and check that every plan logical ID reso
 
 ## Bootstrap or promote only when explicitly requested
 
-Confirm the derived repository, reviewed commit, target workspace and caller identity. Follow the native operations in `cicd/README.md`; this skill is not an unattended deployment wrapper.
+Confirm the derived repository, reviewed commit, target workspace and caller identity. Review the current native Fabric API request and attach the intended deployment plan before each authorized operation; `cicd/README.md` describes why this is outside application deployment. This skill is not an unattended deployment wrapper.
 
 - Run the bundled binder as an authorized Fabric **user**. Service-principal NotebookUtils tokens lack the required scopes; unattended authentication needs a separately designed flow, not a token fallback.
 - Attach the reviewed plan explicitly for every operation. Git updates use the plan's logical ID (`ByLogicalId`); pipeline deployments use the plan's physical item ID (`ByItemId`). Keep required API fields, poll to completion and surface failed actions.
@@ -31,6 +33,6 @@ Confirm the derived repository, reviewed commit, target workspace and caller ide
 - Treat target-binding differences separately from business-model revisions. Do not overwrite them with DEV values. Do not automatically delete orphans or resolve Git deletions/conflicts in favor of the incoming source.
 - Keep PROD infrastructure/approvals and its non-demo release plan in the derived project. Do not weaken the sample seeding guard.
 
-After successful DEV binding, use physical DEV lakehouse/ontology GUIDs for Terraform's knowledge stage. Native `fabricOntology` retrieval needs the end user's Search-audience token; Search/Foundry managed identities do not substitute for it. Validate `fabricOntology` activity/references and denied access, not just an answer reproduced from `starter.txt`.
+If knowledge registration is separately requested after successful binding, use physical lakehouse/ontology GUIDs from the chosen workspace. It is not part of the application's approved-document knowledge sources. Native `fabricOntology` retrieval needs the end user's Search-audience token; Search/Foundry managed identities do not substitute for it. Validate `fabricOntology` activity/references and denied access, not just an answer reproduced from `starter.txt`.
 
 Keep SQL metadata, indexing, graph materialization and semantic-model refresh distinct. The binder refreshes only the two sample tables; add explicit bounded readiness actions for additional consumers instead of assuming seed completion makes everything ready.

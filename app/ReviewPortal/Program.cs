@@ -28,6 +28,7 @@ builder.Services.AddSingleton(sp => new BlobServiceClient(new Uri(options.BlobEn
     sp.GetRequiredService<TokenCredential>(), sp.GetRequiredService<BlobClientOptions>()));
 builder.Services.AddSingleton<CaseStore>();
 builder.Services.AddHttpClient<CloudServices>(c => c.Timeout = TimeSpan.FromSeconds(120));
+builder.Services.AddSingleton<WorkerActivity>();
 builder.Services.AddHostedService<ExtractionWorker>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(jwt =>
 {
@@ -54,6 +55,11 @@ builder.Services.AddAuthorization(auth =>
 builder.Services.AddRateLimiter(r =>
 {
     r.RejectionStatusCode = 429;
+    r.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        context.Request.Method == "POST" && context.Request.Path.Value?.TrimEnd('/') == "/api/cases"
+            ? RateLimitPartition.GetConcurrencyLimiter("uploads", _ => new ConcurrencyLimiterOptions
+                { PermitLimit = 2, QueueLimit = 0 })
+            : RateLimitPartition.GetNoLimiter("other"));
     r.AddPolicy("api", context => RateLimitPartition.GetFixedWindowLimiter(
         context.User.FindFirstValue("oid") ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
@@ -71,6 +77,12 @@ app.Use(async (context, next) =>
     {
         context.Response.StatusCode = ex.Status == 404 ? 404 : 409;
         await context.Response.WriteAsJsonAsync(new { error = "Case missing or changed. Refresh before retrying.", requestId = context.TraceIdentifier });
+    }
+    catch (OperationCanceledException) when (!context.RequestAborted.IsCancellationRequested)
+    {
+        app.Logger.LogWarning("Request {RequestId} exceeded its dependency deadline.", context.TraceIdentifier);
+        context.Response.StatusCode = StatusCodes.Status504GatewayTimeout;
+        await context.Response.WriteAsJsonAsync(new { error = "Operation timed out. Refresh the case before retrying.", requestId = context.TraceIdentifier });
     }
     catch (Exception ex) when (ex is RequestFailedException or HttpRequestException or InvalidOperationException or System.Text.Json.JsonException)
     {
@@ -94,19 +106,24 @@ app.MapGet("/api/config", () => new
 {
     options.TenantId, options.ClientId, options.ApiScope, options.ConfidenceThreshold, options.MaxUploadBytes
 });
+app.MapGet("/api/worker/status", (WorkerActivity activity) => Results.Ok(activity.Snapshot()))
+    .RequireAuthorization("reviewer").RequireRateLimiting("api");
 var api = app.MapGroup("/api/cases").RequireAuthorization("caseworker").RequireRateLimiting("api");
-api.MapGet("/", async (ClaimsPrincipal user, CaseStore store, CancellationToken ct) =>
-    await store.List(Owner(user), ct));
+api.MapGet("/", async (string? continuationToken, ClaimsPrincipal user, CaseStore store, CancellationToken ct) =>
+{
+    if (continuationToken?.Length > 8192)
+        return Results.BadRequest(new { error = "Invalid continuation token." });
+    return Results.Ok(await store.List(Owner(user), 50, continuationToken, ct));
+});
 api.MapGet("/{id:guid}", async (Guid id, ClaimsPrincipal user, CaseStore store, CancellationToken ct) =>
     await store.Load(Owner(user), id, ct));
 api.MapPost("/", async (HttpRequest request, ClaimsPrincipal user, CaseStore store, CancellationToken ct) =>
 {
     if (request.ContentType?.Split(';')[0] != "application/pdf") return Results.BadRequest(new { error = "Upload a PDF body." });
-    using var buffer = new MemoryStream();
-    await request.Body.CopyToAsync(buffer, ct);
-    if (buffer.Length is < 8 || buffer.Length > options.MaxUploadBytes ||
-        !buffer.GetBuffer().AsSpan(0, 5).SequenceEqual("%PDF-"u8))
-        return Results.BadRequest(new { error = "Invalid PDF or size limit exceeded." });
+    if (request.ContentLength > options.MaxUploadBytes)
+        return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+    using var buffer = await PdfUpload.Read(request.Body, options.MaxUploadBytes, ct);
+    if (buffer is null) return Results.BadRequest(new { error = "Invalid PDF or size limit exceeded." });
     var id = Guid.NewGuid();
     var item = new ReviewCase(id, Owner(user), "application.pdf", DateTimeOffset.UtcNow, "Pending",
         OriginalSha256: Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(buffer.GetBuffer().AsSpan(0, (int)buffer.Length))));
@@ -138,11 +155,22 @@ api.MapPost("/{id:guid}/review", async (Guid id, ReviewInput input, ClaimsPrinci
     await store.Save(reviewed, input.Version, ct);
     return Results.Accepted($"/api/cases/{id:D}", reviewed);
 }).RequireAuthorization("reviewer");
-api.MapPost("/{id:guid}/retry", async (Guid id, ClaimsPrincipal user, CaseStore store, CancellationToken ct) =>
+api.MapPost("/{id:guid}/retry", async (Guid id, RetryInput input,
+    ClaimsPrincipal user, CaseStore store, CancellationToken ct) =>
 {
+    if (string.IsNullOrWhiteSpace(input.Version))
+        return Results.BadRequest(new { error = "Supply the current case version." });
     var snapshot = await store.Load(Owner(user), id, ct);
+    if (snapshot.Version != input.Version) return Results.Conflict(new { error = "The case changed; refresh it." });
     if (snapshot.Case.Status != "Failed") return Results.Conflict(new { error = "Only failed cases can be retried." });
+    if (snapshot.Case.FailureCode == "SubmissionOutcomeUnknown" && !input.AcknowledgeUnknownSubmission)
+        return Results.Conflict(new { error = "Submission outcome is unknown. Explicitly acknowledge that retrying may submit another billable analysis." });
     var publishing = snapshot.Case.ReviewedAt.HasValue;
+    if (publishing)
+    {
+        try { CaseStore.ValidateReviewed(snapshot.Case); }
+        catch (InvalidOperationException) { return Results.Conflict(new { error = "Frozen reviewed evidence is invalid; contact the operator." }); }
+    }
     await store.Save(snapshot.Case with
     {
         Status = publishing ? "Publishing" : "Pending", Operation = publishing ? snapshot.Case.Operation : null,
@@ -166,3 +194,27 @@ static string Owner(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue("oid
     throw new InvalidOperationException("Missing object ID.")).ToString("D");
 
 public partial class Program;
+public sealed record RetryInput(string? Version, bool AcknowledgeUnknownSubmission = false);
+
+public static class PdfUpload
+{
+    public static async Task<MemoryStream?> Read(Stream input, long limit, CancellationToken ct)
+    {
+        var buffer = new MemoryStream();
+        try
+        {
+            var chunk = new byte[81920];
+            int count;
+            while ((count = await input.ReadAsync(chunk.AsMemory(0, (int)Math.Min(chunk.Length, limit - buffer.Length + 1)), ct)) > 0)
+            {
+                if (buffer.Length + count > limit) { buffer.Dispose(); return null; }
+                await buffer.WriteAsync(chunk.AsMemory(0, count), ct);
+            }
+            if (buffer.Length < 8 || !buffer.GetBuffer().AsSpan(0, 5).SequenceEqual("%PDF-"u8))
+            { buffer.Dispose(); return null; }
+            buffer.Position = 0;
+            return buffer;
+        }
+        catch { buffer.Dispose(); throw; }
+    }
+}

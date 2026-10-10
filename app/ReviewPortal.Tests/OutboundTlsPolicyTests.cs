@@ -95,7 +95,7 @@ public sealed class OutboundTlsPolicyTests : IClassFixture<PortalFactory>
     [InlineData("blob")]
     [InlineData("content")]
     [InlineData("search")]
-    [InlineData("project")]
+    [InlineData("openai")]
     public void ConfiguredServiceEndpointsCannotUseTheIdentityMetadataHttpException(string service)
     {
         const string endpoint = "http://127.0.0.1/";
@@ -104,7 +104,7 @@ public sealed class OutboundTlsPolicyTests : IClassFixture<PortalFactory>
             "blob" => ReviewTests.Options with { BlobEndpoint = endpoint },
             "content" => ReviewTests.Options with { ContentEndpoint = endpoint },
             "search" => ReviewTests.Options with { SearchEndpoint = endpoint },
-            _ => ReviewTests.Options with { ProjectEndpoint = endpoint }
+            _ => ReviewTests.Options with { OpenAIEndpoint = endpoint }
         };
         Assert.Throws<InvalidOperationException>(options.Validate);
     }

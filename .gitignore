@@ -6,6 +6,9 @@
 *.tfbackend
 *.tfbackend.*
 !*.tfbackend.example
+*.bicepparam
+!*.example.bicepparam
+!*.bicepparam.example
 .env
 .env.*
 !.env.example

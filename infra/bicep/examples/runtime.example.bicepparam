@@ -3,12 +3,12 @@ param project_name = 'review-demo'
 param location = 'eastus2'
 param platform = { environment_name: 'cae-review-demo-example', registry_name: 'acrexamplereview', identity_name: 'id-review-demo-example' }
 param runtime = {
-  attestation_mode: 'evidence_gated'
+  attestation_mode: 'synthetic_poc_attestation_deferred'
   encryption_standard: 'FIPS140-3'
-  approved: true
-  platform_evidence: 'EXAMPLE-NOT-PLATFORM-ACCEPTANCE'
-  image_evidence: 'EXAMPLE-NOT-IMAGE-ACCEPTANCE'
-  transport_evidence: 'EXAMPLE-NOT-TRANSPORT-ACCEPTANCE'
+  approved: false
+  platform_evidence: ''
+  image_evidence: ''
+  transport_evidence: ''
   knowledge: { approved: true, evidence_reference: 'EXAMPLE-NOT-KNOWLEDGE-READINESS' }
   identity: {
     tenant_id: '33333333-3333-4333-8333-333333333333'
@@ -22,8 +22,8 @@ param application = {
   blob_endpoint: 'https://stexampleapplication.blob.core.windows.net'
   content_endpoint: 'https://ai-review-demo-example.services.ai.azure.com'
   search_endpoint: 'https://srch-review-demo-example.search.windows.net'
-  project_endpoint: 'https://ai-review-demo-example.services.ai.azure.com/api/projects/review-demo-review'
-  agent_name: 'exempt-agent'
+  openai_endpoint: 'https://ai-review-demo-example.openai.azure.com'
+  chat_deployment: 'chat'
   analyzer_id: 'application_review'
   field_names: ['ApplicantName', 'Description', 'ReferenceNumber', 'RequestedCategory', 'SignaturePresent', 'SupportingDocuments']
   processing_location: 'geography'

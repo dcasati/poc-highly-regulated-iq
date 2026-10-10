@@ -58,6 +58,27 @@ public sealed class FrontendTests
     }
 
     [Fact]
+    public void RetryUsesCurrentVersionAndAcknowledgesOnlyUnknownSubmissions()
+    {
+        var script = Source("portal.js");
+        Assert.Contains("""selectedFailureCode = snapshot.case.failureCode;""", script);
+        Assert.Contains("""selectedFailureCode === "SubmissionOutcomeUnknown";""", script);
+        Assert.Contains("JSON.stringify({ version, acknowledgeUnknownSubmission: unknownSubmission })", script);
+        Assert.Contains("if (!confirm(message)) return;", script);
+    }
+
+    [Fact]
+    public void CaseListUsesExplicitContinuationPages()
+    {
+        Assert.Contains("""id="more-cases" """, Source("index.html"));
+        var script = Source("portal.js");
+        Assert.Contains("encodeURIComponent(continuationToken)", script);
+        Assert.Contains("for (const item of page.items)", script);
+        Assert.Contains("continuationToken = page.continuationToken;", script);
+        Assert.Contains("if (!append)", script);
+    }
+
+    [Fact]
     public void AnswerFormattingUsesLocalDomRenderingAndKeepsUntrustedTextInert()
     {
         var script = Source("report.js");

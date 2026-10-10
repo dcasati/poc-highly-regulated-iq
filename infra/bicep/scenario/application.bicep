@@ -9,9 +9,9 @@ type application_config = {
   @minLength(1)
   search_endpoint: string
   @minLength(1)
-  project_endpoint: string
+  openai_endpoint: string
   @minLength(1)
-  agent_name: string
+  chat_deployment: string
   @minLength(1)
   analyzer_id: string
   @minLength(1)
@@ -29,8 +29,8 @@ func portal_environment(project_name string, runtime runtime_approval, applicati
   { name: 'Portal__BlobEndpoint', value: application.blob_endpoint }
   { name: 'Portal__ContentEndpoint', value: application.content_endpoint }
   { name: 'Portal__SearchEndpoint', value: application.search_endpoint }
-  { name: 'Portal__ProjectEndpoint', value: application.project_endpoint }
-  { name: 'Portal__AgentName', value: application.agent_name }
+  { name: 'Portal__OpenAIEndpoint', value: application.openai_endpoint }
+  { name: 'Portal__ChatDeployment', value: application.chat_deployment }
   { name: 'Portal__AnalyzerId', value: application.analyzer_id }
   { name: 'Portal__KnowledgeBase', value: '${project_name}-review' }
   { name: 'Portal__KnowledgeSource', value: '${project_name}-review-source' }

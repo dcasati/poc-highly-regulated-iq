@@ -251,15 +251,15 @@ def build():
         "Verify EVERY source reference",
         "Case + owner metadata match",
         "Reject missing / partial evidence",
-        "Pass all current reviewed fields",
+        "Scoped sourceData content only",
     ], "logic", h=340)
-    card(xs[3], 1470, ["Foundry Agent", "Service"], [
-        "Managed prompt agent",
+    card(xs[3], 1470, ["Azure OpenAI"], [
+        "Direct private chat completions",
         "Question + untrusted history",
-        "Reviewed fields + evidence",
-        "Tools disabled; store=false",
-        "Native scope + Prompt Shields",
-    ], glyph="agent", h=340)
+        "Validated scoped evidence",
+        "No tools; store=false",
+        "JSON answer + citation IDs",
+    ], glyph="foundry", h=340)
     card(xs[4], 1470, ["Answer + citations"], [
         "Current reference IDs only",
         "Returned through portal API / UI",
@@ -276,8 +276,8 @@ def build():
     ]):
         arrow([(xs[i] + 390, 1620), (xs[i + 1], 1620)], label, (xs[i] + 396, 1580))
 
-    lane(1920, 255, "Native security controls | managed instructions and model policy, not app safety judges")
-    text(70, 2006, "Task-scope managed instructions", 25, True, 700)
+    lane(1920, 255, "Answer controls | app instructions and native model policy, not app safety judges")
+    text(70, 2006, "Task-scoped application instructions", 25, True, 700)
     text(70, 2050, [
         "Whole-request refusal for unrelated or mixed tasks.",
         "Fields / documents / history are data, not instructions.",
@@ -287,13 +287,13 @@ def build():
     text(855, 2050, [
         "Blocking: Medium harm on Prompt + Completion.",
         "Binary Jailbreak / Indirect Attack on Prompt.",
-        "Protected material Completion; rai_config: full policy ARM ID.",
+        "Protected material Completion; policy on chat deployment.",
     ], 21, max_width=710)
     text(1640, 2006, "Evidence limits — not zero injection risk", 25, True, 675)
     text(1640, 2050, [
-        "Strong jailbreak blocked; field fixtures ignored.",
-        "Responses indirect-detector coverage unproven.",
-        "Native preview behavior needs separate acceptance.",
+        "Source identity is not claim entailment.",
+        "Document delimiters for indirect-attack protection.",
+        "Live behavior needs separate acceptance.",
     ], 21, max_width=665)
 
     lane(2225, 260, "Supporting platform | infrastructure and image delivery, NOT the document data path")
@@ -304,16 +304,16 @@ def build():
         "No public app / data ingress; private HTTPS.",
     ], 21, max_width=710)
     icon("foundry", 855, 2311, 62)
-    text(935, 2322, "Foundry private agent foundation", 25, True, 625)
+    text(935, 2322, "Private AI Services account", 25, True, 625)
     text(855, 2400, [
-        "Private inbound / outbound; BYO Blob + Cosmos stores.",
-        "Native agent state separate from application evidence.",
+        "Private CU + OpenAI; no managed agent stores.",
+        "One shared-process synthetic trust exception.",
     ], 21, max_width=710)
     icon("registry", 1640, 2311, 62)
     text(1720, 2322, "Private ACR + build pool", 25, True, 600)
     text(1640, 2400, [
         "Immutable digest images; private registry + MI pulls.",
-        "VNet-connected build pool currently idle.",
+        "VNet-connected build pool; no document path.",
     ], 21, max_width=670)
 
     rect(25, 2530, 2350, 112, stroke=GRAY, dashed=True)
@@ -334,8 +334,8 @@ def outputs():
         '<title id="diagram-title">Private document review | Current Azure service architecture</title>\n'
         '<desc id="diagram-description">Three directional lanes: retain original PDFs, custom extraction and explicit human validation; '
         'publish only approved copies and reviewed JSON to private Search indexers and a searchIndex Foundry IQ knowledge base; '
-        'server-authorized case-and-owner retrieval with every reference checked before a tools-disabled managed prompt agent. '
-        'Actual Container Apps Managed Environment private endpoint, native scope refusal and Prompt Shields, supporting private '
+        'server-authorized case-and-owner retrieval with validated source data before no-tools direct Azure OpenAI chat inference. '
+        'Actual Container Apps Managed Environment private endpoint, application scope refusal and Prompt Shields, supporting private '
         'platform and separate disconnected inherited Fabric sample. Synthetic PoC, not readiness or FIPS certification.</desc>\n'
         '<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">'
         '<path d="M0 0 L8 4 L0 8 Z" fill="#446886"/></marker>'

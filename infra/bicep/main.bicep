@@ -1,6 +1,6 @@
 targetScope = 'subscription'
 import { us_region, approval, model, egress_rule } from './types.bicep'
-@description('New Bicep-owned solution branding; never deploy over the current separately owned solution.')
+@description('PoC solution branding; existing ownership changes require separate explicit review.')
 @minLength(3)
 @maxLength(16)
 param project_name string
@@ -65,7 +65,6 @@ module foundation './foundation/main.bicep' = {
     vnet_cidr: vnet_cidr
     endpoint_subnet_name: private_network.outputs.endpoint_subnet_name
     blob_dns_resource_group: groups[1].name
-    hosting: 'container_apps'
     models: models
     caller_principal_id: caller_principal_id
     caller_principal_type: caller_principal_type
@@ -89,8 +88,6 @@ output services object = {
   account_id: foundation.outputs.account_id
   search_name: foundation.outputs.search_name
   application_storage_name: foundation.outputs.application_storage_name
-  agent_storage_name: foundation.outputs.agent_storage_name
-  agent_cosmos_name: foundation.outputs.agent_cosmos_name
   endpoints: foundation.outputs.service_endpoints
   models: foundation.outputs.model_deployments
   chat_rai_policy_id: foundation.outputs.chat_rai_policy_id

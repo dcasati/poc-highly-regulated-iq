@@ -27,7 +27,8 @@ with sync_playwright() as p:
                     value = {"tenantId": CASE, "clientId": CASE, "apiScope": "api://fixture/access_as_user",
                              "confidenceThreshold": 0.9, "maxUploadBytes": 20971520}
                 elif path == "/api/cases/":
-                    value = [{"id": CASE, "status": state["status"]}, {"id": OTHER, "status": "Approved"}]
+                    value = {"items": [{"id": CASE, "status": state["status"]}, {"id": OTHER, "status": "Approved"}],
+                             "continuationToken": None}
                 elif path in ["/api/cases/" + CASE, "/api/cases/" + OTHER]:
                     value = {"case": {"id": path.rsplit("/", 1)[1], "status": state["status"] if path.endswith(CASE) else "Approved",
                                       "fields": [{"name": "ApplicantName", "value": "Synthetic organization",

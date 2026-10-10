@@ -22,14 +22,11 @@ public static class OutboundTlsPolicy
             AllowAutoRedirect = false,
             SslOptions = new SslClientAuthenticationOptions
             {
-                // Certificate 5313 approves TLS 1.2 KDF, not TLS 1.3 HKDF.
                 EnabledSslProtocols = SslProtocols.Tls12
             }
         };
         if (OperatingSystem.IsLinux())
         {
-            // The image's OpenSSL system_default profile limits groups to P-256/P-384.
-            // Native approved-mode/module mapping still requires runtime evidence.
             handler.SslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(
             [
                 TlsCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
@@ -38,7 +35,6 @@ public static class OutboundTlsPolicy
                 TlsCipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
             ]);
         }
-        // macOS development uses OS cipher defaults; neither branch proves native module mapping.
         return handler;
     }
 

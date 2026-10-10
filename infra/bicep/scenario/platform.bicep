@@ -5,9 +5,9 @@ import { us_region, reference, approval } from '../types.bicep'
 param project_name string
 @description('Explicit approved supported Azure region permitted by deployment validation rules.')
 param location us_region
-@description('Existing verified private application Storage, Search and Foundry references. Account and project share a resource group.')
-param existing { storage: reference, search: reference, foundry: reference, project_name: string }
-@description('Backend-owned endpoint subnet ARM ID and foundation-owned registry DNS zone ARM ID.')
+@description('Existing verified private application Storage, Search and AI Services account references. No managed agent project is required.')
+param existing { storage: reference, search: reference, foundry: reference }
+@description('PoC-owned endpoint subnet ARM ID and foundation-owned registry DNS zone ARM ID.')
 param network { endpoint_subnet_id: string, registry_dns_zone_id: string }
 @description('Verified private/keyless prerequisites, Search S1+, system identity, scoped ownership and approved processing boundaries.')
 param prerequisites approval
@@ -60,6 +60,7 @@ module pe '../modules/private-endpoint.bicep' = {
 var grants = [
   { group: existing.search.resource_group_name, kind: 'search', name: existing.search.name, role: '1407120a-92aa-4202-b7e9-c0e197c71c8f' }
   { group: existing.foundry.resource_group_name, kind: 'foundry', name: existing.foundry.name, role: 'a97b65f3-24c7-4388-baec-2e87135dc908' }
+  { group: existing.foundry.resource_group_name, kind: 'foundry', name: existing.foundry.name, role: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' }
   { group: resourceGroup().name, kind: 'registry', name: registry.name, role: '7f951dda-4ed3-4680-a7ca-43fe172d538d' }
 ]
 module roles '../modules/service-roles.bicep' = [for (grant, i) in grants: {
@@ -67,11 +68,6 @@ module roles '../modules/service-roles.bicep' = [for (grant, i) in grants: {
   scope: resourceGroup(grant.group)
   params: { kind: grant.kind, name: grant.name, principal_id: identity.properties.principalId, role_id: grant.role }
 }]
-module project_role '../modules/project-role.bicep' = {
-  name: 'application-project-role'
-  scope: resourceGroup(existing.foundry.resource_group_name)
-  params: { account_name: existing.foundry.name, project_name: existing.project_name, principal_id: identity.properties.principalId }
-}
 output identity_name string = identity.name
 output identity_client_id string = identity.properties.clientId
 output identity_id string = identity.id

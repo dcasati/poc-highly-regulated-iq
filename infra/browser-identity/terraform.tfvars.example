@@ -1,4 +1,0 @@
-project_name          = "reviewpoc"
-expected_tenant_id    = "00000000-0000-0000-0000-000000000002"
-spa_redirect_uris     = []
-assign_operator_roles = false

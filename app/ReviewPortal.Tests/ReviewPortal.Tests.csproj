@@ -11,7 +11,6 @@
   <ItemGroup>
     <ProjectReference Include="../ReviewPortal/ReviewPortal.csproj" />
     <None Include="../ReviewPortal/Dockerfile" Link="PolicySources/Dockerfile" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../ReviewPortal/openssl-tls.cnf" Link="PolicySources/openssl-tls.cnf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../ReviewPortal/wwwroot/index.html" Link="FrontendSources/index.html" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../ReviewPortal/wwwroot/style.css" Link="FrontendSources/style.css" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../ReviewPortal/wwwroot/portal.js" Link="FrontendSources/portal.js" CopyToOutputDirectory="PreserveNewest" />

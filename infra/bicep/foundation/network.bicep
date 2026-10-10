@@ -7,16 +7,12 @@ param location us_region
 param vnet_name string
 @description('Verified canonical PoC address space.')
 param vnet_cidr string
-@description('Reserved backend-owned private endpoint subnet CIDR.')
+@description('Reserved PoC-owned private endpoint subnet CIDR.')
 param endpoint_cidr string
-@description('Runtime reservation delegation; choose the AKS alternative before creation, not after deployment.')
-@allowed(['container_apps', 'aks'])
-param hosting string = 'container_apps'
 @description('Approved controlled outbound transport for runtime/build only; no unrestricted Internet rule.')
 param outbound platform_egress
 var subnets = [
-  { name: 'agent', number: 0, delegated: true }
-  { name: 'runtime', number: 1, delegated: hosting == 'container_apps' }
+  { name: 'runtime', number: 1, delegated: true }
   { name: 'build', number: 4, delegated: false }
 ]
 resource network 'Microsoft.Network/virtualNetworks@2024-05-01' existing = { name: vnet_name }
@@ -45,7 +41,7 @@ resource nsgs 'Microsoft.Network/networkSecurityGroups@2024-05-01' = [for subnet
         name: 'deny-other-egress'
         properties: { priority: 4096, direction: 'Outbound', access: 'Deny', protocol: '*', sourcePortRange: '*', destinationPortRange: '*', sourceAddressPrefix: '*', destinationAddressPrefix: '*' }
       }
-    ], map((subnet.name == 'runtime' ? outbound.runtime : subnet.name == 'build' ? outbound.build : []), (rule, i) => {
+    ], map((subnet.name == 'runtime' ? outbound.runtime : outbound.build), (rule, i) => {
       name: 'approved-platform-${i}'
       properties: {
         priority: 200 + i
@@ -68,13 +64,12 @@ resource reservations 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' = [
     addressPrefix: cidrSubnet(vnet_cidr, 24, subnet.number)
     defaultOutboundAccess: false
     networkSecurityGroup: { id: nsgs[i].id }
-    ...subnet.name != 'agent' ? { natGateway: { id: outbound.nat_gateway_id } } : {}
+    natGateway: { id: outbound.nat_gateway_id }
     delegations: subnet.delegated ? [{
       name: 'container-apps'
       properties: { serviceName: 'Microsoft.App/environments' }
     }] : []
   }
 }]
-output agent_subnet_id string = reservations[0].id
-output runtime_subnet_id string = reservations[1].id
-output build_subnet_id string = reservations[2].id
+output runtime_subnet_id string = reservations[0].id
+output build_subnet_id string = reservations[1].id

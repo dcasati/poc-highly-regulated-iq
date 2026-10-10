@@ -1,30 +1,16 @@
 ---
 name: initialize-project
-description: Configure local inputs for this derived private document-review IQ project without deployment. Choose branding, an explicit region and verified existing-resource/network/identity references. Never run the inherited Fabric initializer for this scenario.
+description: Configure local Bicep parameters for the private synthetic document-review PoC without deployment. Confirm branding, explicit region, private execution host and native service/identity handoffs.
 ---
 
-# Configure the private review scenario
+# Configure local inputs
 
-Read `AGENTS.md`, `docs/getting-started.md`, `docs/development.md`, `docs/highly-regulated-scenario.md` and the sanitized examples in `infra/highly-regulated/` and optional `infra/acr-build/`.
+Read `AGENTS.md`, `docs/getting-started.md` and sanitized `infra/bicep/examples/`. If deployment was requested, let `deploy-platform` follow that guide; initialization does not mutate cloud resources.
 
-If the user requested deployment, let `deploy-platform` coordinate the complete workflow. Configuration alone is not deployment.
+Reuse confirmed host/checkout, subscription/directory, branding and supported region. Ask only for missing choices; never guess a region, physical ID, resource owner or credential. Do not discover/adopt unrelated resources. Inspect existing local filenames first and preserve user configuration.
 
-## Establish the chosen host and target
+Prepare owner-only ignored `<stage>.local.bicepparam` files beside their examples, only when they do not already exist. Fill nonsecret approved inputs; distinguish compiler fixtures from actual values. Keep destination-scoped egress, pinned model versions/SKUs/quota and processing boundaries explicit. Real service/identity IDs and the Azure OpenAI root endpoint/chat deployment come from later readbacks, not guessed names. No managed-agent project or stores are needed.
 
-Confirm the derived repository and its published reviewed branch/commit. Reuse the execution checkout, subscription and backend choices already provided. Inspect filenames only for existing tfvars/backend/state; do not infer a new state owner from missing files in an App worktree. If configuration exists, preserve it and ask before conflicting changes.
+The runtime example selects this user-approved synthetic PoC mode: `attestation_mode: 'synthetic_poc_attestation_deferred'`, `approved: false`, and `platform_evidence`, `image_evidence`, `transport_evidence` exactly `''`. Preserve those fields; replace example identities, knowledge evidence and image hash with actual approved values. Do not fabricate readiness. Keep identity, knowledge, private networking and immutable-image requirements.
 
-Ask only for missing inputs, one at a time: a generic 3-16 character project name, explicit approved region, verified existing Foundry/project/agent/Search/Storage/network references, approved subnets and administrator-approved SPA/API registration metadata. Do not truncate the repository name into branding, guess physical IDs, select a cloud region silently or ask for secrets.
-
-The existing private foundation must satisfy the tutorial's service, identity, model-default and shared-link prerequisites. Do not provision or import it as a side effect of initialization.
-
-## Create local configuration only
-
-On the chosen execution host, create one owner-only ignored `infra/highly-regulated/terraform.tfvars` from its sanitized example only when the file does not already exist. Fill approved nonsecret inputs. A genuinely new deployment starts with `provision_hosting = false`, `deploy_knowledge = false`, `deploy_runtime = false`, `image_digest = null` and compliance unapproved. Never reset these values on resume.
-
-If a new private ACR pool is required, prepare the separate build-root tfvars from its example without adopting another project's pool. Keep preview approval false until the authorized organization accepts it. Keep backend keys separate and credentials outside tfvars; backend provisioning/migration is not initialization.
-
-Verify local configuration is ignored without printing it. Search/Content Understanding tokens are ephemeral provider inputs acquired later inside each plan/apply shell; never write them into files.
-
-Do not run `scripts/initialize_project.py`, request Fabric capacity administrators/PATs, execute Terraform plans/applies or change cloud access during this step. The inherited script configures a different Fabric baseline.
-
-Return the configuration status and unresolved prerequisites to `deploy-platform`. Preserve all inherited workspace logical IDs and reference definitions.
+Verify files are ignored without printing their contents. Do not overwrite existing files, sign in, run what-if/install/REST, grant access, enroll a VM, migrate state or initialize Fabric. Return configured stages and unresolved prerequisites.

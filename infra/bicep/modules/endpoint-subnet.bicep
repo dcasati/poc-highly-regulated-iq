@@ -1,4 +1,4 @@
-@description('Existing PoC connectivity VNet.')
+@description('Existing PoC connectivity VNet; the module owns only its reserved private endpoint subnet.')
 param vnet_name string
 @description('Generic PoC branding.')
 param project_name string

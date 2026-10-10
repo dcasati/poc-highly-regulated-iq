@@ -8,7 +8,7 @@ param network reference
 @description('Canonical reviewed 10.x.0.0/16 address space.')
 param vnet_cidr string
 
-module endpoint_subnet '../state-backend/subnet.bicep' = {
+module endpoint_subnet '../modules/endpoint-subnet.bicep' = {
   name: 'private-endpoint-subnet'
   scope: resourceGroup(network.resource_group_name)
   params: { project_name: project_name, vnet_name: network.name, vnet_cidr: vnet_cidr }

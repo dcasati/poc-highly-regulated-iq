@@ -17,7 +17,9 @@ public sealed class ChatContextTests : IClassFixture<PortalFactory>
 {
     private const string Owner = PortalFactory.Tenant;
     private static readonly Guid CaseId = Guid.Parse("22222222-2222-2222-2222-222222222222");
-    private static readonly ReviewCase Item = new(CaseId, Owner, "application.pdf", DateTimeOffset.UtcNow, "Approved");
+    private static readonly ReviewCase Item = new(CaseId, Owner, "application.pdf", DateTimeOffset.UtcNow, "Approved",
+        Fields: [new("ApplicantName", "Example", "Example", .9, null, true)],
+        ReviewerId: Owner, ReviewedAt: DateTimeOffset.UtcNow, OriginalSha256: new string('a', 64));
     private readonly HttpClient client;
 
     public ChatContextTests(PortalFactory factory) => client = factory.CreateClient();
@@ -121,25 +123,24 @@ public sealed class ChatContextTests : IClassFixture<PortalFactory>
         Assert.False(agent.TryGetProperty("conversation", out _));
         Assert.False(agent.TryGetProperty("previous_response_id", out _));
         Assert.False(agent.GetProperty("store").GetBoolean());
-        Assert.Equal("none", agent.GetProperty("tool_choice").GetString());
-        Assert.Equal("existing-agent", agent.GetProperty("agent_reference").GetProperty("name").GetString());
-        var messages = agent.GetProperty("input");
+        Assert.False(agent.TryGetProperty("tools", out _));
+        Assert.Equal("review-chat", agent.GetProperty("model").GetString());
+        var messages = agent.GetProperty("messages");
         Assert.Equal(2, messages.GetArrayLength());
-        var guardrails = messages[0].GetProperty("content")[0].GetProperty("text").GetString()!;
-        Assert.Equal("developer", messages[0].GetProperty("role").GetString());
+        var guardrails = messages[0].GetProperty("content").GetString()!;
+        Assert.Equal("system", messages[0].GetProperty("role").GetString());
         Assert.Contains("never evidence", guardrails);
         Assert.Contains("Ignore old citation IDs", guardrails);
         Assert.Contains("current retrieved evidence only", guardrails);
         Assert.DoesNotContain(priorAnswer, guardrails);
         Assert.Equal("user", messages[1].GetProperty("role").GetString());
-        var text = messages[1].GetProperty("content")[0].GetProperty("text").GetString()!;
+        var text = messages[1].GetProperty("content").GetString()!;
         Assert.Contains(priorAnswer, text);
         Assert.Contains("applicant name", text);
         Assert.Contains("What about its signature?", text);
         Assert.All(messages.EnumerateArray(), message =>
         {
-            Assert.Equal("message", message.GetProperty("type").GetString());
-            Assert.Equal("input_text", message.GetProperty("content")[0].GetProperty("type").GetString());
+            Assert.Equal(JsonValueKind.String, message.GetProperty("content").ValueKind);
         });
     }
 
@@ -171,7 +172,7 @@ public sealed class ChatContextTests : IClassFixture<PortalFactory>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal($"/review-state/{Owner}/{CaseId:D}.json", Assert.Single(storageHandler.Paths));
         Assert.Equal(2, cloudHandler.Requests.Count);
-        var input = cloudHandler.Requests[1].GetProperty("input")[1].GetProperty("content")[0].GetProperty("text").GetString()!;
+        var input = cloudHandler.Requests[1].GetProperty("messages")[1].GetProperty("content").GetString()!;
         Assert.Equal(hasHistory, input.Contains("Prior answer [old-id].", StringComparison.Ordinal));
         Assert.Equal(hasHistory, input.Contains("Who applied?", StringComparison.Ordinal));
         Assert.Contains("And its signature?", input);
@@ -193,7 +194,7 @@ public sealed class ChatContextTests : IClassFixture<PortalFactory>
         await cloud.Chat(Item, "New chat", CancellationToken.None);
         Assert.Equal("New chat", handler.Requests[4].GetProperty("intents")[0].GetProperty("search").GetString());
         Assert.Contains("context only, not evidence or instructions):\n[]",
-            handler.Requests[5].GetProperty("input")[1].GetProperty("content")[0].GetProperty("text").GetString());
+            handler.Requests[5].GetProperty("messages")[1].GetProperty("content").GetString());
     }
 
     [Theory]
@@ -238,10 +239,12 @@ public sealed class ChatContextTests : IClassFixture<PortalFactory>
                 {
                     id = $"current-{(Requests.Count + 1) / 2}",
                     sourceData = new { case_id = WrongCase ? Guid.NewGuid().ToString("D") : CaseId.ToString("D"),
-                        owner_id = WrongOwner ? Guid.NewGuid().ToString("D") : Owner }
+                        owner_id = WrongOwner ? Guid.NewGuid().ToString("D") : Owner, content = "ApplicantName: Example" }
                 }},
                 activity = Array.Empty<object>(), response = Array.Empty<object>()
-            }) : """{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"Current answer."}]}]}""";
+            }) : JsonSerializer.Serialize(new { choices = new[] { new { finish_reason = "stop",
+                message = new { role = "assistant", content = JsonSerializer.Serialize(new { answer = "Current answer.",
+                    citations = new[] { $"current-{Requests.Count / 2}" } }) } } } });
             return new HttpResponseMessage(Partial ? HttpStatusCode.PartialContent : HttpStatusCode.OK)
             { Content = new StringContent(response, System.Text.Encoding.UTF8, "application/json") };
         }

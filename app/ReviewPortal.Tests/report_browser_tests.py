@@ -38,7 +38,7 @@ def api(route):
         value = {"tenantId": CASE, "clientId": CASE, "apiScope": "api://fixture/access_as_user",
                  "confidenceThreshold": 0.9, "maxUploadBytes": 20971520}
     elif path == "/api/cases/":
-        value = [{"id": CASE, "status": "Approved"}]
+        value = {"items": [{"id": CASE, "status": "Approved"}], "continuationToken": None}
     elif path == "/api/cases/" + CASE:
         value = SNAPSHOT
     elif path == "/api/cases/" + OTHER_CASE:
