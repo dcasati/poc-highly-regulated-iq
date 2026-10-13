@@ -36,6 +36,44 @@ For case-scoped questions, the API supplies case-authorized evidence and validat
     ./run.sh -x install   # shows what-if, then requires a typed "yes"
     ```
 
+Here is the entire help and options:
+
+   ```bash
+   usage: run.sh [options]
+   
+       -x  check-deps | build | what-if | install | show
+       -h  Show help.
+    
+   Actions:
+       check-deps  Check installed Azure CLI, Bicep and jq (no sign-in).
+                   Bicep may be on PATH or in the existing Azure CLI bin directory.
+       build       Compile and validate the selected template locally, without output.
+                   Also validate PARAMETERS_FILE when supplied; never write JSON.
+       what-if     Preview resource changes (resource IDs only; no property values).
+       install     Run what-if, then require one explicit "yes" before deployment.
+       show        Show deployment name and provisioning state only.
+    
+   Environment:
+       TEMPLATE_FILE     Default: infra/bicep/main.bicep
+       PARAMETERS_FILE   Required for what-if/install: ignored local .bicepparam file
+       LOCATION          Required explicitly for what-if/install/show
+       DEPLOYMENT_SCOPE  subscription (default) | group
+       RESOURCE_GROUP    Required only for group scope; must already exist
+       DEPLOYMENT_NAME   Default: private-review
+    
+   Relative paths are resolved from the repository, not the current directory.
+   No config files are sourced. Authenticate/select your subscription separately.
+   LOCATION selects subscription deployment metadata location; the parameter file
+   must independently select approved resource/model processing locations.
+   Review template permissions, stage controls and what-if before approving.
+   This runner never creates a group separately, deletes resources, grants roles,
+   registers providers, enrolls Tailscale or changes consent.
+    
+   Example:
+       LOCATION=canadacentral PARAMETERS_FILE=infra/bicep/local.bicepparam \
+         ./run.sh -x what-if
+   ```
+
 4. Complete the remaining stages in the guide: platform, private image build, runtime, Entra apps, Content Understanding and Search objects. These native handoffs are never automatic.
 5. From a private-network host, map the portal hostname to its Private Endpoint IP (hosts entry or exact-hostname split DNS) and open the portal.
 6. Sign in, upload one synthetic PDF, confirm every field, publish as Reviewer, run both Search indexers and ask a case-scoped question.
