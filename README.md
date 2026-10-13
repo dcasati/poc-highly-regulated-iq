@@ -41,6 +41,43 @@ This PoC uses the approved synthetic-only attestation-deferred runtime mode. See
 
 The portal, API and worker share one process, identity and replica, so they are not privilege-separated. See the [trust-boundary limitations](docs/highly-regulated-scenario.md#authentication).
 
+## Steps to run this demo
+
+Clone the repo first; the commands below use relative paths.
+
+1. Clone and enter the repo:
+
+    ```bash
+    git clone https://github.com/dcasati/poc-highly-regulated-iq
+    cd poc-highly-regulated-iq
+    ```
+
+2. Install and sign in to `az` (with Bicep) and `jq`, then check them:
+
+    ```bash
+    az login
+    ./run.sh -x check-deps
+    ```
+
+3. Copy each sanitized example in `infra/bicep/examples/` to an ignored `<stage>.local.bicepparam` (for example `main.example.bicepparam` to `main.local.bicepparam`), then set your project name, an approved region, the admin user and the model deployments. Never commit local files.
+
+4. Check the template, then preview and approve the changes before installing:
+
+    ```bash
+    ./run.sh -x build
+    export PARAMETERS_FILE=infra/bicep/examples/main.local.bicepparam LOCATION=westus3
+    ./run.sh -x what-if
+    ./run.sh -x install   # prints what-if, then requires a typed "yes"
+    ```
+
+5. Follow [getting started](docs/getting-started.md) for the remaining stages, in order: platform and private links, private image build, Container Apps runtime, Entra app registrations, Content Understanding defaults and Search objects. Each stage has its own what-if and approval.
+
+6. Reach the private portal from an approved private-network host (or your approved admin tunnel). Add a hosts entry or exact-hostname split DNS that maps the portal hostname to its Private Endpoint IP, then open the portal URL.
+
+7. Run the synthetic flow: sign in, upload one synthetic PDF, confirm every extracted field, publish as Reviewer, run both Search indexers, then ask a case-scoped question.
+
+Review the temporary operator role grants after setup; see [Rights granted](docs/getting-started.md#rights-granted). Removing a grant needs separate approval.
+
 ## Repository
 
 | Location | Contents |
