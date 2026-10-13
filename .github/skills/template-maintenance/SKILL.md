@@ -21,6 +21,8 @@ Read `AGENTS.md` and inspect the current diff before editing. Preserve unrelated
 bash -n run.sh
 ./run.sh -x check-deps
 ./run.sh -x build
+python3 -m unittest discover -s infra/bicep/tests
+python3 -m unittest discover -s .github/skills/deploy-platform/tests
 ```
 
 Use the existing narrowly relevant offline checks for changed code; do not invent a deployment verification suite. Compile sanitized examples only, never expose real local parameters or copy credential profiles. If a source-only fixture is necessary, use a project-local directory and clean up only files you created.
