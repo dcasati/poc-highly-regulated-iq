@@ -21,6 +21,10 @@ For case-scoped questions, the API supplies case-authorized evidence and validat
 | Azure Container Registry | Private builds and immutable-digest runtime images. |
 | Bicep + Azure CLI | Modular infrastructure and explicit native service/identity handoffs. |
 
+## Example UI
+
+![Private document review portal: a reviewed application with the case-scoped assistant answering with cited evidence (synthetic data).](docs/portal-example.png)
+
 ## Run the demo
 
 [Getting started](docs/getting-started.md) is the canonical guide. Every infrastructure change needs a reviewed what-if and explicit approval.
