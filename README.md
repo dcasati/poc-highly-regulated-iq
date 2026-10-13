@@ -21,62 +21,26 @@ For case-scoped questions, the API supplies case-authorized evidence and validat
 | Azure Container Registry | Private builds and immutable-digest runtime images. |
 | Bicep + Azure CLI | Modular infrastructure and explicit native service/identity handoffs. |
 
-## Get started
+## Run the demo
 
-Follow [getting started](docs/getting-started.md), the canonical deployment guide. `infra/bicep/` is the infrastructure source; `run.sh` is a small Bash entry point:
+[Getting started](docs/getting-started.md) is the canonical guide. Every infrastructure change needs a reviewed what-if and explicit approval.
 
-```bash
-./run.sh -x check-deps
-./run.sh -x build
-# After choosing the target and creating reviewed local parameters:
-PARAMETERS_FILE=infra/bicep/examples/main.local.bicepparam \
-  LOCATION="$APPROVED_REGION" ./run.sh -x what-if
-```
-
-Installation requires approval of the exact target and changes. The script does not grant Microsoft Graph permissions, register native data-plane objects or silently adopt existing resources. In Copilot App/CLI, **"Deploy the platform"** follows the same guide.
-
-Use a **new private PoC foundation**, an explicitly approved supported region and one approved private-network-connected execution host. Do not reuse or modify another project's infrastructure. App/data ingress uses Private Endpoints only, with public network access disabled. A separately approved controlled outbound NAT public IP is allowed; it does not expose inbound access or permit unrestricted egress.
-
-This PoC uses the approved synthetic-only attestation-deferred runtime mode. See the [scenario constraints](docs/highly-regulated-scenario.md#synthetic-only-poc) for its parameter contract and required controls.
-
-The portal, API and worker share one process, identity and replica, so they are not privilege-separated. See the [trust-boundary limitations](docs/highly-regulated-scenario.md#authentication).
-
-## Steps to run this demo
-
-Clone the repo first; the commands below use relative paths.
-
-1. Clone and enter the repo:
-
-    ```bash
-    git clone https://github.com/dcasati/poc-highly-regulated-iq
-    cd poc-highly-regulated-iq
-    ```
-
-2. Install and sign in to `az` (with Bicep) and `jq`, then check them:
-
-    ```bash
-    az login
-    ./run.sh -x check-deps
-    ```
-
-3. Copy each sanitized example in `infra/bicep/examples/` to an ignored `<stage>.local.bicepparam` (for example `main.example.bicepparam` to `main.local.bicepparam`), then set your project name, an approved region, the admin user and the model deployments. Never commit local files.
-
-4. Check the template, then preview and approve the changes before installing:
+1. Clone the repo, sign in with `az login`, then run `./run.sh -x check-deps` (needs `az` with Bicep, and `jq`).
+2. Copy each `infra/bicep/examples/<stage>.example.bicepparam` to an ignored `<stage>.local.bicepparam` and set the project name, approved region, admin user and models.
+3. Preview, then install:
 
     ```bash
     ./run.sh -x build
-    export PARAMETERS_FILE=infra/bicep/examples/main.local.bicepparam LOCATION=westus3
+    export PARAMETERS_FILE=infra/bicep/examples/main.local.bicepparam LOCATION=<approved-region>
     ./run.sh -x what-if
-    ./run.sh -x install   # prints what-if, then requires a typed "yes"
+    ./run.sh -x install   # shows what-if, then requires a typed "yes"
     ```
 
-5. Follow [getting started](docs/getting-started.md) for the remaining stages, in order: platform and private links, private image build, Container Apps runtime, Entra app registrations, Content Understanding defaults and Search objects. Each stage has its own what-if and approval.
+4. Complete the remaining stages in the guide: platform, private image build, runtime, Entra apps, Content Understanding and Search objects. These native handoffs are never automatic.
+5. From a private-network host, map the portal hostname to its Private Endpoint IP (hosts entry or exact-hostname split DNS) and open the portal.
+6. Sign in, upload one synthetic PDF, confirm every field, publish as Reviewer, run both Search indexers and ask a case-scoped question.
 
-6. Reach the private portal from an approved private-network host (or your approved admin tunnel). Add a hosts entry or exact-hostname split DNS that maps the portal hostname to its Private Endpoint IP, then open the portal URL.
-
-7. Run the synthetic flow: sign in, upload one synthetic PDF, confirm every extracted field, publish as Reviewer, run both Search indexers, then ask a case-scoped question.
-
-Review the temporary operator role grants after setup; see [Rights granted](docs/getting-started.md#rights-granted). Removing a grant needs separate approval.
+Use a new private PoC foundation, an approved region and Private Endpoints only; never reuse another project's resources. The runtime mode is synthetic-only ([constraints](docs/highly-regulated-scenario.md#synthetic-only-poc)). The portal, API and worker share one process and identity ([limitations](docs/highly-regulated-scenario.md#authentication)). Review temporary operator grants after setup ([Rights granted](docs/getting-started.md#rights-granted)).
 
 ## Repository
 
