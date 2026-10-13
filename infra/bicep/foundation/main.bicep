@@ -130,6 +130,7 @@ resource chat_prompt_shields 'Microsoft.CognitiveServices/accounts/raiPolicies@2
 // Document protection also requires the documented Chat Completions document delimiters;
 // policy attachment alone does not establish end-to-end prompt-injection protection.
 var model_list = [{ deployment: 'chat', config: models.chat }, { deployment: 'embedding', config: models.embedding }]
+@batchSize(1)
 resource deployments 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = [for item in model_list: {
   parent: account
   name: item.deployment

@@ -33,6 +33,7 @@ type model = {
 @export()
 @sealed()
 type egress_rule = {
+  @description('Reviewed IPv4 CIDR. Build rules may instead use a reviewed Azure service tag (AzureKeyVault, Storage, EventHub, AzureActiveDirectory, AzureMonitor, MicrosoftContainerRegistry, AzureFrontDoor.FirstParty); never Internet or AzureCloud.')
   @minLength(1)
   destination_cidr: string
   @minValue(1)

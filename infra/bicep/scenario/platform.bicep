@@ -51,7 +51,7 @@ var search_bindings = map(['${project_name}-approved', '${project_name}-reviewed
 module data '../modules/storage-bindings.bicep' = {
   name: 'application-containers'
   scope: resourceGroup(existing.storage.resource_group_name)
-  params: { account_name: existing.storage.name, create_containers: true, bindings: concat(app_bindings, search_bindings) }
+  params: { account_name: existing.storage.name, container_names: containers, bindings: concat(app_bindings, search_bindings) }
 }
 module pe '../modules/private-endpoint.bicep' = {
   name: 'registry-private-endpoint'

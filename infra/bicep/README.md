@@ -60,6 +60,9 @@ Storage, Search, AI Services, registry and Container Apps disable public
 network access; bypass stays `None`, registry admin stays disabled. The sole
 public IP is attached to controlled outbound NAT, never the VM, application or
 ingress gateway. Exact reviewed egress rules do not authorize Internet-wide access.
+Optional `tailscale_egress` (default `false`) adds reviewed NSG rules for Tailscale
+(TCP 443, UDP 41641/3478 to the `Internet` tag). It is not an allowlist; the risk is
+accepted only for synthetic-only administration. See getting-started.
 
 **Existing-resource safety:** source cleanup is not a migration. Preserve local
 state/configuration and cloud resources. Do not deploy over resources this PoC

@@ -14,6 +14,10 @@ param administration approval
 param ssh_public_key string
 @description('Pinned approved Ubuntu 24.04 VM image version.')
 param image_version string
+@description('Administration VM size available in the approved region and subscription.')
+param vm_size string = 'Standard_B2s'
+@description('Reviewed Tailscale egress exception (see connectivity module). Off by default.')
+param tailscale_egress bool = false
 @description('Exact reviewed administration package/tailnet destinations. Empty compiler fixture is not operational.')
 param administration_egress egress_rule[]
 @description('Exact reviewed ACA and build dependency destinations. NAT provides transport, not permission.')
@@ -42,7 +46,9 @@ module connectivity './connectivity/main.bicep' = {
     vnet_cidr: vnet_cidr
     ssh_public_key: ssh_public_key
     image_version: image_version
+    vm_size: vm_size
     approved_egress: administration_egress
+    tailscale_egress: tailscale_egress
   }
 }
 module private_network './foundation/private-network.bicep' = {

@@ -392,7 +392,7 @@ class StaticContracts(unittest.TestCase):
                 self.assertIn("condition", resource)
         containers = self.templates["modules/storage-bindings.bicep"]["resources"]
         self.assertIn("/containers", containers["roles"]["scope"])
-        self.assertFalse(self.templates["modules/storage-bindings.bicep"]["parameters"]["create_containers"]["defaultValue"])
+        self.assertIn("container_names", self.templates["modules/storage-bindings.bicep"]["parameters"])
         self.assertNotIn("cluster", roles["parameters"]["kind"]["allowedValues"])
         self.assertNotIn("cosmos", roles["parameters"]["kind"]["allowedValues"])
         for role in ("230815da-be43-4aae-9cb4-875f7bd000aa", "17d1049b-9a84-46fb-8f53-869881c3d3ab",

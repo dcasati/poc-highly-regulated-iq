@@ -171,6 +171,20 @@ az acr repository show --name "$REGISTRY_NAME" \
 
 `RUNTIME_IMAGE` must be a .NET 10 runtime image pinned by digest. Deploy the built image by its immutable digest, not the tag. Use no public build workers, registry keys or admin user.
 
+### Build pool egress and offline restore
+
+The `snet-<project>-build` NSG denies other egress, so the dedicated pool stays in `Creating` until the reviewed dependencies are allowed. Set `platform_destinations.build` (or `outbound.build`) to Azure service tags, never Internet or `AzureCloud`: `AzureKeyVault`, `Storage`, `EventHub`, `AzureMonitor` (443 and 12000), plus `MicrosoftContainerRegistry` and `AzureFrontDoor.FirstParty` (443) for base images. Entra, the registry Private Endpoint and DNS are already allowed. These service tags are accepted in `destination_cidr` for build rules only; see `examples/main.example.bicepparam`. On an already-deployed foundation add them with narrow `az network nsg rule create` calls instead of re-running the VNet.
+
+NuGet is not a service tag, so the pool cannot restore from nuget.org. Restore on a trusted workstation into a feed folder inside a staging copy of `app/ReviewPortal` (without `bin/`/`obj/`), then build with `NUGET_SOURCE` pointing at it; `--locked-mode` still verifies the lock file:
+
+```bash
+dotnet restore --locked-mode --packages ./nuget-offline
+az acr build ... --build-arg NUGET_SOURCE=/src/nuget-offline .
+az acr task show-run --registry "$REGISTRY_NAME" --run-id "$RUN_ID" --query 'outputImages[].digest' --output tsv
+```
+
+With public network access disabled, `az acr repository show` from outside the VNet is denied; read the digest from the run output. Hosting creation takes about 10 minutes and a Private Endpoint write can fail once with `InternalServerError`; a rerun of the same narrow module succeeded.
+
 Deploy `scenario/hosting.bicep`. Require an internal environment, disabled public networking, a `managedEnvironments` Private Endpoint, peer encryption and private app-domain DNS pointing to the endpoint NIC. Use the returned default domain to prepare the private HTTPS SPA redirect, and confirm the runtime URL afterward. Review cost, preview and quota before deploying.
 
 Use native Microsoft Graph only with separately approved directory authority; ARM deployment creates no registrations. The identity modules emit request bodies:
@@ -204,5 +218,50 @@ The sanitized runtime example selects the user-approved synthetic attestation-de
 Review what-if and get separate approval, then read the actual `portal_url`. Confirm private HTTPS, managed-identity image and data access, a running worker and denied public access. Observe the full synthetic flow: upload → extraction → every-field confirmation → reviewer-only publication → both evidence paths indexed → case-authorized answers. Foreign cases/owners and invalid tokens must be rejected.
 
 Report infrastructure deployment and application readiness separately, with any blocked preview, quota, DNS, identity, processing-boundary or indexing handoff. Do not use real documents, lock or delete evidence, broaden IAM or migrate ownership to get past a blocker.
+
+## Tailscale administration access
+
+Tailscale is limited to approved synthetic-only administration of the private VM. Enrollment is a separate approved handoff, never part of `run.sh -x install`; keep auth keys out of the repo and shell history.
+
+1. **Egress exception (Bicep).** Parameter `tailscale_egress` (default `false`) adds outbound NSG rules `tailscale-tcp` (443) and `tailscale-udp` (41641, 3478) to the `Internet` service tag. This is not an allowlist; the residual risk is accepted only for synthetic-only administration. Review it in what-if before enabling.
+2. **Enroll the VM.** Export a one-time, tagged auth key only in your shell and pass it with `az vm run-command create ... --protected-parameters` so it is not stored in the command body. The script installs from tailscale.com, sets `net.ipv4.ip_forward=1` and runs:
+
+   ```bash
+   tailscale up --ssh --hostname <vm> --advertise-routes <vnet_cidr> --accept-dns=false
+   ```
+
+   Without a key, run `tailscale up` in the background, read the login URL from its log and open it. Each restart invalidates the URL.
+3. **Approve in the tailnet.** Approve the advertised route, add an `ssh` ACL rule for the administrators, and add split DNS for the exact PoC hostnames only, resolved through a forwarder on the VM to Azure DNS `168.63.129.16`. Never override global service suffixes in a shared tailnet.
+
+## Not created by Bicep
+
+ARM deployment creates the foundation (resource groups, network, NAT, administration VM, Azure OpenAI, Search, storage, DNS and Private Endpoints). These steps stay manual, native and separately approved; each section above has the commands:
+
+| Not created | Where |
+| --- | --- |
+| CU defaults and analyzer | §2 CU defaults, §3 |
+| Search index, data sources, skillset, indexers, knowledge source and base | §3 |
+| Private-endpoint connection approvals | §3 |
+| Entra API/SPA registrations, role assignments and consent | §4 |
+| Container image build | §4 |
+| Tailnet enrollment, routes and split DNS | §2 |
+| Soft-deleted Cognitive Services names (purge before reusing a name after delete) | separate approval |
+
+**Identity and data-plane handoff status (synthetic PoC):** the API registration, scope, roles, API service principal (assignment required) and user role assignments are created natively; only non-secret IDs are kept in ignored `.azure/checks/c/`. The payload modules have no `targetScope`, so emit them with an output-only `az deployment group create` in the foundation group. Remaining, in order:
+
+1. After `scenario/hosting.bicep` reports the environment default domain, build `identity/spa-payload.bicep` outputs with the exact private HTTPS redirect, POST the SPA application, then run `identity/finalize-payloads.bicep` requests: PATCH the API with `preAuthorizedApplications` for the SPA (keep `identifierUris`, scope and roles as read back) and POST the SPA service principal.
+2. CU defaults, analyzer and Search objects need data-plane rights on the AI account and Search service. The deployment's operator grants go to the *deployment caller* (`caller_principal_id`); any other principal (even subscription Owner) is denied. The Azure CLI operator received **temporary** single-resource grants (Cognitive Services User on the AI account; Search Index Data Contributor and Search Service Contributor on the Search service). Data-plane calls must originate from the administration VM through a managed `az vm run-command create` with the ephemeral token in `--protected-parameters` (never plain `--parameters`); run one at a time, retry on `Conflict` and delete the run-command resource afterwards. A workstation resolving public addresses is refused. Tailscale is not part of this path. Revoke the grants after setup (`OPERATOR_OID` is the signed-in user's object ID):
+
+   ```bash
+   for role in "Cognitive Services User:$AI_ACCOUNT_ID" \
+     "Search Index Data Contributor:$SEARCH_ID" "Search Service Contributor:$SEARCH_ID"; do
+     az role assignment delete --assignee "$OPERATOR_OID" --role "${role%%:*}" --scope "${role#*:}"
+   done
+   ```
+
+   Search skillset registration validates against the AI account and fails with `Public access is disabled` until `scenario/private-links.bicep` (Search shared private links to the AI account) is deployed and the target-side connections on the AI account and storage are approved (§3); check the Search-side links with `az search shared-private-link-resource list`. Register the skillset, both indexers, the knowledge source and base only after that.
+3. Soft-deleted Cognitive Services accounts from a retired PoC: `az cognitiveservices account list-deleted`, then `az cognitiveservices account purge --location "$LOCATION" --resource-group "$OLD_RG" --name "$OLD_NAME"` for each exact name only, after review.
+
+Before the first install, run what-if from an empty subscription. Check the administration VM image version (`az vm image list --sku server`) and VM size availability (`az vm list-skus`) in the approved region; set `vm_size` in the local parameters if the default `Standard_B2s` is restricted. What-if shows role assignments with runtime-computed names as `Unsupported`; that is expected and not a failure. Model deployments on one account are serialized (`@batchSize(1)`); parallel writes fail with `RequestConflict`.
 
 **Cleanup:** source changes never delete cloud resources. Inventory only this PoC's resources under a separate approval, review dependencies and retention, and approve each deletion independently. Never use complete-mode deployment or rerun the initial VNet to clear old children.

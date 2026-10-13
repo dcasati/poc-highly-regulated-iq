@@ -136,6 +136,8 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
     for path, rules in egress_sets.items():
         egress_by_port = {}
         for i, rule in enumerate(rules):
+            if path.endswith(".build") and rule["destination_cidr"] in BUILD_SERVICE_TAGS:
+                continue
             network = check_cidr(rule["destination_cidr"], f"{path}[{i}]", reject)
             if network is not None:
                 egress_by_port.setdefault(rule["port"], []).append(network)
@@ -167,6 +169,13 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
         ):
             reject("network.endpoint_subnet_id", "use a separate endpoint subnet in the selected runtime VNet")
     return errors
+
+
+# Reviewed Azure service tags for the ACR agent pool (build subnet only).
+BUILD_SERVICE_TAGS = {
+    "AzureKeyVault", "Storage", "EventHub", "AzureActiveDirectory", "AzureMonitor",
+    "MicrosoftContainerRegistry", "AzureFrontDoor.FirstParty",
+}
 
 
 def check_cidr(cidr, path, reject, *, private_only=False):

@@ -29,7 +29,20 @@ param approved_egress {
   port: int
 }[]
 
+@description('Reviewed exception for Tailscale on the administration VM: outbound TCP 443 (control plane/DERP) and UDP 41641/3478 (peer/STUN) to the Internet service tag. Destinations are not allowlisted; residual risk is accepted for synthetic-only administration.')
+param tailscale_egress bool = false
+
 var name = '${project_name}-connectivity'
+var tailscale_rules = tailscale_egress ? [
+  {
+    name: 'tailscale-tcp'
+    properties: { priority: 140, direction: 'Outbound', access: 'Allow', protocol: 'Tcp', sourcePortRange: '*', destinationPortRange: '443', sourceAddressPrefix: '*', destinationAddressPrefix: 'Internet' }
+  }
+  {
+    name: 'tailscale-udp'
+    properties: { priority: 150, direction: 'Outbound', access: 'Allow', protocol: 'Udp', sourcePortRange: '*', destinationPortRanges: ['41641', '3478'], sourceAddressPrefix: '*', destinationAddressPrefix: 'Internet' }
+  }
+] : []
 var egress_rules = [for (rule, i) in approved_egress: {
   name: 'approved-${i}'
   properties: {
@@ -48,7 +61,7 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
   name: 'nsg-${name}'
   location: location
   properties: {
-    securityRules: concat(egress_rules, [
+    securityRules: concat(egress_rules, tailscale_rules, [
       {
         name: 'azure-dns'
         properties: { priority: 3000, direction: 'Outbound', access: 'Allow', protocol: '*', sourcePortRange: '*', destinationPortRange: '53', sourceAddressPrefix: '*', destinationAddressPrefix: '168.63.129.16/32' }
