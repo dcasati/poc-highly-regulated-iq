@@ -1,0 +1,41 @@
+{
+  "name": "Private review Bicep development",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "installBicep": true
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "gatewayPorts": "no"
+    },
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "10.0"
+    }
+  },
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "SHELL": "/bin/bash",
+    "AZURE_BICEP_USE_BINARY_FROM_PATH": "true",
+    "AZURE_BICEP_CHECK_VERSION": "false",
+    "AZURE_EXTENSION_USE_DYNAMIC_INSTALL": "no"
+  },
+  "postCreateCommand": "bash .devcontainer/check-tools.sh -x check-app",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "ms-azuretools.vscode-bicep",
+        "ms-dotnettools.csharp",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

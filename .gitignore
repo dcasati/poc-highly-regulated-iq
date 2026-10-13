@@ -1,0 +1,32 @@
+# Local values and credentials; sanitized examples stay in source control.
+*.bicepparam
+!*.example.bicepparam
+!*.bicepparam.example
+.env
+.env.*
+!.env.example
+.azure/
+.secrets/
+*.key
+*.pem
+*.pfx
+*.p12
+
+# Local Python environments and notebook validation caches.
+.venv/
+__pycache__/
+*.py[cod]
+
+# Application build output.
+**/bin/
+**/obj/
+appsettings.Development.json
+
+# Local logs, notes, editor backups, and OS metadata.
+*.log
+scratch.md
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
