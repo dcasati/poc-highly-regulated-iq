@@ -10,12 +10,12 @@ param tailscale_egress = false
 param platform_destinations = {
   runtime: []
   build: [
-    { destination_cidr: 'AzureKeyVault', port: 443 }
-    { destination_cidr: 'Storage', port: 443 }
-    { destination_cidr: 'EventHub', port: 443 }
+    { destination_cidr: 'AzureKeyVault.WestUS3', port: 443 }
+    { destination_cidr: 'Storage.WestUS3', port: 443 }
+    { destination_cidr: 'EventHub.WestUS3', port: 443 }
     { destination_cidr: 'AzureMonitor', port: 443 }
     { destination_cidr: 'AzureMonitor', port: 12000 }
-    { destination_cidr: 'MicrosoftContainerRegistry', port: 443 }
+    { destination_cidr: 'MicrosoftContainerRegistry.WestUS3', port: 443 }
     { destination_cidr: 'AzureFrontDoor.FirstParty', port: 443 }
   ]
   verification: { approved: true, evidence_reference: 'EXAMPLE-exact-egress-review-required' }

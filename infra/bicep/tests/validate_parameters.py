@@ -136,7 +136,7 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
     for path, rules in egress_sets.items():
         egress_by_port = {}
         for i, rule in enumerate(rules):
-            if path.endswith(".build") and rule["destination_cidr"] in BUILD_SERVICE_TAGS:
+            if path.endswith(".build") and is_build_service_tag(rule["destination_cidr"]):
                 continue
             network = check_cidr(rule["destination_cidr"], f"{path}[{i}]", reject)
             if network is not None:
@@ -172,10 +172,13 @@ def validate(values, *, allow_examples=False, expected_tenant_id=None):
 
 
 # Reviewed Azure service tags for the ACR agent pool (build subnet only).
-BUILD_SERVICE_TAGS = {
-    "AzureKeyVault", "Storage", "EventHub", "AzureActiveDirectory", "AzureMonitor",
-    "MicrosoftContainerRegistry", "AzureFrontDoor.FirstParty",
-}
+# Global-only tags, plus tags that must be region-scoped so the pool cannot reach other regions' services.
+BUILD_GLOBAL_TAGS = {"AzureActiveDirectory", "AzureMonitor", "AzureFrontDoor.FirstParty"}
+BUILD_REGIONAL_TAG = re.compile(r"^(AzureKeyVault|Storage|EventHub|MicrosoftContainerRegistry)\.[A-Za-z0-9]+$")
+
+
+def is_build_service_tag(value):
+    return isinstance(value, str) and (value in BUILD_GLOBAL_TAGS or BUILD_REGIONAL_TAG.fullmatch(value) is not None)
 
 
 def check_cidr(cidr, path, reject, *, private_only=False):

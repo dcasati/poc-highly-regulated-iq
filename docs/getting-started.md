@@ -58,7 +58,7 @@ az deployment group show --subscription "$SUBSCRIPTION" \
   --query properties.outputs --output json > ".azure/checks/${STAGE}.outputs.json"
 ```
 
-Use `resource_groups`, `network` and `services` from the foundation output for later parameters; never guess names or principal IDs. `services.endpoints.openai` is the Azure OpenAI root endpoint and `services.models.chat` the deployment name. Direct private access is described in [Microsoft Learn](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/network); verify private DNS and scoped managed-identity access on this target before runtime. Tailnet enrollment, routes, ACLs and exact-hostname split DNS are separate administrator approvals. Keep the private administration VM as the access path unless an approved alternative route has been demonstrated.
+Use `resource_groups`, `network` and `services` from the foundation output for later parameters; never guess names or principal IDs. `services.endpoints.openai` is the Azure OpenAI root endpoint and `services.models.chat` the deployment name. Direct private access is described in [Microsoft Learn](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/network); verify private DNS and scoped managed-identity access on this target before runtime. Tailnet enrollment, routes, ACLs and exact-hostname split DNS are separate administrator approvals. Keep the private administration VM as the access path unless an approved alternative route has been demonstrated. Data-plane `az rest` calls in §2–§3 must run on that VM (see [Not created by Bicep](#not-created-by-bicep)); a workstation resolving public addresses is refused.
 
 ### Rights granted
 
@@ -173,7 +173,7 @@ az acr repository show --name "$REGISTRY_NAME" \
 
 ### Build pool egress and offline restore
 
-The `snet-<project>-build` NSG denies other egress, so the dedicated pool stays in `Creating` until the reviewed dependencies are allowed. Set `platform_destinations.build` (or `outbound.build`) to Azure service tags, never Internet or `AzureCloud`: `AzureKeyVault`, `Storage`, `EventHub`, `AzureMonitor` (443 and 12000), plus `MicrosoftContainerRegistry` and `AzureFrontDoor.FirstParty` (443) for base images. Entra, the registry Private Endpoint and DNS are already allowed. These service tags are accepted in `destination_cidr` for build rules only; see `examples/main.example.bicepparam`. On an already-deployed foundation add them with narrow `az network nsg rule create` calls instead of re-running the VNet.
+The `snet-<project>-build` NSG denies other egress, so the dedicated pool stays in `Creating` until the reviewed dependencies are allowed. Set `platform_destinations.build` (or `outbound.build`) to Azure service tags, never Internet or `AzureCloud`: region-scoped `AzureKeyVault.<Region>`, `Storage.<Region>` and `EventHub.<Region>` (for example `Storage.WestUS3`), global `AzureMonitor` (443 and 12000), plus `MicrosoftContainerRegistry.<Region>` and `AzureFrontDoor.FirstParty` (443) for base images. Bare `Storage`, `EventHub` and `AzureKeyVault` tags cover every region and tenant, so the validator rejects them. Entra, the registry Private Endpoint and DNS are already allowed. These service tags are accepted in `destination_cidr` for build rules only; see `examples/main.example.bicepparam`. On an already-deployed foundation add them with narrow `az network nsg rule create` calls instead of re-running the VNet.
 
 NuGet is not a service tag, so the pool cannot restore from nuget.org. Restore on a trusted workstation into a feed folder inside a staging copy of `app/ReviewPortal` (without `bin/`/`obj/`), then build with `NUGET_SOURCE` pointing at it; `--locked-mode` still verifies the lock file:
 
@@ -233,6 +233,15 @@ Tailscale is limited to approved synthetic-only administration of the private VM
    Without a key, run `tailscale up` in the background, read the login URL from its log and open it. Each restart invalidates the URL.
 3. **Approve in the tailnet.** Approve the advertised route, add an `ssh` ACL rule for the administrators, and add split DNS for the exact PoC hostnames only, resolved through a forwarder on the VM to Azure DNS `168.63.129.16`. Never override global service suffixes in a shared tailnet.
 
+## Standing exceptions
+
+Each exception needs a named owner and a review date recorded outside the repository; remove it when the review date passes without a renewal approval.
+
+| Exception | Bound | Removal |
+| --- | --- | --- |
+| Tailscale egress (`tailscale_egress`) | Administration VM NSG, outbound 443/UDP 41641 and 3478 to the `Internet` tag, synthetic-only | Set `tailscale_egress = false` and deploy the narrow connectivity module after approval |
+| Temporary operator grants | Single-resource scope on the AI account and Search service for the deployment operator | Commands in [Not created by Bicep](#not-created-by-bicep) |
+
 ## Not created by Bicep
 
 ARM deployment creates the foundation (resource groups, network, NAT, administration VM, Azure OpenAI, Search, storage, DNS and Private Endpoints). These steps stay manual, native and separately approved; each section above has the commands:
@@ -244,13 +253,13 @@ ARM deployment creates the foundation (resource groups, network, NAT, administra
 | Private-endpoint connection approvals | §3 |
 | Entra API/SPA registrations, role assignments and consent | §4 |
 | Container image build | §4 |
-| Tailnet enrollment, routes and split DNS | §2 |
+| Tailnet enrollment, routes and split DNS | [Tailscale administration access](#tailscale-administration-access) |
 | Soft-deleted Cognitive Services names (purge before reusing a name after delete) | separate approval |
 
 **Identity and data-plane handoff status (synthetic PoC):** the API registration, scope, roles, API service principal (assignment required) and user role assignments are created natively; only non-secret IDs are kept in ignored `.azure/checks/c/`. The payload modules have no `targetScope`, so emit them with an output-only `az deployment group create` in the foundation group. Remaining, in order:
 
 1. After `scenario/hosting.bicep` reports the environment default domain, build `identity/spa-payload.bicep` outputs with the exact private HTTPS redirect, POST the SPA application, then run `identity/finalize-payloads.bicep` requests: PATCH the API with `preAuthorizedApplications` for the SPA (keep `identifierUris`, scope and roles as read back) and POST the SPA service principal.
-2. CU defaults, analyzer and Search objects need data-plane rights on the AI account and Search service. The deployment's operator grants go to the *deployment caller* (`caller_principal_id`); any other principal (even subscription Owner) is denied. The Azure CLI operator received **temporary** single-resource grants (Cognitive Services User on the AI account; Search Index Data Contributor and Search Service Contributor on the Search service). Data-plane calls must originate from the administration VM through a managed `az vm run-command create` with the ephemeral token in `--protected-parameters` (never plain `--parameters`); run one at a time, retry on `Conflict` and delete the run-command resource afterwards. A workstation resolving public addresses is refused. Tailscale is not part of this path. Revoke the grants after setup (`OPERATOR_OID` is the signed-in user's object ID):
+2. CU defaults, analyzer and Search objects need data-plane rights on the AI account and Search service. The deployment's operator grants go to the *deployment caller* (`caller_principal_id`); any other principal (even subscription Owner) is denied. The Azure CLI operator received **temporary** single-resource grants (Cognitive Services User on the AI account; Search Index Data Contributor and Search Service Contributor on the Search service). Data-plane calls must originate from the administration VM through a managed `az vm run-command create` with the ephemeral token in `--protected-parameters` (never plain `--parameters`); pass it as `--protected-parameters T="$TOKEN"`, which the script reads as `$T`, and start the script with `test -n "$T"`. The JSON form `[{name:T,value:...}]` is accepted but silently delivers no parameter. Run one at a time, retry on `Conflict` and delete the run-command resource afterwards. A workstation resolving public addresses is refused. Tailscale is not part of this path. Revoke the grants after setup (`OPERATOR_OID` is the signed-in user's object ID):
 
    ```bash
    for role in "Cognitive Services User:$AI_ACCOUNT_ID" \
